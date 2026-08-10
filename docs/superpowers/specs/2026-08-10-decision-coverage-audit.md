@@ -1,7 +1,7 @@
 # Meme of Legends — Decision Coverage Audit
 
-**Date:** 2026-08-10  
-**Audited specification:** `docs/superpowers/specs/2026-08-10-meme-of-legends-mvp-design.md`  
+**Date:** 2026-08-10
+**Audited specification:** `docs/superpowers/specs/2026-08-10-meme-of-legends-mvp-design.md`
 **Result:** All approved product and UX decisions are represented in the specification. No unresolved product decision is knowingly presented as approved.
 
 ## Purpose
