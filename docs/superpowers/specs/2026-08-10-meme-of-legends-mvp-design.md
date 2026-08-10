@@ -171,6 +171,7 @@ A signed browser/session identity restores the same participant and role after r
 - The manager does not select or filter content before starting.
 - The platform admin can create, preview, edit, categorize, and archive system memes.
 - Supported system media concepts are image, GIF, and short video.
+- When creating or editing a system video meme, the platform admin selects and previews a start/end range no longer than 25 seconds.
 - Multiple players may choose the same meme in one round.
 - A player may reuse the same meme in later rounds.
 
@@ -193,6 +194,7 @@ A signed browser/session identity restores the same participant and role after r
 
 ### 9.1 System-meme selection
 
+- The current situation prompt remains visible above the picker throughout selection.
 - The mobile picker uses a search field, horizontal category controls, and a two-column media grid.
 - Media cards display their type and duration where applicable.
 - A player previews and explicitly confirms a selection.
@@ -245,7 +247,7 @@ Custom content rules:
 
 Each submission uses a fixed presentation slot:
 
-1. First 25 seconds: content is shown and 1–5 voting is open.
+1. First 25 seconds: the situation remains at the top, the anonymous submission is shown below it, and 1–5 voting is open.
 2. Final 5 seconds: the same screen emphasizes “last decision”; ratings remain editable.
 3. The system advances to the next submission.
 
@@ -253,7 +255,7 @@ Media behavior inside the 25-second display interval:
 
 - Static images remain visible for the full interval.
 - GIFs may loop for the interval.
-- Video/YouTube clips play once; if shorter than 25 seconds, the final frame remains visible until the last-decision phase.
+- System-video and YouTube clips may not exceed 25 seconds and play once; if shorter than 25 seconds, the final frame remains visible until the last-decision phase.
 - A clip is never cut before its selected end point.
 
 ## 11. Voting and Round Results
@@ -297,6 +299,7 @@ After all submissions are presented:
 ### 12.1 Elimination mode
 
 - Minimum: 2 players
+- The number of rounds is calculated automatically from the active-player count and cannot be configured by the manager.
 - Every active player responds to the same prompt each round.
 - The system randomly creates new two-player matchups at the start of every round.
 - Within each matchup, the higher submission score advances.
@@ -532,7 +535,7 @@ Voice rule: humor may appear throughout the game, waiting, empty, transition, re
 - Search/categories
 - System meme preview and confirm
 - Custom source selection
-- Upload progress/error
+- Image/GIF upload progress/error
 - YouTube URL validation
 - 25-second timeline trim and preview
 - Selection confirmed/waiting
