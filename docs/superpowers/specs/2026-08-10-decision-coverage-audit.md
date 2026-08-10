@@ -27,19 +27,26 @@ This audit maps the decisions approved during product discovery to the written s
 | Central library | All memes enabled in every environment; categories aid browsing; no packages or safety labels | 8 | Covered |
 | System-video clipping | Admin selects/previews a maximum 25-second range when maintaining a system video meme | 8.1, 10.2 | Covered |
 | Duplicate/reused memes | Multiple players may choose the same meme and reuse it later | 8.1 | Covered |
-| Prompt library | Platform admin manages prompts; random non-repeating prompt; manager may replace once per round | 8.2 | Covered |
-| Prompt capacity | At least 25 active prompts; archival cannot reduce the total below 25 | 8.2 | Covered |
-| Custom media | Players upload image/GIF or add YouTube; direct video-file upload is rejected | 9.2, 21.4 | Covered |
+| Prompt library | Active platform and business-owned prompts form one equally weighted pool; random non-repeating prompt; manager may replace once per round | 8.2 | Covered |
+| Business prompt creation | Persistent “Durumlarım” library; plain text/emoji, 3–160 characters; no quota; normalized exact duplicates blocked within the business | 8.2 | Covered |
+| Prompt snapshot | Eligible combined pool locks at game start; later changes affect future games only; play-time text is retained | 8.2–8.3, 16 | Covered |
+| Business prompt lifecycle | Business can edit with revisions, archive, and reactivate; admin can inspect/block/re-enable but cannot edit | 8.3 | Covered |
+| Business prompt moderation | Immediate activation, no automatic filter/preapproval; admin-blocked revisions remain blocked until admin re-enables | 8.3 | Covered |
+| Prompt capacity | At least 25 active platform prompts; platform archival cannot reduce the platform total below 25 | 8.2 | Covered |
+| Custom media | Players upload image/GIF or add YouTube/TikTok/Instagram/X content; direct video-file upload is rejected | 9.2, 21.4 | Covered |
 | Custom-media privacy | Private during selection; manager can identify/remove; no preapproval queue | 9.2 | Covered |
-| Custom-media retention | Files and YouTube details deleted after session; report keeps only “custom content used” | 9.2, 16 | Covered |
-| YouTube clipping | Touch-accessible start/end selection; maximum 25 seconds; preview/revise | 9.3 | Covered |
+| Custom-media retention | Files and external-link details deleted after session; report keeps only “custom content used” and provider type | 9.2, 16 | Covered |
+| Social providers | Public embeddable YouTube/TikTok videos, Instagram posts/Reels, and X posts use official provider mechanisms; third-party media is not downloaded | 8.1, 9.3 | Covered |
+| Social embed security/privacy | Provider templates, URL/domain allowlists, sanitization, restrictive CSP, and privacy/consent disclosure; arbitrary embed HTML is rejected | 9.3 | Covered |
+| YouTube/TikTok clipping | Touch-accessible start/end selection; maximum 25 seconds; preview/revise | 9.3 | Covered |
+| Instagram/X presentation | Complete public post is embedded for the fixed product-controlled presentation interval; no trimming | 9.3, 10.2 | Covered |
 | Selection timing | Manager selects 30–240 seconds; default 90; all confirmations end early | 6.1, 9.4 | Covered |
 | Selection timeout | Last valid choice submits automatically; no valid choice scores zero | 9.4 | Covered |
 | Live timing changes | Future-round values can change; active selection can only gain +15/+30/+60 | 6.2 | Covered |
 | Presentation order | Random and identical for every screen; owner remains anonymous until vote lock | 10.1 | Covered |
 | Presentation layout | Situation above, meme below, voting on the same screen | 9.1, 10.2 | Covered |
 | Per-meme timing | Fixed 25 seconds presentation/voting plus 5 seconds last decision | 6.1, 10.2 | Covered |
-| Media playback | Static image persists, GIF loops, video/YouTube plays once and holds final frame | 10.2 | Covered |
+| Media playback | Static image persists, GIF loops, system/YouTube/TikTok clips play once; Instagram/X use full-post embeds | 10.2 | Covered |
 | Voting | Scores 1–5; player cannot vote for self; all eligible votes have equal weight | 11.1 | Covered |
 | Scoring | Arithmetic mean; partial votes valid; missing votes excluded; zero valid votes scores zero | 11.2 | Covered |
 | Final review | 15–120 seconds, default 45; replay/revise; early completion and manager close | 6.1, 11.3 | Covered |
@@ -70,7 +77,7 @@ These earlier values are intentionally absent from the final rules because later
 
 - A separate 10–30 second rating screen with a 15-second default was replaced by the fixed combined `25 + 5` presentation-and-voting slot.
 - A 15-second maximum clip was replaced by a 25-second maximum clip.
-- Direct custom video-file upload was removed; custom moving-video content is now YouTube-only.
+- Direct custom video-file upload remains excluded. The earlier YouTube-only external-media decision was expanded to YouTube/TikTok clip support and full-post Instagram/X support.
 - An always-dark live-game surface was replaced by the approved warm, open, light “Sıcak Zine” presentation.
 - A two-mode game design was replaced by elimination, league, and default hybrid modes.
 
@@ -84,7 +91,7 @@ The approved product specification intentionally does not yet select:
 - Real-time transport and synchronization implementation
 - Authentication/session implementation
 - Object storage and media-processing implementation
-- YouTube playback, validation, and clipping integration
+- YouTube/TikTok player control and Instagram/X embed, validation, privacy, and security implementation
 - Observability, queues, caching, CI/CD, and infrastructure topology
 
 These are not missing product decisions. They are the next explicitly approved decision phase.

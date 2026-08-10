@@ -9,7 +9,7 @@
 
 Meme of Legends is a live, browser-based meme competition designed for events run by businesses such as cafés, bars, universities, corporate teams, and event organizers.
 
-During a session, the system presents a situation such as “Maaşın yattığı an.” Each active player selects a system meme, uploads a private custom image or GIF, or adds a YouTube clip. Direct video-file uploads are not supported. Submissions are shown anonymously and rated from 1 to 5 by eligible players and voters. Scores drive one of three game modes: elimination, hybrid, or league.
+During a session, the system presents a situation such as “Maaşın yattığı an.” Each active player selects a system meme, uploads a private custom image or GIF, or adds supported public content from YouTube, TikTok, Instagram, or X. Direct video-file uploads are not supported. Submissions are shown anonymously and rated from 1 to 5 by eligible players and voters. Scores drive one of three game modes: elimination, hybrid, or league.
 
 The MVP is not a public consumer game. It is a managed event product in which platform admins provision business accounts, assign session rights, manage the central content library, and review session reports. A business runs one active session at a time. Participants join without accounts using a QR code or room code.
 
@@ -23,7 +23,7 @@ The same product must work in multiple business contexts. The MVP is therefore s
 - Predominantly mobile participation
 - An optional shared display
 - A fixed set of organizer controls
-- A central, curated meme and situation library
+- A central curated meme library and a combined platform/business situation-prompt library
 
 ## 3. MVP Outcome and Success Criteria
 
@@ -47,7 +47,6 @@ Independent voters are optional. A session may complete with two players and zer
 - Persistent participant accounts or profiles
 - Public rooms, matchmaking, friends, or social feeds
 - Business branding or white labeling
-- User-created situation prompts
 - Content packages, maturity labels, or safe-mode filters
 - Strong attendee identity verification or device fingerprinting
 
@@ -59,6 +58,8 @@ Independent voters are optional. A session may complete with two players and zer
 - Sets initial session rights and adds rights later
 - Resets business passwords
 - Manages meme categories, system memes, and situation prompts
+- Reviews business-owned situation prompts, their revision history, and moderation status
+- Blocks and re-enables business-owned prompts but cannot edit their text
 - Archives previously used content rather than deleting it
 - Views live and historical session reports
 - Views session settings, participants, content usage, votes, errors, and results
@@ -74,6 +75,7 @@ Independent voters are optional. A session may complete with two players and zer
 - Starts, pauses, resumes, advances, or terminates the game
 - Adds time to an active selection stage
 - Changes future-round timing settings
+- Creates and manages the business's persistent situation-prompt library
 - Resolves media failures
 - Views historical session summaries
 
@@ -83,7 +85,7 @@ The full business-manager workflow must be operable from a mobile phone. Desktop
 
 - Joins without an account
 - Requests the player role using a unique nickname
-- Selects a system meme, uploads a custom image/GIF, or adds a YouTube clip for each active round
+- Selects a system meme, uploads a custom image/GIF, or adds supported YouTube, TikTok, Instagram, or X content for each active round
 - Rates every submission except their own
 - Becomes a voter after elimination
 
@@ -171,21 +173,39 @@ A signed browser/session identity restores the same participant and role after r
 - The manager does not select or filter content before starting.
 - The platform admin can create, preview, edit, categorize, and archive system memes.
 - Supported system media concepts are image, GIF, and short video.
+- The platform admin may use an uploaded system asset or a supported public YouTube, TikTok-video, Instagram-post/Reel, or X-post source when maintaining the central meme library.
+- External system sources follow the same provider capability and availability rules defined in section 9.3, but their normalized references persist as central-library content.
 - When creating or editing a system video meme, the platform admin selects and previews a start/end range no longer than 25 seconds.
 - Multiple players may choose the same meme in one round.
 - A player may reuse the same meme in later rounds.
 
-### 8.2 Situation prompts
+### 8.2 Combined situation-prompt library
 
-- Prompts are centrally defined and managed by the platform admin.
+- A prompt is owned either by the platform (`PLATFORM`) or one business (`BUSINESS`).
+- Platform prompts are centrally defined and managed by the platform admin.
+- Each business has a persistent “Durumlarım” library available from its dashboard.
+- A business prompt contains plain text and emoji only and must contain 3–160 characters. Links, HTML, and rich-text formatting are rejected.
+- The business library has no numerical quota and is searchable, filterable, and paginated.
+- Within one business, an exact duplicate is rejected after case folding, trimming, and normalizing redundant whitespace. Similar prompts and matches with the platform library are allowed.
+- All active platform prompts and all active prompts owned by the current business form one combined pool. Every eligible prompt has equal selection probability; there is no business/platform weighting or manual preselection.
 - The system randomly selects a prompt not previously used in the current session.
-- The manager does not see the prompt before the round.
-- The manager may replace the displayed prompt once per round.
-- Businesses and participants cannot create custom prompts in MVP.
-- The platform must maintain at least 25 active prompts so the maximum-length league can complete without repetition.
-- The platform admin cannot archive content in a way that reduces the active prompt count below 25; the admin UI explains why the operation is blocked.
+- The manager does not see the prompt before the round and may replace the displayed prompt once per round.
+- The eligible pool is snapshotted when the game starts. Later creation, editing, archival, blocking, or reactivation affects only future games.
+- The platform must maintain at least 25 active platform prompts so the maximum-length league can complete without repetition even when a business has no custom prompts.
+- The platform admin cannot archive platform content in a way that reduces the active platform-prompt count below 25; the admin UI explains why the operation is blocked.
 
-### 8.3 No content filtering
+### 8.3 Business-prompt lifecycle and moderation
+
+- A business can create, edit, archive, and reactivate its own prompts.
+- Editing creates a new revision; prior text, actor, and timestamp remain in the audit history.
+- Session history retains the exact prompt text used at play time, independent of later edits or archival.
+- Business prompts become active immediately; there is no automatic AI/profanity filter or pre-approval queue in MVP.
+- The platform admin can view every business prompt and its revision history and can block or re-enable it.
+- The platform admin cannot edit prompt text on behalf of the business.
+- A business may revise an admin-blocked prompt, but the revision remains blocked until the platform admin explicitly re-enables it.
+- Archiving is the normal business removal mechanism; historical references and revisions are never broken.
+
+### 8.4 No content filtering
 
 - There are no maturity labels, environment filters, safe modes, or content packages.
 - All active central content is available in all business contexts.
@@ -206,9 +226,12 @@ Players may privately add:
 
 - An image
 - A GIF
-- A YouTube link
+- A public YouTube link
+- A public TikTok video link
+- A public Instagram post or Reel link
+- A public X post link
 
-Players cannot upload video files directly. Custom moving-video content is accepted only through a YouTube link.
+Players cannot upload video files directly. Moving-video content is accepted only through a supported public external provider.
 
 Custom content rules:
 
@@ -217,15 +240,19 @@ Custom content rules:
 - It exists only in the current session and never enters the central library.
 - The manager may disable custom content, remove a custom submission, and see its submitting player in the management console.
 - There is no mandatory pre-approval queue.
-- Custom files and YouTube-link details are deleted when the session ends.
-- Historical reports retain only the fact that custom content was used.
+- Custom files and external-link details are deleted when the session ends.
+- Historical reports retain only the fact that custom content was used and the provider type; they do not retain the link, external content identifier, preview, or submitted media.
 
-### 9.3 YouTube trimming
+### 9.3 External social-media links
 
-- A valid YouTube source must be previewable before confirmation.
-- The player selects start and end points on a touch-accessible timeline.
-- The selected clip may not exceed 25 seconds.
-- The player can preview and revise the clip before confirmation.
+- Supported sources are YouTube videos, TikTok videos, Instagram posts/Reels, and X posts.
+- Only public, valid, and officially embeddable content is accepted. Private, deleted, age/region-restricted, or embedding-disabled content is rejected when it cannot be previewed.
+- YouTube and TikTok are clip-capable providers. The player selects start and end points on a touch-accessible timeline, previews the result, and may revise it before confirmation. The selected clip may not exceed 25 seconds.
+- Instagram posts/Reels and X posts are full-post providers. They are previewed and confirmed without a trimming interface and remain on screen only for the game's fixed presentation interval.
+- External media is rendered through provider-specific official embed/player mechanisms. The product does not scrape, download, or copy third-party media to its own storage.
+- The system stores only the normalized provider/content reference, safe preview metadata, and start/end points where supported.
+- Arbitrary embed HTML is never accepted from a participant or administrator. Rendering uses provider-specific templates, strict URL/domain allowlists, sanitization where provider metadata is consumed, and a restrictive Content Security Policy.
+- Third-party embeds and their possible cookies/tracking are disclosed in the product's privacy and consent text.
 
 ### 9.4 Selection timer completion
 
@@ -255,8 +282,10 @@ Media behavior inside the 25-second display interval:
 
 - Static images remain visible for the full interval.
 - GIFs may loop for the interval.
-- System-video and YouTube clips may not exceed 25 seconds and play once; if shorter than 25 seconds, the final frame remains visible until the last-decision phase.
+- System-video, YouTube, and TikTok clips may not exceed 25 seconds and play once; if shorter than 25 seconds, the final frame remains visible until the last-decision phase where the provider permits it.
+- Instagram and X embeds show the complete post inside the fixed presentation slot; presentation advances when the product timer ends even if embedded media has not finished.
 - A clip is never cut before its selected end point.
+- The server synchronizes the game phase and presentation timer. Frame-exact synchronization of third-party players across devices is not guaranteed.
 
 ## 11. Voting and Round Results
 
@@ -440,6 +469,7 @@ The report includes:
 - Participant nicknames and roles
 - Player/voter counts
 - Prompt history
+- Prompt ownership, moderation status, and captured play-time text
 - System meme identifiers and captured historical metadata
 - Whether custom content was used
 - Valid vote counts and average scores
@@ -450,8 +480,8 @@ The report includes:
 ### 16.2 Retention rules
 
 - System meme and prompt references remain resolvable after archival.
-- Custom image/GIF files and YouTube-link details are deleted at session end.
-- Reports retain only “custom content used” metadata.
+- Custom image/GIF files and external-link details are deleted at session end.
+- Reports retain only “custom content used” metadata and the external provider type when applicable.
 - Finalized rounds are immutable in normal operation.
 
 ## 17. UX and Visual Design System
@@ -536,8 +566,8 @@ Voice rule: humor may appear throughout the game, waiting, empty, transition, re
 - System meme preview and confirm
 - Custom source selection
 - Image/GIF upload progress/error
-- YouTube URL validation
-- 25-second timeline trim and preview
+- YouTube/TikTok/Instagram/X URL validation and provider-specific preview
+- YouTube/TikTok 25-second timeline trim and preview
 - Selection confirmed/waiting
 - Submission presentation and rating
 - Own-submission locked state
@@ -553,6 +583,7 @@ Voice rule: humor may appear throughout the game, waiting, empty, transition, re
 
 - Login and password change
 - Dashboard and rights counter
+- “Durumlarım” list, search, create, edit, archive, reactivate, blocked state, and revision history
 - Session creation and mode selection
 - Timing and custom-content settings
 - Right-consumption confirmation
@@ -577,6 +608,7 @@ Voice rule: humor may appear throughout the game, waiting, empty, transition, re
 - Session detail, results, and audit trail
 - Meme library, categories, create/edit/archive
 - Situation prompt create/edit/archive
+- Business-prompt list, filters, detail, revision history, block, and re-enable actions
 - System error logs
 - Responsive mobile layouts
 
@@ -658,11 +690,14 @@ Voice rule: humor may appear throughout the game, waiting, empty, transition, re
 ### 21.4 Media tests
 
 - System images, GIFs, and videos
-- Custom images, GIFs, and YouTube links; direct video-file uploads must be rejected
-- Timeline trimming and 25-second maximum
+- Custom images, GIFs, and YouTube/TikTok/Instagram/X links; direct video-file uploads must be rejected
+- YouTube/TikTok timeline trimming and 25-second maximum
+- Instagram/X full-post presentation with no trimming controls
+- Public/embeddable validation, provider URL normalization, unavailable-content handling, and provider allowlists
 - Upload progress, cancellation, invalid source, and retry
 - Presentation failure and manager invalidation
 - End-of-session custom-media deletion
+- Business-prompt validation, duplicate normalization, revisions, archival, blocking, snapshots, and historical text retention
 
 ### 21.5 Load, accessibility, and UX tests
 
@@ -677,6 +712,6 @@ Voice rule: humor may appear throughout the game, waiting, empty, transition, re
 
 ## 22. Delivery Boundary
 
-This document approves product behavior, UX structure, and product-level system boundaries. Technology stack, deployment platform, database, real-time transport, object storage, media processing, YouTube integration details, and infrastructure topology must be selected in the next technical-design phase.
+This document approves product behavior, UX structure, and product-level system boundaries. Technology stack, deployment platform, database, real-time transport, object storage, media processing, provider-specific social embed integration details, and infrastructure topology must be selected in the technical-design phase.
 
 No implementation or scaffolding begins until this written specification is reviewed and approved.
