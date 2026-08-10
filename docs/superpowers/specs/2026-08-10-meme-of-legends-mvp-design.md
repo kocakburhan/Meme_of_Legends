@@ -1,7 +1,7 @@
 # Meme of Legends — MVP Product Requirements and Design
 
 **Date:** 2026-08-10
-**Status:** Product and UX design approved in conversation; awaiting review of this written specification
+**Status:** Approved product and UX design specification
 **Product type:** Business-operated, browser-based live event game
 **Working title:** Meme of Legends
 
@@ -9,7 +9,7 @@
 
 Meme of Legends is a live, browser-based meme competition designed for events run by businesses such as cafés, bars, universities, corporate teams, and event organizers.
 
-During a session, the system presents a situation such as “Maaşın yattığı an.” Each active player selects a system meme or adds a private custom image, GIF, video, or YouTube clip. Submissions are shown anonymously and rated from 1 to 5 by eligible players and voters. Scores drive one of three game modes: elimination, hybrid, or league.
+During a session, the system presents a situation such as “Maaşın yattığı an.” Each active player selects a system meme, uploads a private custom image or GIF, or adds a YouTube clip. Direct video-file uploads are not supported. Submissions are shown anonymously and rated from 1 to 5 by eligible players and voters. Scores drive one of three game modes: elimination, hybrid, or league.
 
 The MVP is not a public consumer game. It is a managed event product in which platform admins provision business accounts, assign session rights, manage the central content library, and review session reports. A business runs one active session at a time. Participants join without accounts using a QR code or room code.
 
@@ -83,7 +83,7 @@ The full business-manager workflow must be operable from a mobile phone. Desktop
 
 - Joins without an account
 - Requests the player role using a unique nickname
-- Selects or uploads a meme for each active round
+- Selects a system meme, uploads a custom image/GIF, or adds a YouTube clip for each active round
 - Rates every submission except their own
 - Becomes a voter after elimination
 
@@ -134,7 +134,7 @@ When no shared display is present, the same stage content is rendered on partici
 | Presentation and initial voting | Fixed 25 + 5 seconds | Fixed | Not configurable |
 | Final vote-review duration | 15–120 seconds | 45 seconds | New value applies next round |
 | League round count | 1–25 | 10 | Locked after game start |
-| Custom uploads | Enabled/disabled | Enabled | Manager-controlled |
+| Custom media | Enabled/disabled | Enabled | Manager-controlled |
 
 Hybrid mode is unavailable when fewer than four players are approved. The manager must select elimination or league mode instead.
 
@@ -204,8 +204,9 @@ Players may privately add:
 
 - An image
 - A GIF
-- A short video
 - A YouTube link
+
+Players cannot upload video files directly. Custom moving-video content is accepted only through a YouTube link.
 
 Custom content rules:
 
@@ -217,9 +218,9 @@ Custom content rules:
 - Custom files and YouTube-link details are deleted when the session ends.
 - Historical reports retain only the fact that custom content was used.
 
-### 9.3 Video and YouTube trimming
+### 9.3 YouTube trimming
 
-- A valid video/YouTube source must be previewable before confirmation.
+- A valid YouTube source must be previewable before confirmation.
 - The player selects start and end points on a touch-accessible timeline.
 - The selected clip may not exceed 25 seconds.
 - The player can preview and revise the clip before confirmation.
@@ -446,7 +447,7 @@ The report includes:
 ### 16.2 Retention rules
 
 - System meme and prompt references remain resolvable after archival.
-- Custom files, private video data, and YouTube-link details are deleted at session end.
+- Custom image/GIF files and YouTube-link details are deleted at session end.
 - Reports retain only “custom content used” metadata.
 - Finalized rounds are immutable in normal operation.
 
@@ -654,7 +655,7 @@ Voice rule: humor may appear throughout the game, waiting, empty, transition, re
 ### 21.4 Media tests
 
 - System images, GIFs, and videos
-- Custom images, GIFs, videos, and YouTube links
+- Custom images, GIFs, and YouTube links; direct video-file uploads must be rejected
 - Timeline trimming and 25-second maximum
 - Upload progress, cancellation, invalid source, and retry
 - Presentation failure and manager invalidation
