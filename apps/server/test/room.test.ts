@@ -169,6 +169,45 @@ afterEach(async () => {
 });
 
 describe('room WebSockets', () => {
+  it('serves the active system meme library for room participants', async () => {
+    await lobby();
+    const categoryId = crypto.randomUUID();
+    await env.DB.prepare(
+      'INSERT INTO categories (id,name,sort_order,archived) VALUES (?,?,0,0)',
+    )
+      .bind(categoryId, 'İş')
+      .run();
+    await env.DB.batch([
+      env.DB.prepare(
+        "INSERT INTO memes (id,category_id,description,media_type,r2_key,status,created_at) VALUES (?,?,?,?,?,'active',?)",
+      ).bind(crypto.randomUUID(), categoryId, 'Pazartesi yüzü', 'image', 'e2e/a.png', now),
+      env.DB.prepare(
+        "INSERT INTO memes (id,category_id,description,media_type,r2_key,status,created_at) VALUES (?,?,?,?,?,'untagged',?)",
+      ).bind(
+        crypto.randomUUID(),
+        categoryId,
+        'Toplantı bitmeyen adam',
+        'gif',
+        'e2e/b.gif',
+        now + 1,
+      ),
+      env.DB.prepare(
+        "INSERT INTO memes (id,description,media_type,r2_key,status,created_at) VALUES (?,?,?,?,'active',?)",
+      ).bind(crypto.randomUUID(), 'Kategorisiz', 'image', 'e2e/c.png', now + 2),
+    ]);
+    const r = await api(`/api/rooms/${code}/library`);
+    expect(r.status).toBe(200);
+    const data = await r.json<{ memes: { id: string; title: string; category: string | null; mediaType: string }[] }>();
+    expect(data.memes.map((m) => [m.title, m.category, m.mediaType])).toEqual([
+      ['Pazartesi yüzü', 'İş', 'image'],
+      ['Kategorisiz', null, 'image'],
+    ]);
+    expect((await api(`/api/rooms/XXXXXX/library`)).status).toBe(404);
+    expect((await api(`/api/rooms/${code}/library`, {})).status).toBe(405);
+    // Unknown room codes do not leak the library.
+    const other = await api('/api/rooms/ZZZZ99/library');
+    expect(other.status).toBe(404);
+  });
   it.each(['elimination', 'league'])(
     'plays an entire %s game, persists credits/report, hides authors and rejects unauthorized commands',
     async (mode) => {

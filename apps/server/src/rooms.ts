@@ -130,6 +130,41 @@ export async function businessRoute(
   }
   throw new ApiFailure(404, 'NOT_FOUND');
 }
+/** Active system memes of the library shown to participants for selection. */
+export async function libraryRoute(
+  request: Request,
+  env: Cloudflare.Env,
+  code: string,
+): Promise<Response> {
+  if (!roomCodeSchema.safeParse(code).success) throw new ApiFailure(404, 'ROOM_NOT_FOUND');
+  if (request.method !== 'GET') throw new ApiFailure(405, 'METHOD_NOT_ALLOWED');
+  await expireLobbies(env);
+  const room = await drizzle(env.DB)
+    .select({ id: gameSessions.id })
+    .from(gameSessions)
+    .where(
+      and(
+        eq(gameSessions.roomCode, code),
+        sql`${gameSessions.status} IN ('lobby','running','paused')`,
+      ),
+    )
+    .get();
+  if (!room) throw new ApiFailure(404, 'ROOM_NOT_FOUND');
+  const rows = await env.DB.prepare(
+    `SELECT m.id, m.description, m.media_type, c.name AS category FROM memes m
+    LEFT JOIN categories c ON c.id = m.category_id
+    WHERE m.status = 'active' AND (c.id IS NULL OR c.archived = 0)
+    ORDER BY m.created_at, m.id`,
+  ).all<{ id: string; description: string; media_type: string; category: string | null }>();
+  return json({
+    memes: rows.results.map((m) => ({
+      id: m.id,
+      title: m.description,
+      category: m.category,
+      mediaType: m.media_type,
+    })),
+  });
+}
 export async function roomRoute(
   request: Request,
   env: Cloudflare.Env,

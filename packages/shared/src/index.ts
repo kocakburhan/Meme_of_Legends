@@ -18,6 +18,18 @@ export const joinRequestSchema = z.strictObject({
   nickname: nicknameSchema,
   wants: z.enum(['player', 'voter']),
 });
+// Responses of the taslak HTTP surface (protocol.md §2); validated before use.
+export const roomInfoSchema = z.strictObject({
+  code: roomCodeSchema,
+  businessName: z.string().nullable(),
+  started: z.boolean(),
+});
+export type RoomInfo = z.infer<typeof roomInfoSchema>;
+export const joinResponseSchema = z.strictObject({
+  participantId: id,
+  token: z.string().min(1),
+});
+export type JoinResponse = z.infer<typeof joinResponseSchema>;
 export const sessionConfigSchema = z.strictObject({
   mode: z.enum(['elimination', 'league', 'hybrid']),
   leagueRounds: z.number().int().min(1).max(50),
@@ -248,6 +260,11 @@ export const viewSchema = z.strictObject({
   status: z.enum(['lobby', 'running', 'paused', 'finished', 'terminated']),
   phase: phaseSchema,
   config: sessionConfigSchema,
+  // M3b (onaylı): presentation position and the participant's own submission id.
+  presentation: z
+    .strictObject({ index: z.number().int().nonnegative(), total: z.number().int().positive() })
+    .optional(),
+  ownSubmissionId: id.nullable().optional(),
   participants: z.array(
     z.strictObject({
       id,

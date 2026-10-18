@@ -2,7 +2,7 @@ import { pairDisplay } from './display-pairing';
 import { RoomDurableObject } from './room';
 import { ApiFailure, authRoute, json } from './auth';
 import { adminRoute } from './admin';
-import { businessRoute, expireLobbies, roomRoute, roomStub } from './rooms';
+import { businessRoute, expireLobbies, libraryRoute, roomRoute, roomStub } from './rooms';
 export { RoomDurableObject };
 export default {
   async fetch(request: Request, env: Cloudflare.Env): Promise<Response> {
@@ -37,6 +37,8 @@ export default {
         if (request.method !== 'POST') throw new ApiFailure(405, 'METHOD_NOT_ALLOWED');
         return await roomStub(env, takeover[1]!).fetch(request);
       }
+      const library = /^\/api\/rooms\/([^/]+)\/library$/.exec(path);
+      if (library) return await libraryRoute(request, env, library[1]!);
       const socket = /^\/api\/rooms\/([^/]+)\/ws$/.exec(path);
       if (socket) return await roomStub(env, socket[1]!).fetch(request);
       const room = /^\/api\/rooms\/([^/]+)(\/join)?$/.exec(path);
