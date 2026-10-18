@@ -19,8 +19,9 @@ Bu dosya, owner ile orchestrator (Claude Code) arasındaki tartışmaların ve a
 - Proje tamamen coding agent'lar ile geliştirilecek.
 - **İstisna:** Bazen Codex orchestrator, OpenCode worker olabilir. Owner bunu açıkça belirtir.
 - **Model seçimi:** Codex ve OpenCode'da kullanılacak modeli owner söyler. Owner aksini söyleyene kadar orchestrator o modeli tekrar sormadan kullanır.
-  - Codex modeli: _henüz belirtilmedi_
-  - OpenCode modeli: _henüz belirtilmedi_
+  - **Codex** (zor işler): `gpt-6.1-sol`, reasoning **low veya medium** — `codex exec -m gpt-6.1-sol -c model_reasoning_effort=low|medium "..."`
+  - **OpenCode** (görece kolay ve normal işler): `glm-5.3-flash`, reasoning **max** — `opencode run -m 'opencode-go/glm-5.3-flash#max' "..."`
+  - Owner modelleri ve reasoning seviyelerini ileride değiştirebilir. (2026-10-18; iki komut test edildi, çalışıyor.)
 - **AGENTS.md / CLAUDE.md:** Tartışmalar bittikten sonra yazılacak. Kısa tutulacak; sıkı talimatlar yerine modellere ve harness'lere özgürlük tanıyacak.
 
 ---
@@ -444,7 +445,6 @@ Amaç hileyi imkânsız kılmak değil, zahmetli ve görünür kılmaktır. Bir 
 
 _Owner tercihi: ileriki aşamalara ait sorular gerektiği zaman sorulur, önceden sorulmaz._
 
-1. Codex ve OpenCode için hangi modeller kullanılacak? → Owner, iş dağıtımı başladığında söyleyecek.
 2. (Teknoloji aşamasında) Platform genelinde eşzamanlı oturum hedefi ve QR linkleri için alan adı.
 3. (Yayın öncesi, owner içerik işi) İlk platform durumları seti (~100+) ve meme kütüphanesi/kategoriler.
 
@@ -513,3 +513,4 @@ _Owner tercihi: ileriki aşamalara ait sorular gerektiği zaman sorulur, öncede
 - Teknik yapı onaylandı (Bölüm 4.2); Unity gerekmediği owner'a açıklandı. **Teknoloji aşaması tamamlandı.** Uygulama planı ve iş dağılımı aşamasına geçildi.
 - Uygulama planı (`docs/IMPLEMENTATION_PLAN.md`), `AGENTS.md` ve `CLAUDE.md` taslakları yazıldı; owner incelemesi bekleniyor.
 - Cloudflare: owner'ın mevcut hesabı kullanılacak; `mol-` önek kuralı AGENTS.md'ye eklendi.
+- Worker modelleri belirlendi (Bölüm 1). Repo gizliye alındı ve commit'ler GitHub'a gönderildi.
