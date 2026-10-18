@@ -517,3 +517,5 @@ _Owner tercihi: ileriki aşamalara ait sorular gerektiği zaman sorulur, öncede
 - **M0 başladı (2026-10-18):** Kurulum işi OpenCode'a (glm-5.3-flash#max) verildi; dal `m0-scaffold`, worktree `../mol-wt-m0`. Uzak Cloudflare işlemleri yasak; owner'ın `wrangler login` yapması bekleniyor.
 - M1 hazırlığı: motor API sözleşmesi taslağı yazıldı (`docs/contracts/engine-api.md` v0.1).
 - **M0 tamamlandı:** OpenCode iskeleti kurdu (pnpm 12, TS 5.9, Vitest 4, Wrangler 4, React 19, Vite 8, Tailwind 4); orchestrator typecheck/lint/test/build doğruladı ve main'e birleştirdi. Not: `@cloudflare/vitest-pool-workers` yerine `@cloudflare/vitest-plugin` kullanılıyor. Cloudflare kaynakları henüz oluşturulmadı (`wrangler login` bekleniyor).
+- GitHub Actions CI ilk çalıştırmada 'startup_failure' verdi (iş başlamadan; workflow YAML geçerli). Muhtemel neden hesap/faturalama ayarı; owner'dan run sayfasındaki mesaj istendi.
+- **M1 başladı:** Motor işi Codex'e (gpt-6.1-sol, medium) verildi; dal `m1-engine`, worktree `../mol-wt-m1`.
