@@ -17,8 +17,7 @@
     {
       "binding": "DB",
       "database_name": "mol-db",
-      // PLACEHOLDER: run `wrangler d1 create mol-db` and paste the real id.
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "a18b06b0-5204-4ee8-a5e0-82f64027f53f",
     },
   ],
 
