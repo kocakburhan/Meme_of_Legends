@@ -1,0 +1,94 @@
+{
+  "room": "TKUJ9S",
+  "players": 4,
+  "voters": 46,
+  "mode": "league",
+  "rounds": 1,
+  "durationMs": 86511,
+  "completed": true,
+  "failure": null,
+  "connectionMs": {
+    "count": 79,
+    "p50": 140.4352670000003,
+    "p95": 452.01505399999996,
+    "p99": 621.2753740000003,
+    "max": 621.2753740000003
+  },
+  "ackMs": {
+    "count": 222,
+    "p50": 268.5160590000014,
+    "p95": 766.5759049999997,
+    "p99": 867.9586640000052,
+    "max": 891.0858499999958
+  },
+  "phaseSpread": {
+    "transitions": 12,
+    "completeTransitions": 2,
+    "localMs": {
+      "count": 12,
+      "p50": 14,
+      "p95": 23,
+      "p99": 23,
+      "max": 23
+    },
+    "serverNowMs": {
+      "count": 12,
+      "p50": 16,
+      "p95": 27,
+      "p99": 27,
+      "max": 27
+    }
+  },
+  "errors": {},
+  "acceptedCommands": {
+    "start": 1,
+    "select": 4,
+    "confirm": 4,
+    "rate": 181,
+    "finishReview": 32
+  },
+  "settings": {
+    "mode": "league",
+    "leagueRounds": 1,
+    "selectionSeconds": 30,
+    "reviewSeconds": 15,
+    "customContent": false,
+    "playerApproval": false,
+    "voterApproval": false,
+    "acceptVoters": true
+  },
+  "disconnects": 29,
+  "plannedDisconnects": 37,
+  "reconnects": 28,
+  "targets": {
+    "ackWithin1s": true,
+    "phaseWithin1s": true
+  },
+  "result": {
+    "champion": "6e1ebf9c-f964-48be-818f-3ef545f40e78",
+    "ranking": [
+      {
+        "participantId": "6e1ebf9c-f964-48be-818f-3ef545f40e78",
+        "rank": 1,
+        "score": 3.2051282051282053
+      },
+      {
+        "participantId": "66d2af6c-fd66-4820-98bf-52d965c05d0b",
+        "rank": 2,
+        "score": 3.1777777777777776
+      },
+      {
+        "participantId": "ae37b728-cab6-442d-b875-5b2e340a48b0",
+        "rank": 3,
+        "score": 3.0625
+      },
+      {
+        "participantId": "db493bbe-1791-4fc5-8544-0a7c00742f92",
+        "rank": 4,
+        "score": 2.9591836734693877
+      }
+    ],
+    "jury": null,
+    "reason": "completed"
+  }
+}
