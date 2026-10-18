@@ -34,12 +34,15 @@ export function ReviewScreen({
 
   return (
     <Screen className={className}>
-      <div className="sticky top-0 z-10 -mx-4 bg-background/95 px-4 pb-3 pt-1 backdrop-blur">
-        <p className="text-xs font-bold uppercase tracking-wider text-muted">
+      <div className="sticky top-0 z-10 -mx-4 bg-background/95 px-4 pb-2 pt-1 backdrop-blur">
+        {/* Durum metni büyük başlık; aşama adı küçük bilgi (M3b hiyerarşi düzeltmesi). */}
+        <p className="font-display text-2xl uppercase leading-tight text-accent">
           {view.prompt?.text ?? '—'}
         </p>
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="font-display text-2xl uppercase leading-tight">Final gözden geçirme</h1>
+        <div className="mt-1 flex items-center justify-between gap-3">
+          <h1 className="text-xs font-bold uppercase tracking-wider text-muted">
+            Final gözden geçirme
+          </h1>
           <Countdown secondsLeft={secondsLeft} totalSeconds={view.config.reviewSeconds} />
         </div>
         {doneCount ? (

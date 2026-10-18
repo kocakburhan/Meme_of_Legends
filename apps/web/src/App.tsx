@@ -2,9 +2,6 @@ import { createBrowserRouter, RouterProvider, type RouteObject } from 'react-rou
 import JoinPage from '@/pages/JoinPage';
 import { Placeholder } from '@/pages/Placeholder';
 
-function DisplayPlaceholder() {
-  return <Placeholder title="Ortak ekran" note="Ortak ekran M3b'de gelecek." />;
-}
 function ConsolePlaceholder() {
   return <Placeholder title="Yönetici konsolu" note="Konsol M4'te gelecek." />;
 }
@@ -22,7 +19,7 @@ function buildRouter() {
   const routes: RouteObject[] = [
     { path: '/', Component: JoinPage },
     { path: '/oda/:code', lazy: () => import('./pages/OdaPage').then((m) => ({ Component: m.OdaPage })) },
-    { path: '/ekran', Component: DisplayPlaceholder },
+    { path: '/ekran', lazy: () => import('./pages/EkranPage').then((m) => ({ Component: m.default })) },
     { path: '/konsol', Component: ConsolePlaceholder },
     { path: '/isletme', Component: BusinessPlaceholder },
     { path: '/admin', Component: AdminPlaceholder },

@@ -297,7 +297,7 @@ function StatusEntries() {
         />
         {nicknameSaved ? <p className="pb-4 text-center text-sm text-success">Kaydedildi: {nicknameSaved}</p> : null}
       </Frame>
-      <Frame title="Eldin → jüri" width={390}>
+      <Frame title="Elendin → jüri" width={390}>
         <EliminatedScreen onContinue={() => setContinued('jüri')} />
         {continued ? <p className="pb-4 text-center text-sm text-muted">Devam edildi: {continued}</p> : null}
       </Frame>
