@@ -1,1 +1,96 @@
 @import 'tailwindcss';
+@import '@fontsource/anton/400.css';
+@import '@fontsource-variable/manrope/wght.css';
+
+/*
+  "Gece Şovu" teması — PRODUCT_SPEC 16A.
+  Anlamsal token'lar: koyu sahne zemini, tek parlak vurgu (sarı),
+  renk yalnızca süre, durum, seçili puan ve önemli geri bildirimde yoğunlaşır.
+*/
+@theme {
+  --color-background: #121018;
+  --color-surface: #1e1b26;
+  --color-surface-raised: #292436;
+  --color-line: #3a3448;
+  --color-foreground: #f5f2ea;
+  --color-muted: #b9b2c6;
+  --color-accent: #ffd23f;
+  --color-accent-ink: #121018;
+  --color-danger: #ff8e7f;
+  --color-success: #8ce99a;
+
+  --font-display: 'Anton', 'Arial Narrow', 'Impact', sans-serif;
+  --font-sans: 'Manrope Variable', 'Manrope', system-ui, sans-serif;
+
+  --radius-card: 0.75rem;
+
+  --animate-pop: pop 0.35s ease-out;
+  --animate-pulse-slow: pulse-slow 1.6s ease-in-out infinite;
+  --animate-shuffle: shuffle 0.9s ease-in-out infinite;
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(0.85);
+  }
+  55% {
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Son karar saniyeleri: yavaş nabız; hızlı yanıp sönme yok (SPEC 16A.3). */
+@keyframes pulse-slow {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@keyframes shuffle {
+  0% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-4px) rotate(2deg);
+  }
+  100% {
+    transform: translateY(0) rotate(-2deg);
+  }
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Görünür odak: WCAG 2.1 AA (SPEC 18). */
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+}
+
+/* Hareket duyarlılığı: durağan karşılıklar (SPEC 16A.3). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
