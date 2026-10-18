@@ -71,10 +71,10 @@ export default function EkranPage() {
     }
   }
 
-  function handleStart() {
+  async function handleStart() {
     setStarted(true);
     try {
-      void stageRef.current?.requestFullscreen?.();
+      await stageRef.current?.requestFullscreen?.();
     } catch {
       /* Tam ekran reddedildi; sahne normal boyutta sürer. */
     }

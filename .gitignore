@@ -10,6 +10,9 @@ coverage/
 # Tooling caches
 *.tsbuildinfo
 .eslintcache
+.playwright-mcp/
+test-results/
+playwright-report/
 
 # OS / editor
 .DS_Store
