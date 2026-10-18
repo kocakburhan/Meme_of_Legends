@@ -35,11 +35,63 @@ Bu dosya, owner ile orchestrator (Claude Code) arasındaki tartışmaların ve a
 
 ## 3. Ekranlar ve Kullanıcı Akışları
 
-_Tartışılacak._
+### 3.1 Katılımcı (telefon) — kararlar
+- **Akış iskeleti:** Katılım (QR/kod → takma ad + bilgilendirme → rol seçimi → onay bekleme [ayar açıksa] → lobi) → tur (seçim → gösterim + puanlama → final gözden geçirme → sonuç) → geçişler (elenme, bay, uzatma, kura, final kürsüsü + jüri ödülleri, rövanş) → durum ekranları (duraklatıldı, yeniden bağlanıyor, devam ediyoruz, atıldın, takma ad değiştir, cihaz devri, yüklenemedi) + menü (ses, oyunu bırak).
+- **Eşleşmeler görünür:** Eleme ve hibrit düello eşleşmeleri tur başında herkese gösterilir ("Ali – Ayşe"). Gönderiler yine anonim ve karışık sırada gösterilir; sonuçta düellolar yan yana açıklanır. Oyuncunun rakibinin gönderisini (kilitli göründüğü için) tanıması kabul edilir.
+- **Seyirci seçim aşamasında:** durum + oyuncuların canlı "hazır" işaretleri ("7/10 oyuncu seçti") görür; isterse kütüphaneye göz atabilir.
+- **Puanlama:** 1–5 numaralı, büyük, tek dokunuşla seçilen ve değiştirilebilen düğmeler. Görünüm (emoji vb.) görsel dil aşamasında.
+
+### 3.2 Ortak ekran — kararlar
+- Aşamalara göre içerik: lobi (büyük QR + kod, canlı katılımcı adları, seyirci sayısı, mod, tahmini süre); seçim (büyük durum, geri sayım, eşleşmeler + hazır işaretleri); gösterim (durum, büyük gönderi, süre çubuğu, son karar vurgusu, ses); final gözden geçirme (küçük resimler, geri sayım, "18/30 bitirdi"); sonuç; geçişler; oyun sonu. Köşede sürekli küçük QR, oda kodu, seyirci sayısı.
+- **Canlı oy sayacı:** Gösterimde "23/30 kişi puan verdi" gösterilir (puan/ortalama gösterilmez).
+- **Sırayla açıklama:** Sonuçlar ortak ekranda ve telefonlarda 1–2 sn arayla tek tek açıklanır (düellolar / puanlar), sonra tablo gelir. 15 sn'lik sonraki tur geri sayımı açıklama bittikten sonra başlar.
+
+### 3.3 Yönetici konsolu — kararlar
+- **Yapı:** Üstte sabit durum çubuğu (aşama, tur, kalan süre, büyük duraklat/devam, ortak ekran menüsü). Altta 3 sekme:
+  - **Oyun:** aşamaya göre değişen tek kart — lobi (mod/ayarlar, tahmini süre, ilk durum önizlemesi, QR paylaşma, Başlat); seçim (özel içerik canlı listesi + Reddet, +15/+30/+60, ilk 15 sn'de Durumu değiştir, hazır sayısı); gösterim (mevcut gönderi + gönderen, oy sayacı, Hemen gizle); final gözden geçirme (bitiren sayısı, Şimdi kapat); sonuç (sonraki durum önizlemesi + Değiştir, Beklet / Hemen geç).
+  - **Katılımcılar:** listeler, kişi başına işlemler, bekleyen onaylar (rozetli; asla engelleyici pencere değil).
+  - **Ayarlar:** sonraki turlar için süreler, özel içerik, seyirci kabulü ve onay modları, Oyunu bitir.
+- Geri alınamaz işlemler (atma, oyunu bitirme) onay ister. Masaüstünde aynı bölümler yan yana sütunlar; cihaza özel yetenek yok.
+- **"Hemen gizle": 1 saniye basılı tutma** (düğme dolarak ilerler).
+
+### 3.4 İşletme ve admin panelleri — kararlar
+- **İşletme paneli (telefon öncelikli):** Ana sayfa (kalan hak, "Yeni oyun" / "Oyuna dön", eşzamanlı oturum izni varsa liste, son oyunlar); Durumlarım; Geçmiş (oyun özeti); Hesap.
+- **Admin paneli (masaüstü öncelikli, telefonda çalışır):** Genel bakış (sayılar ve listeler, grafik yok); İşletmeler (liste, kısa formla açma, detay: hak/imtiyaz, oturumlar, durumlar, pasife alma, şifre sıfırlama, adına giriş); Oturumlar (rapor, sonlandır, hak iade); İçerik (meme kütüphanesi, kategoriler, platform durumları, işletme durumu denetimi); Sistem (hata kayıtları, admin işlem kaydı).
+- **"Linkten ekle" (MVP'de):** Admin X / Instagram / YouTube linkini yapıştırır; sistem arka planda indirir (yt-dlp), dönüştürür, Cloudflare'e yükler, ilerleme gösterir. Admin beklerken **kategori** seçer ve **açıklama** yazar; hazır olunca önizleme (25 sn'den uzunsa kesme aracı) ve "Ekle" → doğrudan kütüphanede. İndirilemeyen içerik için net hata.
+- **Meme meta verisi:** yalnız **kategori + açıklama** (açıklama hem kart başlığı hem arama metni). Ayrı etiket alanı yok.
+- **Toplu içe aktarma:** aynı motor; link listesi (veya dosya klasörü) verilir, hepsi indirilir ve **etiketlenmemiş kuyruğuna** düşer, indirilemeyenler raporlanır. Owner'ın arşivinin ilk aktarımı böyle yapılır; owner'ın ayrı script yazmasına gerek yok.
+- **Etiketlenmemiş kuyruğu:** kategori + açıklama girilene kadar oyunda görünmez. Hızlı etiketleme ekranı: büyük önizleme, kategori, açıklama, kaynak link, "Kaydet ve sıradakine geç", klavye kısayolları, gerekiyorsa kesme aracı.
+- Panelden çoklu dosya yükleme (sürükle-bırak) de vardır; yüklenenler kuyruğa düşer.
+- yt-dlp platform değişikliklerinde güncellenmesi gereken bir bakım kalemidir.
+
+### 3.5 Görsel dil — kararlar
+- **Seçilen yön: B · Gece Şovu** (oyun yüzeyleri: katılımcı, ortak ekran, yönetici konsolu). Gerekçe: memeler (çoğu açık zeminli) koyu çerçevede öne çıkar; loş akşam mekânlarında göz yormaz, projektörde sahne hissi verir. Bilinen dezavantaj: aydınlık salonda projektör koyu renkleri soldurabilir.
+- Palet (taslak, uygulamada kontrastla doğrulanacak): zemin #121018, yüzey #1E1B26, metin #F5F2EA, vurgu sarı #FFD23F. Yazı: Anton (büyük harf başlık/rakam) + Manrope (metin).
+- İşletme paneli: aynı yönün sakin versiyonu. Admin paneli: nötr, sade, esprisiz.
+- Ton ve hareket: eski "Esprili ve Asi" ilkeleri korunur (bkz. spesifikasyon Bölüm 21).
 
 ## 4. Teknoloji Seçimleri
 
-_Tartışılacak._
+### 4.1 Ölçek, alan adı ve barındırma (owner, 2026-10-18)
+- **Ölçek hedefi:** aynı anda 1–2 oyun (oturum başına 300 katılımcı doğrulama hedefi değişmedi).
+- **Alan adı / sunucu:** henüz yok. MVP ücretsiz veya cüzi ücretli çözümle kurulacak; owner ileride VPS alacak.
+- **Karar: Cloudflare**
+  - Web uygulaması: **Cloudflare Pages** (ücretsiz, `*.pages.dev` alt alan adı).
+  - Oyun sunucusu: **Durable Objects** — her oda bir DO; zamanlayıcılar (alarm), WebSocket bağlantıları (Hibernation API), kalıcı oyun durumu (SQLite-backed). Ücretsiz plan.
+  - Veritabanı: **D1**. Dosyalar: **R2**.
+  - Video indirme/dönüştürme (yt-dlp + ffmpeg): başlangıçta **GitHub Actions** (gizli repoda ayda 2000 dk ücretsiz; tek ekleme ~30–60 sn). Yetmezse Cloudflare Containers (Workers Paid, ayda 5 $).
+  - Reddedilenler: Firebase (sürekli sunucu yok, okuma kotası), Supabase (ücretsiz ~200 eşzamanlı bağlantı, 7 günde durdurma), Render vb. (uyku), Oracle Free (hesap/geri alma riski).
+- **Taşınabilirlik ilkesi:** Oyun motoru Cloudflare'den bağımsız saf modül olarak yazılır; DO yalnız ince bir kabuktur. VPS'e geçişte yalnız kabuk yeniden yazılır.
+- **Tahmini maliyet:** 0 TL; isteğe bağlı alan adı ~10 $/yıl; gerekirse 5 $/ay.
+
+### 4.2 Teknik yapı (owner onayı, 2026-10-18)
+- **Dil:** her yerde TypeScript.
+- **Monorepo:** `packages/engine` (saf oyun motoru; saat ve rastgelelik dışarıdan enjekte), `packages/shared` (protokol ve tipler), `apps/server` (Workers + Durable Objects + D1), `apps/web` (tek SPA, rota bazlı kod bölme), `tools/media` (yt-dlp + ffmpeg işi, GitHub Actions).
+- **Web:** React + Vite, Tailwind CSS + shadcn/ui ("Gece Şovu" teması token olarak). Animasyon: CSS + Framer Motion/Lottie gerektiğinde.
+- **Sunucu:** Workers + Durable Objects (WebSocket), D1 + Drizzle ORM, şifreler WebCrypto (PBKDF2), katılımcı kimliği imzalı token.
+- **Test:** motor için kapsamlı birim + rastgele simülasyon testleri; Workers yerel ortamında sunucu testleri; Playwright çok tarayıcılı uçtan uca testler; 300 sanal katılımcılı yük testi; GitHub Actions CI ve otomatik yayın.
+- **Unity kullanılmaz** (yükleme boyutu, mobil tarayıcı performansı, web içerik/erişilebilirlik desteği, agent verimi). Oyun hissi CSS/Framer Motion/Lottie ile.
+- Owner'dan iş başında: GitHub hesabı + gizli repo, Cloudflare hesabı.
 
 ## 5. Mimari
 
@@ -47,7 +99,7 @@ _Tartışılacak._
 
 ## 6. Uygulama Planı ve İş Dağılımı
 
-_Tartışmalardan sonra._
+Plan: `docs/IMPLEMENTATION_PLAN.md` (v1 taslak, owner onayı bekliyor). Aşamalar: M0 kurulum → M1 motor → M2 sunucu → M3 katılımcı + ortak ekran → M4 konsol + işletme → M5 admin + medya hattı → M6 özel içerik → M7 sertleştirme ve yayın. AGENTS.md ve CLAUDE.md yazıldı (kısa, özgürlük tanıyan).
 
 ---
 
@@ -441,3 +493,21 @@ _Owner tercihi: ileriki aşamalara ait sorular gerektiği zaman sorulur, öncede
 - Admin imtiyaz listesi ve kriz araçları onaylandı. Owner oyuncu üst sınırını kaldırdı (teknik güvenlik sınırı 1000); kapasite hedefi toplam 300 katılımcıya çevrildi. Birleşik spesifikasyon yazımına geçildi.
 - Birleşik ürün spesifikasyonu yazıldı: `docs/PRODUCT_SPEC.md` (v2 taslak). Owner incelemesi ve onayı bekleniyor; onaydan sonra `docs/old/` silinecek.
 - Owner spesifikasyonu onayladı, şu eklemelerle: (1) admin işletme hesabını kolayca tanımlar (tek kısa form, kopyalanabilir giriş özeti), işletme kendi kimliğiyle girip QR/link paylaşabilir; (2) 'ani ölüm turu' adı **'uzatma turu'** olarak değiştirildi; (3) esprili ton ekran aşamasında ele alınacak. `docs/old/` silindi.
+- Spesifikasyon, kayıt dosyası ve eski dokümanların silinmesi commit'lendi (`9f38ed8`).
+- **Ekranlar ve kullanıcı akışları aşaması başladı.** Sıra: katılımcı (telefon) → ortak ekran → yönetici konsolu → işletme/admin panelleri → görsel dil. Yöntem: önce yazılı akış ve ekran listesi, kritik ekranlar için tıklanabilir taslaklar (owner'a özel artifact).
+- Katılımcı akışı iskeleti onaylandı; eşleşmelerin görünmesi, seyircinin seçim aşaması görünümü ve 1–5 düğmeli puanlama kararlaştırıldı (Bölüm 3.1).
+- Katılımcı akışının kritik ekranları için renksiz taslaklar hazırlandı (owner'a özel artifact: https://claude.ai/artifact/7zjTFmcWmbc8BGuk6kKgHg): 1 Seçim, 2 Gösterim ve puanlama, 3 Final gözden geçirme, 4 Tur sonucu (eleme), 5 Seyirci seçim aşaması. Görsel dil bilinçli olarak nötr; owner geri bildirimi bekleniyor.
+- Owner 5 kritik katılımcı ekranının yerleşimini onayladı (görsel dil ve esprili ton hariç; onlar sonraki aşamada). Sırada katılım, lobi ve oyun sonu ekranları.
+- Taslaklara 6 Katılım, 7 Lobi, 8 Oyun sonu eklendi. Kalan katılımcı ekranları (geçişler, durum ekranları, menü) taslaksız; spesifikasyondaki kurallarla tanımlı.
+- Katılımcı tarafı tamamlandı. Ortak ekran aşaması: canlı oy sayacı ve sırayla sonuç açıklama onaylandı (Bölüm 3.2).
+- Ortak ekran taslakları hazırlandı (yeni artifact, hesap değişikliği nedeniyle ayrı: https://claude.ai/artifact/96VjQYiwV7E3dAwSLBNDpM): 1 Lobi, 2 Gösterim, 3 Sonuç (sırayla açıklama). Katılımcı taslakları önceki hesaptaki artifact'te: https://claude.ai/artifact/7zjTFmcWmbc8BGuk6kKgHg
+- Yönetici konsolu yapısı ve 'Hemen gizle' için 1 sn basılı tutma onaylandı (Bölüm 3.3).
+- Yönetici konsolu taslakları hazırlandı (https://claude.ai/artifact/FEZXgL4eRjkhgJmHm33n5y): 1 Lobi, 2 Seçim aşaması, 3 Gösterim (Hemen gizle, basılı tutma çalışır halde).
+- İşletme/admin panel yapısı, MVP'de 'Linkten ekle', kategori + açıklama meta verisi, link listesiyle toplu içe aktarma ve etiketlenmemiş kuyruğu onaylandı (Bölüm 3.4).
+- Panel taslakları hazırlandı (https://claude.ai/artifact/Ln6UJBa8BSHAByoDfzDUAQ): 1 Admin · Linkten ekle (menü yapısıyla, işleme akışı çalışır), 2 İşletme · Ana sayfa.
+- Panel taslakları onaylandı. Ekran aşamasının son adımı başladı: görsel dil (2–3 yön, aynı ekranlar üzerinde karşılaştırma).
+- Görsel dil için 3 yön hazırlandı (https://claude.ai/artifact/4Xg6tWgdaxgtQUKtKe4tUF), her biri telefon puanlama + ortak ekran gösterim: A Sıcak Zine (açık krem, domates kırmızısı, chartreuse; Bricolage Grotesque + DM Sans), B Gece Şovu (koyu sahne, sarı vurgu; Anton + Manrope), C Çıkartma Pop (beyaz, kalın kontur, sert gölge, sarı/pembe/mavi; Archivo). Owner seçimi bekleniyor.
+- Görsel dil: owner 'B · Gece Şovu' yönünü seçti (Bölüm 3.5). **Ekranlar ve kullanıcı akışları aşaması tamamlandı.**
+- Teknoloji aşaması başladı. Ölçek 1–2 eşzamanlı oyun; barındırma için Cloudflare (Pages + Durable Objects + D1 + R2) ve medya işleri için GitHub Actions onaylandı (Bölüm 4.1).
+- Teknik yapı onaylandı (Bölüm 4.2); Unity gerekmediği owner'a açıklandı. **Teknoloji aşaması tamamlandı.** Uygulama planı ve iş dağılımı aşamasına geçildi.
+- Uygulama planı (`docs/IMPLEMENTATION_PLAN.md`), `AGENTS.md` ve `CLAUDE.md` taslakları yazıldı; owner incelemesi bekleniyor.

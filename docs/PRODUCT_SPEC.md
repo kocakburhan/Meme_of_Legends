@@ -189,8 +189,12 @@ Amaç hileyi imkânsız kılmak değil, zahmetli ve görünür kılmaktır. Arka
 ### 6.1 Sistem meme kütüphanesi
 - Resim, GIF ve video içerir. Tüm dosyalar **kendi depolamamızda** tutulur (hedef: Cloudflare R2). Dış platform bağımlılığı yoktur.
 - Videolar yükleme/içe aktarma sırasında tüm hedef tarayıcılarda oynayan tek biçime dönüştürülür, küçültülür, kapak görseli çıkarılır. En fazla 25 sn'dir; daha uzunsa admin başlangıç/bitiş seçer ve dosya kesilir.
-- Admin içerikleri tek tek yükleyebilir veya bir klasörden **toplu içe aktarabilir**.
-- Her öğenin başlığı, etiketleri ve kategorisi admin tarafından elle girilir. Orijinal kaynak linki meta veri olarak saklanır (mükerrer kontrolü, yeniden indirme).
+- **İçerik ekleme yolları:**
+  - **Linkten ekle:** Admin bir X, Instagram veya YouTube linki yapıştırır; sistem içeriği arka planda indirir, dönüştürür ve depolamaya yükler (ilerleme gösterilir). Admin bu sırada kategori seçer ve açıklama yazar; hazır olunca önizler (gerekirse keser) ve ekler. İçerik doğrudan kütüphaneye girer. İndirilemeyen içerik (silinmiş, gizli, giriş gerektiren vb.) için net hata gösterilir.
+  - **Dosya yükleme:** Panelden tekli veya çoklu (sürükle-bırak).
+  - **Toplu içe aktarma:** Link listesi veya dosya klasörü verilir; hepsi işlenir, indirilemeyenler raporlanır.
+- Dosya yükleme ve toplu içe aktarmayla gelenler **etiketlenmemiş kuyruğuna** düşer; kategori ve açıklama girilene kadar oyunda görünmez. Hızlı etiketleme ekranı içerikleri tek tek getirir (büyük önizleme, kategori, açıklama, kaynak link, kesme aracı, "Kaydet ve sıradakine geç", klavye kısayolları).
+- **Meta veri:** Her öğenin **kategorisi** ve **açıklaması** vardır; açıklama kartta başlık olarak görünür ve aramada kullanılır. Ayrı etiket alanı yoktur. Orijinal kaynak linki saklanır (mükerrer kontrolü, yeniden indirme).
 - Tüm aktif sistem meme'leri her oturumda kullanılabilir; paket, yaş etiketi veya ortam filtresi yoktur. Kategoriler yalnız gezinmeyi kolaylaştırır.
 - Aynı turda birden fazla oyuncu aynı meme'i seçebilir; bir oyuncu aynı meme'i sonraki turlarda tekrar kullanabilir.
 - İçerik silinmez, arşivlenir; geçmiş kayıtlar her zaman çözümlenebilir kalır.
@@ -237,6 +241,7 @@ Her tur sırasıyla: **seçim → gönderi gösterimi → final gözden geçirme
 - **Süre dolunca:** Oyuncunun son geçerli seçimi (onaylamamış olsa da) gönderilir. Geçerli seçimi yoksa o turdan 0 alır.
 - Yönetici süren seçim aşamasına +15 / +30 / +60 sn ekleyebilir; süren sayacı kısaltamaz.
 - Eleme modunda bay geçen oyuncu ve uzatma turunda berabere kalmayanlar gönderi yapmaz.
+- Gönderi yapmayanlar (seyirciler dahil) seçim boyunca durumu ve oyuncuların canlı "hazır" işaretlerini görür; isterse kütüphaneye göz atabilir.
 
 ### 7.2 Gönderi gösterimi
 - Sunucu her turda gönderi sırasını rastgele belirler; tüm istemciler aynı sırayı görür. Sıra oyuncu, lobi veya tablo sırasını izlemez.
@@ -244,7 +249,9 @@ Her tur sırasıyla: **seçim → gönderi gösterimi → final gözden geçirme
 - Her gönderi bir **gösterim slotu** alır; durum üstte, gönderi altta, puanlama aynı ekrandadır:
   - **Resim / GIF:** 12 sn izle-puanla + 3 sn "son karar" = 15 sn. Resim sabit kalır, GIF döner.
   - **Video:** izleme süresi = klip süresi, en az 12 sn (daha kısa klip son karesinde durur) + 5 sn "son karar" = 17–30 sn. Video bir kez oynar; seçilen bitiş noktasından önce kesilmez.
+- Puanlama 1–5 numaralı büyük düğmelerle tek dokunuşla yapılır ve değiştirilebilir.
 - "Son karar" bölümünde puanlar hâlâ değiştirilebilir; ekran bunu vurgular.
+- Gösterim sırasında kaç kişinin puan verdiği canlı gösterilir ("23/30 kişi puan verdi"); puanlar ve ortalama gösterilmez.
 - Sonraki medya mümkün olduğunca önceden yüklenir.
 - Aşama zamanlaması sunucuda senkronizedir; üçüncü taraf oynatıcıların cihazlar arası kare-kare senkronu garanti edilmez.
 - Yükleyemeyen cihaz bir kez daha dener; olmazsa "Bu cihazda yüklenemedi" gösterir. Oyun durmaz.
@@ -258,8 +265,8 @@ Her tur sırasıyla: **seçim → gönderi gösterimi → final gözden geçirme
 
 ### 7.4 Sonuç
 - Kilitlemeden sonra gönderenler, ortalama puanlar (2 ondalık) ve geçerli oy sayıları açıklanır; moda uygun tablo gösterilir.
-- Ortak ekran ve telefonlar senkron gösterir.
-- Sonuç ekranı **15 sn geri sayımla** kendiliğinden sonraki tura geçer. Yönetici hemen geçebilir veya bekletebilir (bekletme bir duraklatmadır, Bölüm 12.2).
+- Sonuçlar 1–2 sn arayla **sırayla açıklanır** (düellolar / puanlar), ardından tablo gelir. Ortak ekran ve telefonlar senkron gösterir.
+- Sonuç ekranı, açıklama bittikten sonra **15 sn geri sayımla** kendiliğinden sonraki tura geçer. Yönetici hemen geçebilir veya bekletebilir (bekletme bir duraklatmadır, Bölüm 12.2).
 
 ---
 
@@ -301,6 +308,7 @@ Her tur sırasıyla: **seçim → gönderi gösterimi → final gözden geçirme
   - Bay, o ana kadar en az bay geçmiş oyuncular arasından rastgele seçilir.
   - Tur başında "X bay geçti" gösterilir.
 - Örnekler: 15 oyuncu → 7 eşleşme + 1 bay → 8; 14 → 7; 7 → 3 eşleşme + 1 bay → 4.
+- Eşleşmeler tur başında herkese gösterilir; gönderiler yine anonim ve karışık sırada gösterilir, sonuçta düellolar yan yana açıklanır. (Hibrit yarı final ve finalde de aynı.)
 - Elenen oyuncular seyirci olur (tek seferlik elenme geçişi gösterilir).
 - Son iki oyuncunun düellosu finaldir.
 - **Sıralama:** Final galibi 1., kaybeden 2. Diğerlerinde daha geç turda elenen önde; aynı turda elenenler o turdaki gönderi puanına göre sıralanır; eşitlikte sıra paylaşılır.
@@ -393,7 +401,7 @@ Oyuncu kendi isteğiyle de menüden **"Oyunu bırak, seyirci ol"** seçebilir; s
 - Seçim, final gözden geçirme ve sonuç kalan süreden devam eder; gönderi gösterimi o gönderinin başından başlar.
 
 ### 12.5 İçerik gizleme
-- Gösterim sırasında yönetici her içeriği (sistem meme'leri dahil) tek tuşla **"Hemen gizle"** ile tüm ekranlardan anında kaldırabilir. Eylem denetim kaydına ve admin raporuna yazılır.
+- Gösterim sırasında yönetici her içeriği (sistem meme'leri dahil) **"Hemen gizle"** düğmesini 1 saniye basılı tutarak tüm ekranlardan anında kaldırabilir (kazara basmayı önlemek için). Eylem denetim kaydına ve admin raporuna yazılır.
 - **Özel içerik gizlenirse:** gönderi geçersiz, oyuncu o turdan 0 alır.
 - **Sistem meme'i gizlenirse:** oyuncu cezalandırılmaz.
   - Lig, hibrit lig aşaması ve hibrit maçlarda o tur için aynı aşamadaki diğer turlarının ortalamasını alır (aşama sonunda hesaplanır; aşamada başka turu yoksa 0).
@@ -467,7 +475,7 @@ Oyuncu kendi isteğiyle de menüden **"Oyunu bırak, seyirci ol"** seçebilir; s
 - **İşletme adına giriş:** Admin işletmenin konsolunu onun adına açıp canlı müdahale edebilir. Her giriş kayda geçer.
 
 ### 15.3 İçerik
-- Meme kategorileri; sistem meme'leri: tekli yükleme, klasörden toplu içe aktarma, önizleme, başlık/etiket/kategori düzenleme, video kesme, arşivleme.
+- Meme kategorileri; sistem meme'leri: linkten ekle, dosya yükleme, toplu içe aktarma, etiketlenmemiş kuyruğu ve hızlı etiketleme, önizleme, kategori/açıklama düzenleme, video kesme, arşivleme.
 - Platform durumları: oluşturma, düzenleme, arşivleme; az durum uyarısı.
 - İşletme durumları: listeleme, filtreleme, detay, engelleme / engeli kaldırma.
 
@@ -491,6 +499,33 @@ Oyuncu kendi isteğiyle de menüden **"Oyunu bırak, seyirci ol"** seçebilir; s
 - Kilitlenmiş turlar normal işleyişte değiştirilemez.
 - İşletme hesabı verileri hesap aktif olduğu sürece saklanır.
 - Hukuki metinler (aydınlatma, gizlilik, kullanım koşulları) ve yasal saklama süreleri owner tarafından ayrıca ele alınacaktır; bu doküman hukuki değerlendirme içermez.
+
+---
+
+## 16A. Görsel Dil, Ton ve Hareket
+
+### 16A.1 Görsel yön: "Gece Şovu"
+- Oyun yüzeyleri (katılımcı telefonu, ortak ekran, yönetici konsolu) koyu sahne zemini üzerine tek parlak vurgu rengiyle tasarlanır; yarışma programı hissi.
+- Başlangıç paleti (uygulamada anlamsal CSS değişkenleri olarak tanımlanır ve WCAG AA kontrastı doğrulanır): zemin `#121018`, yüzey `#1E1B26`, metin `#F5F2EA`, vurgu sarı `#FFD23F` (koyu metinle).
+- Yazı tipleri: **Anton** (büyük harf başlıklar, rakamlar, süre) + **Manrope** (metin). Anton uzun metinde kullanılmaz.
+- Meme'ler koyu çerçeve içinde gösterilir. Renk yalnız süre, durum, seçili puan ve önemli geri bildirimlerde yoğunlaşır.
+- İşletme paneli aynı yönün sakin versiyonudur. Platform admin paneli nötr ve sadedir; esprili metin ve süs hareketi yoktur.
+- Kaçınılacaklar: yoğun gradyanlar, varsayılan mor tonlar, aşırı yuvarlak kartlar, ağır gölgeler.
+
+### 16A.2 Ton: "Esprili ve Asi"
+- Mizah oyun, bekleme, boş ekran, geçiş, sonuç ve başarı anlarında serbesttir. Örnekler: "Şaka ciddileşti.", "Pişmanlık serbest.", "Oy ver, kaçma.", "Meme avı başladı. Panik opsiyonel.", "Taht sallandı. Jüri koltuğun hazır.", "Video naz yaptı." (ardından net açıklama), "Şaka tahta çıktı."
+- Form etiketleri, kritik işlemler, geri alınamaz onaylar ve hata kurtarma talimatları her zaman net ve doğrudandır.
+- Admin panelinde operasyonel dil kullanılır ("İşletme Oluştur", "Hak Ekle").
+
+### 16A.3 Hareket
+- Seçim onayı: kısa "pop" animasyonu.
+- Son karar saniyeleri: yavaş nabız; hızlı yanıp sönme yok.
+- Lobi / bekleme: ölçülü döngüsel ikon hareketi.
+- Elenme ve rol değişimi: tek seferlik geçiş.
+- Sırayla sonuç açıklama: kısa açılış animasyonları.
+- Şampiyon: kısa konfeti ve kazanan işareti, ardından sabit sonuç ekranı.
+- Hata: süs animasyonu yok; neden, etki ve çözüm gösterilir.
+- `prefers-reduced-motion` için durağan karşılıklar.
 
 ---
 
@@ -555,6 +590,6 @@ Oyuncu kendi isteğiyle de menüden **"Oyunu bırak, seyirci ol"** seçebilir; s
 - Admin girişinde iki aşamalı doğrulama.
 
 ### 20.3 Sonraki tasarım aşamaları
-- **Ekranlar ve kullanıcı akışları:** tüm ekran envanteri, görsel dil, ton ve hareket.
+- **Ekranlar ve kullanıcı akışları:** tamamlandı; kararlar `docs/PROJECT_LOG.md` Bölüm 3'te, taslaklar orada bağlantılı.
 - **Teknoloji ve mimari:** framework, gerçek zamanlı iletişim, veritabanı, depolama (Cloudflare R2), medya dönüştürme, kimlik/oturum yönetimi, barındırma, gözlemlenebilirlik, CI/CD, eşzamanlı oturum hedefi, alan adı.
 - **Yayın öncesi içerik (owner):** ilk platform durumları seti (~100+), meme kütüphanesi ve kategoriler.
