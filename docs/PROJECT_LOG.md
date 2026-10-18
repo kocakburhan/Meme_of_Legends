@@ -514,3 +514,5 @@ _Owner tercihi: ileriki aşamalara ait sorular gerektiği zaman sorulur, öncede
 - Uygulama planı (`docs/IMPLEMENTATION_PLAN.md`), `AGENTS.md` ve `CLAUDE.md` taslakları yazıldı; owner incelemesi bekleniyor.
 - Cloudflare: owner'ın mevcut hesabı kullanılacak; `mol-` önek kuralı AGENTS.md'ye eklendi.
 - Worker modelleri belirlendi (Bölüm 1). Repo gizliye alındı ve commit'ler GitHub'a gönderildi.
+- **M0 başladı (2026-10-18):** Kurulum işi OpenCode'a (glm-5.3-flash#max) verildi; dal `m0-scaffold`, worktree `../mol-wt-m0`. Uzak Cloudflare işlemleri yasak; owner'ın `wrangler login` yapması bekleniyor.
+- M1 hazırlığı: motor API sözleşmesi taslağı yazıldı (`docs/contracts/engine-api.md` v0.1).
