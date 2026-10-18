@@ -1,3 +1,4 @@
+import { compareScores } from './score.js';
 import { currentRound, eligibleParticipant } from './competition.js';
 import type { Ctx, EngineState, Round, Submission, SubmissionView, View, Viewer } from './types.js';
 
@@ -69,11 +70,12 @@ export function project(state: EngineState, viewer: Viewer, _ctx: Ctx): View {
             (s.stage.context === 'league' || r?.players.includes(key))
           );
         })
-        .sort((a, b) => (totals[b] ?? 0) - (totals[a] ?? 0))
+        .sort((a, b) => compareScores(totals[b] ?? 0, totals[a] ?? 0))
     : [];
   let rank = 0;
   const table = tableIds.map((key, index) => {
-    if (!index || totals[key] !== totals[tableIds[index - 1]!]) rank = index + 1;
+    if (!index || compareScores(totals[key] ?? 0, totals[tableIds[index - 1]!] ?? 0) !== 0)
+      rank = index + 1;
     return { participantId: key, rank, score: Number((totals[key] ?? 0).toFixed(2)) };
   });
   const view: View = {

@@ -1,3 +1,4 @@
+import { compareScores } from './score.js';
 import { shuffle } from './random.js';
 import type { EngineState, EngineEvent, FinalResult, Ranking, Round } from './types.js';
 
@@ -58,7 +59,9 @@ export function stageTotals(s: EngineState, context: Round['context']): Record<s
   return totals;
 }
 function orderBy(s: EngineState, ids: string[], totals: Record<string, number>): string[] {
-  return [...ids].sort((a, b) => (totals[b] ?? 0) - (totals[a] ?? 0) || resolvedCompare(s, a, b));
+  return [...ids].sort(
+    (a, b) => compareScores(totals[b] ?? 0, totals[a] ?? 0) || resolvedCompare(s, a, b),
+  );
 }
 function resolvedCompare(s: EngineState, a: string, b: string): number {
   for (const group of s.stage.resolved)
@@ -85,9 +88,9 @@ function matchWinners(
       pair.some((id) =>
         Object.values(r.submissions).some((x) => x.playerId === id && x.compensation),
       );
-    let diff = hidden ? 0 : (totals[a] ?? 0) - (totals[b] ?? 0);
+    let diff = hidden ? 0 : compareScores(totals[a] ?? 0, totals[b] ?? 0);
     if (!diff && (r.context === 'semifinal' || r.context === 'final'))
-      diff = (s.stage.leagueTotals[a] ?? 0) - (s.stage.leagueTotals[b] ?? 0);
+      diff = compareScores(s.stage.leagueTotals[a] ?? 0, s.stage.leagueTotals[b] ?? 0);
     if (!diff && !resolvedCompare(s, a, b)) ties.push(pair);
     else {
       const winner = diff ? (diff > 0 ? a : b) : resolvedCompare(s, a, b) < 0 ? a : b;
@@ -112,7 +115,9 @@ export function settleRegular(s: EngineState, r: Round, events: EngineEvent[]): 
     st.leagueOrder = ids;
     const qualifying = s.config.mode === 'hybrid' && ids.length >= 4;
     const boundary = qualifying ? 3 : 0;
-    const tied = ids.filter((id) => st.leagueTotals[id] === st.leagueTotals[ids[boundary]!]);
+    const tied = ids.filter(
+      (id) => compareScores(st.leagueTotals[id] ?? 0, st.leagueTotals[ids[boundary]!] ?? 0) === 0,
+    );
     const crosses = qualifying ? tied.some((id) => ids.indexOf(id) > 3) : tied.length > 1;
     if (crosses && !tied.every((id, i) => !i || resolvedCompare(s, tied[0]!, id))) {
       st.tieGroups = [tied];
@@ -123,8 +128,13 @@ export function settleRegular(s: EngineState, r: Round, events: EngineEvent[]): 
     if (qualifying) {
       // First-four seeding ties use a draw, independently of the qualification overtime.
       const top = ids.slice(0, 4);
-      for (const total of new Set(top.map((id) => st.leagueTotals[id]))) {
-        const group = top.filter((id) => st.leagueTotals[id] === total);
+      const grouped = new Set<string>();
+      for (const id of top) {
+        if (grouped.has(id)) continue;
+        const group = top.filter(
+          (other) => compareScores(st.leagueTotals[other] ?? 0, st.leagueTotals[id] ?? 0) === 0,
+        );
+        group.forEach((member) => grouped.add(member));
         if (group.length > 1 && !group.some((id) => st.resolved.some((g) => g.includes(id)))) {
           const ordered = shuffle(s, group);
           st.resolved.push(ordered);
@@ -174,13 +184,13 @@ export function settleRegular(s: EngineState, r: Round, events: EngineEvent[]): 
 export function settleOvertime(s: EngineState, r: Round, events: EngineEvent[]): void {
   for (const group of r.tieGroups) {
     const alive = group.filter((id) => !s.participants[id]!.withdrawn);
-    const ordered = [...alive].sort(
-      (a, b) => (r.scores[b]?.average ?? 0) - (r.scores[a]?.average ?? 0),
+    const ordered = [...alive].sort((a, b) =>
+      compareScores(r.scores[b]?.average ?? 0, r.scores[a]?.average ?? 0),
     );
     const result: string[] = [];
     while (ordered.length) {
       const value = r.scores[ordered[0]!]!.average;
-      const equal = ordered.filter((id) => r.scores[id]!.average === value);
+      const equal = ordered.filter((id) => compareScores(r.scores[id]!.average, value) === 0);
       ordered.splice(0, equal.length);
       const draw = shuffle(s, equal);
       result.push(...draw);
@@ -215,10 +225,10 @@ function jury(s: EngineState): FinalResult['jury'] {
   const min = Math.min(...entries.map((x) => x.average)),
     max = Math.max(...entries.map((x) => x.average));
   // SPEC-QUESTION: All eligible jury averages equal: suppress both awards to avoid awarding both to the same people.
-  if (min === max) return null;
+  if (compareScores(min, max) === 0) return null;
   return {
-    harshest: entries.filter((x) => x.average === min),
-    mostGenerous: entries.filter((x) => x.average === max),
+    harshest: entries.filter((x) => compareScores(x.average, min) === 0),
+    mostGenerous: entries.filter((x) => compareScores(x.average, max) === 0),
   };
 }
 export function finish(s: EngineState, reason: FinalResult['reason'], events: EngineEvent[]): void {
@@ -229,16 +239,16 @@ export function finish(s: EngineState, reason: FinalResult['reason'], events: En
   let compare: (a: string, b: string) => number;
   if (s.config.mode === 'league' || (s.config.mode === 'hybrid' && !st.qualified))
     compare = (a, b) =>
-      (st.leagueTotals[b] ?? 0) - (st.leagueTotals[a] ?? 0) || resolvedCompare(s, a, b);
+      compareScores(st.leagueTotals[b] ?? 0, st.leagueTotals[a] ?? 0) || resolvedCompare(s, a, b);
   else if (s.config.mode === 'hybrid') {
     const priority = (id: string) =>
       id === st.champion ? 0 : id === st.finalLoser ? 1 : st.semifinalLosers.includes(id) ? 2 : 3;
     compare = (a, b) =>
-      priority(a) - priority(b) || (st.leagueTotals[b] ?? 0) - (st.leagueTotals[a] ?? 0);
+      priority(a) - priority(b) || compareScores(st.leagueTotals[b] ?? 0, st.leagueTotals[a] ?? 0);
   } else
     compare = (a, b) =>
       (st.eliminated[b]?.round ?? Infinity) - (st.eliminated[a]?.round ?? Infinity) ||
-      (st.eliminated[b]?.score ?? 0) - (st.eliminated[a]?.score ?? 0);
+      compareScores(st.eliminated[b]?.score ?? 0, st.eliminated[a]?.score ?? 0);
   ids = ids.sort((a, b) => (a === st.champion ? -1 : b === st.champion ? 1 : compare(a, b)));
   const ranking: Ranking[] = [];
   ids.forEach((id, i) =>

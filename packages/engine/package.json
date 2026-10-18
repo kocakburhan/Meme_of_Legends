@@ -15,7 +15,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:heavy": "MOL_SIMULATIONS=700 vitest run"
   },
   "devDependencies": {
     "typescript": "~5.9.3",

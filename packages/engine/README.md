@@ -42,6 +42,10 @@ Each assumption has a `// SPEC-QUESTION:` comment in source and a scenario test.
 
 ## Verification
 
-`pnpm --filter @mol/engine test` runs scenario tests and 2,100 generated games, spanning all three modes, 2–64 players (hybrid minimum four), and 0–300 voters. Every generated command is replayed from a JSON-restored input and checked for input immutability, deterministic output, serializability, voting authority, anonymity, and eventual termination. Random commands include missing selections/votes, kicks, departures, disconnects, hidden content, pauses, and restore. Seeds are reported on failure. These tests use an in-repo seeded generator, with no additional runtime or test dependencies.
+`pnpm --filter @mol/engine test` runs scenario tests and 60 generated games, spanning all three modes, 2–64 players (hybrid minimum four), and 0–300 voters. Every generated command is replayed from a JSON-restored input and checked for input immutability, deterministic output, serializability, voting authority, anonymity, and eventual termination. Random commands include missing selections/votes, kicks, departures, disconnects, hidden content, pauses, and restore. Seeds are reported on failure. These tests use an in-repo seeded generator, with no additional runtime or test dependencies.
+
+`pnpm --filter @mol/engine test:heavy` (or root `pnpm test:heavy`) runs the same checks with 2,100 games. Set `MOL_SIMULATIONS` to an integer of at least 2 to choose the number per mode (default 20; heavy 700). Both runs execute the population extremes.
+
+Score comparisons share `compareScores`, using relative tolerance 1e-12 (with an absolute floor of 1e-12). This absorbs division/addition roundoff while staying far below meaningful vote differences at supported room sizes; calculations and stored JSON numbers retain full precision.
 
 `pnpm --filter @mol/engine build` emits the public API and declaration files, excluding test helpers.

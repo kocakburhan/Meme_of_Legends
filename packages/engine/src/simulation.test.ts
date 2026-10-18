@@ -1,4 +1,9 @@
 import { describe, expect, it } from 'vitest';
+declare const process: { env: Record<string, string | undefined> };
+
+const simulations = Number(process.env.MOL_SIMULATIONS ?? 20);
+if (!Number.isInteger(simulations) || simulations < 2)
+  throw new Error('MOL_SIMULATIONS must be an integer of at least 2');
 import { createSession, DEFAULT_TIMING, project, nextDeadline, reduce } from './index.js';
 import type { Command, Ctx, EngineState, Mode, Participant } from './index.js';
 
@@ -203,9 +208,9 @@ function simulate(seed: number, mode: Mode) {
 
 describe('generated full-game invariants (2–64 players, 0–300 voters)', () => {
   for (const mode of ['elimination', 'league', 'hybrid'] as const) {
-    for (let batch = 0; batch < 7; batch++) {
-      it(`${mode}: generated traces ${batch * 100 + 1}–${(batch + 1) * 100}`, () => {
-        for (let seed = batch * 100 + 1; seed <= (batch + 1) * 100; seed++) {
+    for (let batch = 0; batch < Math.ceil(simulations / 100); batch++) {
+      it(`${mode}: generated traces ${batch * 100 + 1}–${Math.min((batch + 1) * 100, simulations)}`, () => {
+        for (let seed = batch * 100 + 1; seed <= Math.min((batch + 1) * 100, simulations); seed++) {
           try {
             simulate(seed * 7919, mode);
           } catch (error) {
