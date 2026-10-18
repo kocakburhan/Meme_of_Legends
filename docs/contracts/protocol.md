@@ -1,6 +1,6 @@
 # Sözleşme: İstemci–Sunucu Protokolü (`packages/shared`)
 
-- **Sürüm:** v0.1 taslak (orchestrator, 2026-10-18)
+- **Sürüm:** v0.2 (orchestrator; v0.1 2026-10-18, v0.2 kabuk işlemleri 2026-10-19)
 - **İlgili:** `docs/contracts/engine-api.md`, `packages/engine/README.md`
 - Tipler ve doğrulama şemaları `packages/shared` içinde tek kaynaktır; sunucu ve web aynı tanımları kullanır. Değişiklik orchestrator onayıyla.
 
@@ -34,6 +34,29 @@ type ClientMessage =
 ```
 `ClientCommand`, motor `Command` tipinin bağlantı rolüne göre izin verilen alt kümesidir (katılımcı komutları / yönetici komutları). Sistem komutları (`tick`, `connection`, `restore`) istemciden kabul edilmez.
 
+**Kabuk işlemleri (v0.2, orchestrator onayı 2026-10-19):** Motorun bilmediği, odaya ait yönetici işlemleri de aynı WebSocket üzerinden gider:
+```ts
+type ClientMessage =
+  | /* … yukarıdakiler … */
+  | { type: 'shell'; clientMsgId: string; action: ShellAction }; // yalnız yönetici bağlantısı
+
+type ShellAction =
+  | { kind: 'approveTakeover'; requestId: string }
+  | { kind: 'rejectTakeover'; requestId: string }
+  | { kind: 'createDisplayPairCode' }   // 6 haneli, tek kullanımlık, 5 dk
+  | { kind: 'rematch' };                // aynı oda kodunda yeni lobi (hak kuralları geçerli)
+```
+Sonuçları normal `ack` ile döner. Yönetici `view` mesajı, motor görünümüne ek olarak kabuk bilgisini taşır:
+```ts
+type ManagerShellInfo = {
+  pendingTakeovers: { requestId: string; participantId: string; nickname: string; requestedAt: number }[];
+  displayPairCode: { code: string; expiresAt: number } | null;
+  displayConnected: boolean;
+};
+// yönetici için: { type: 'view'; …; view: View; shell: ManagerShellInfo }
+```
+Cihaz devri isteği (`POST /api/rooms/:code/takeover`) ve ekran eşleştirme (`POST /api/display/pair`) HTTP uçları olarak kalır. İstek bekleyen yeni cihaz, onay/ret sonucunu aynı uçtan sorgulayarak (kısa aralıklı) öğrenir.
+
 ### Sunucu → istemci
 ```ts
 type ServerMessage =
@@ -41,6 +64,7 @@ type ServerMessage =
   | { type: 'ack'; clientMsgId: string; ok: boolean; reason?: string } // komut sonucu
   | { type: 'cue'; serverNow: number; cue: PublicCue }                 // animasyon ipuçları (açıklama adımı, kura, elenme vb.)
   | { type: 'pong'; t: number; serverNow: number }
+  | { type: 'recovery'; serverNow: number; resumesAt: number } // sunucu yeniden başlatıldı: istemci 3-2-1 gösterir
   | { type: 'closed'; reason: 'kicked' | 'superseded' | 'sessionEnded' | 'roomExpired' };
 ```
 - `view` tam görünümdür (fark değil); `seq` artan sıra numarasıdır, eski `seq` yok sayılır.

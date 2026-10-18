@@ -1,17 +1,11 @@
-// Meme of Legends game server (Cloudflare Worker).
-//
-// M0 scaffold: only a /health endpoint and an empty RoomDurableObject.
-// Remote resources are NOT created in M0 — values marked with PLACEHOLDER
-// below must be filled after the corresponding `mol-` resource is created
-// (never touch non-`mol-` resources in the shared Cloudflare account).
-//
-// After changing this file, regenerate types: `pnpm --filter @mol/server types`.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "mol-server",
   "main": "src/index.ts",
   "compatibility_date": "2025-09-15",
   "compatibility_flags": ["nodejs_compat"],
+
+  "triggers": { "crons": ["*/10 * * * *"] },
 
   "d1_databases": [
     {

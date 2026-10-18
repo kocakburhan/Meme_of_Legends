@@ -1,0 +1,2 @@
+# Copy to .dev.vars and replace with a random secret of at least 32 characters.
+TOKEN_SECRET=replace-with-a-random-secret-at-least-32-characters

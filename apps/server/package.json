@@ -8,13 +8,24 @@
     "build": "wrangler deploy --dry-run --outdir dist",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "types": "wrangler types"
+    "types": "wrangler types",
+    "admin:create": "tsx scripts/admin-create.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "wrangler d1 migrations apply mol-db --local"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "^1.4.4",
     "@types/node": "^26.6.5",
+    "drizzle-kit": "^0.31.11",
+    "tsx": "^4.23.15",
     "typescript": "~5.9.3",
     "vitest": "~4.1.12",
     "wrangler": "^4.151.1"
+  },
+  "dependencies": {
+    "@mol/engine": "workspace:*",
+    "@mol/shared": "workspace:*",
+    "drizzle-orm": "^0.45.4",
+    "zod": "^4.6.7"
   }
 }
