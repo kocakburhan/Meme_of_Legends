@@ -91,7 +91,8 @@ Bu dosya, owner ile orchestrator (Claude Code) arasındaki tartışmaların ve a
 - **Sunucu:** Workers + Durable Objects (WebSocket), D1 + Drizzle ORM, şifreler WebCrypto (PBKDF2), katılımcı kimliği imzalı token.
 - **Test:** motor için kapsamlı birim + rastgele simülasyon testleri; Workers yerel ortamında sunucu testleri; Playwright çok tarayıcılı uçtan uca testler; 300 sanal katılımcılı yük testi; GitHub Actions CI ve otomatik yayın.
 - **Unity kullanılmaz** (yükleme boyutu, mobil tarayıcı performansı, web içerik/erişilebilirlik desteği, agent verimi). Oyun hissi CSS/Framer Motion/Lottie ile.
-- Owner'dan iş başında: GitHub hesabı + gizli repo, Cloudflare hesabı.
+- Owner'dan iş başında: GitHub hesabı + repo, Cloudflare hesabı.
+- **Hesaplar (2026-10-18):** GitHub hesabı (`kocakburhan`) ve repo (`github.com/kocakburhan/Meme_of_Legends`) mevcut. Cloudflare için owner'ın başka bir projede kullandığı **mevcut hesap** kullanılacak (diğer proje kota tüketmiyor). Tüm kaynaklar `mol-` önekli; agent'lar başka kaynağa dokunmaz (AGENTS.md kuralı).
 
 ## 5. Mimari
 
@@ -511,3 +512,4 @@ _Owner tercihi: ileriki aşamalara ait sorular gerektiği zaman sorulur, öncede
 - Teknoloji aşaması başladı. Ölçek 1–2 eşzamanlı oyun; barındırma için Cloudflare (Pages + Durable Objects + D1 + R2) ve medya işleri için GitHub Actions onaylandı (Bölüm 4.1).
 - Teknik yapı onaylandı (Bölüm 4.2); Unity gerekmediği owner'a açıklandı. **Teknoloji aşaması tamamlandı.** Uygulama planı ve iş dağılımı aşamasına geçildi.
 - Uygulama planı (`docs/IMPLEMENTATION_PLAN.md`), `AGENTS.md` ve `CLAUDE.md` taslakları yazıldı; owner incelemesi bekleniyor.
+- Cloudflare: owner'ın mevcut hesabı kullanılacak; `mol-` önek kuralı AGENTS.md'ye eklendi.

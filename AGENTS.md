@@ -20,6 +20,7 @@ TypeScript monorepo, Cloudflare üzerinde çalışır.
 - Ortak sözleşmeler (motor API'si, protokol, veritabanı şeması) yalnız orchestrator onayıyla değişir.
 - Spesifikasyonda karşılığı olmayan bir ürün kararı gerekiyorsa uydurma; durup sor.
 - Arayüz metinleri Türkçe, kod ve tanımlayıcılar İngilizce.
+- Cloudflare hesabı başka bir projeyle paylaşılıyor: yalnız `mol-` önekli kaynakları oluştur ve değiştir; diğer hiçbir kaynağa dokunma.
 - Bitirmeden önce ilgili testleri çalıştır ve kısa bir özet bırak: ne yapıldı, ne yapılmadı, açık sorular.
 
 Bunların dışında araç, yapı ve yaklaşım seçimi sende.
