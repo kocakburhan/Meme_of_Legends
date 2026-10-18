@@ -97,3 +97,60 @@ it('validates engine projections and rejects privileged event/state payloads', a
     }).success,
   ).toBe(false);
 });
+
+it('validates v0.2 shell commands, private manager metadata and recovery messages', async () => {
+  const {
+    shellActionSchema,
+    managerShellInfoSchema,
+    serverMessageSchema,
+    takeoverRequestSchema,
+    displayPairRequestSchema,
+  } = await import('./index.js');
+  for (const action of [
+    { kind: 'approveTakeover', requestId: 'request' },
+    { kind: 'rejectTakeover', requestId: 'request' },
+    { kind: 'createDisplayPairCode' },
+    { kind: 'rematch' },
+  ])
+    expect(
+      clientMessageSchema.safeParse({ type: 'shell', clientMsgId: 'shell', action }).success,
+    ).toBe(true);
+  for (const action of [
+    { kind: 'tick' },
+    { kind: 'approveTakeover' },
+    { kind: 'rematch', participantId: 'victim' },
+  ])
+    expect(shellActionSchema.safeParse(action).success).toBe(false);
+  const shell = {
+    pendingTakeovers: [{ requestId: 'r', participantId: 'p', nickname: 'İsim', requestedAt: 100 }],
+    displayPairCode: { code: '012345', expiresAt: 300100 },
+    displayConnected: false,
+  };
+  expect(managerShellInfoSchema.safeParse(shell).success).toBe(true);
+  expect(
+    managerShellInfoSchema.safeParse({
+      ...shell,
+      pendingTakeovers: [{ ...shell.pendingTakeovers[0], token: 'private' }],
+    }).success,
+  ).toBe(false);
+  expect(
+    managerShellInfoSchema.safeParse({
+      ...shell,
+      displayPairCode: { code: '12345', expiresAt: 100 },
+    }).success,
+  ).toBe(false);
+  expect(
+    serverMessageSchema.safeParse({ type: 'recovery', serverNow: 100, resumesAt: 3100 }).success,
+  ).toBe(true);
+  expect(
+    serverMessageSchema.safeParse({ type: 'recovery', serverNow: 100, resumesAt: -1 }).success,
+  ).toBe(false);
+  expect(takeoverRequestSchema.safeParse({ nickname: 'İsim' }).success).toBe(true);
+  expect(takeoverRequestSchema.safeParse({ requestId: 'r', receipt: 'secret' }).success).toBe(true);
+  expect(takeoverRequestSchema.safeParse({ requestId: 'r' }).success).toBe(false);
+  expect(
+    takeoverRequestSchema.safeParse({ nickname: 'İsim', participantId: 'victim' }).success,
+  ).toBe(false);
+  expect(displayPairRequestSchema.safeParse({ code: '012345' }).success).toBe(true);
+  expect(displayPairRequestSchema.safeParse({ code: '12345x' }).success).toBe(false);
+});

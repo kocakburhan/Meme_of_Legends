@@ -1,4 +1,9 @@
-import { participantTokenClaimsSchema, type ParticipantTokenClaims } from '@mol/shared';
+import {
+  participantTokenClaimsSchema,
+  displayTokenClaimsSchema,
+  type ParticipantTokenClaims,
+  type DisplayTokenClaims,
+} from '@mol/shared';
 const encoder = new TextEncoder();
 const iterations = 100_000; // Workers WebCrypto PBKDF2 iteration limit.
 function encode(bytes: Uint8Array): string {
@@ -67,9 +72,10 @@ export async function signParticipantToken(
   claims: ParticipantTokenClaims,
   secret: string,
 ): Promise<string> {
-  const payload = encode(
-    encoder.encode(JSON.stringify(participantTokenClaimsSchema.parse(claims))),
-  );
+  return signToken(participantTokenClaimsSchema.parse(claims), secret);
+}
+async function signToken(claims: unknown, secret: string) {
+  const payload = encode(encoder.encode(JSON.stringify(claims)));
   const signature = await crypto.subtle.sign(
     'HMAC',
     await hmacKey(secret),
@@ -82,6 +88,20 @@ export async function verifyParticipantToken(
   secret: string,
   now = Date.now(),
 ): Promise<ParticipantTokenClaims | null> {
+  return verifyToken(token, secret, now, participantTokenClaimsSchema);
+}
+export function signDisplayToken(claims: DisplayTokenClaims, secret: string) {
+  return signToken(displayTokenClaimsSchema.parse(claims), secret);
+}
+export function verifyDisplayToken(token: string, secret: string, now = Date.now()) {
+  return verifyToken(token, secret, now, displayTokenClaimsSchema);
+}
+async function verifyToken<T extends { issuedAt: number; expiresAt: number }>(
+  token: string,
+  secret: string,
+  now: number,
+  schema: { parse(value: unknown): T },
+): Promise<T | null> {
   try {
     const [payload, signature, extra] = token.split('.');
     if (
@@ -96,9 +116,7 @@ export async function verifyParticipantToken(
       ))
     )
       return null;
-    const claims = participantTokenClaimsSchema.parse(
-      JSON.parse(new TextDecoder().decode(decode(payload))),
-    );
+    const claims = schema.parse(JSON.parse(new TextDecoder().decode(decode(payload))));
     return claims.expiresAt > now && claims.issuedAt <= now && claims.expiresAt > claims.issuedAt
       ? claims
       : null;

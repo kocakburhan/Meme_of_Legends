@@ -104,11 +104,52 @@ export const managerCommandSchema = z.discriminatedUnion('type', [
   }),
 ]) satisfies z.ZodType<ManagerCommand>;
 export const clientCommandSchema = z.union([participantCommandSchema, managerCommandSchema]);
+export const shellActionSchema = z.discriminatedUnion('kind', [
+  z.strictObject({ kind: z.literal('approveTakeover'), requestId: id }),
+  z.strictObject({ kind: z.literal('rejectTakeover'), requestId: id }),
+  z.strictObject({ kind: z.literal('createDisplayPairCode') }),
+  z.strictObject({ kind: z.literal('rematch') }),
+]);
+export type ShellAction = z.infer<typeof shellActionSchema>;
+export const managerShellInfoSchema = z.strictObject({
+  pendingTakeovers: z.array(
+    z.strictObject({
+      requestId: id,
+      participantId: id,
+      nickname: z.string(),
+      requestedAt: z.number().int().nonnegative(),
+    }),
+  ),
+  displayPairCode: z
+    .strictObject({ code: z.string().regex(/^\d{6}$/), expiresAt: z.number().int().nonnegative() })
+    .nullable(),
+  displayConnected: z.boolean(),
+});
+export type ManagerShellInfo = z.infer<typeof managerShellInfoSchema>;
+// Poll the same POST endpoint using the opaque receipt returned by the initial request.
+export const takeoverRequestSchema = z.union([
+  z.strictObject({ nickname: nicknameSchema }),
+  z.strictObject({ requestId: id, receipt: id }),
+]);
+export const displayPairRequestSchema = z.strictObject({ code: z.string().regex(/^\d{6}$/) });
 export const clientMessageSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('cmd'), clientMsgId: id, cmd: clientCommandSchema }),
   z.strictObject({ type: z.literal('ping'), t: z.number().finite() }),
+  z.strictObject({ type: z.literal('shell'), clientMsgId: id, action: shellActionSchema }),
 ]);
 export type ClientMessage = z.infer<typeof clientMessageSchema>;
+export type TakeoverRequest = z.infer<typeof takeoverRequestSchema>;
+export const takeoverResponseSchema = z.union([
+  z.strictObject({ status: z.literal('pending'), requestId: id, receipt: id }),
+  z.strictObject({ status: z.enum(['pending', 'rejected']) }),
+  z.strictObject({ status: z.literal('approved'), participantId: id, token: z.string().min(1) }),
+]);
+export type TakeoverResponse = z.infer<typeof takeoverResponseSchema>;
+export const displayPairResponseSchema = z.strictObject({
+  token: z.string().min(1),
+  roomCode: roomCodeSchema,
+});
+export type DisplayPairResponse = z.infer<typeof displayPairResponseSchema>;
 // Public cues carry no engine event payload or participant identity.
 export const publicCueSchema = z.strictObject({
   type: z.enum(['revealStep', 'drawPerformed', 'eliminated']),
@@ -116,16 +157,18 @@ export const publicCueSchema = z.strictObject({
 });
 export type PublicCue = z.infer<typeof publicCueSchema>;
 export type ServerMessage =
-  | { type: 'view'; seq: number; serverNow: number; view: View }
+  | { type: 'view'; seq: number; serverNow: number; view: View; shell?: ManagerShellInfo }
   | { type: 'ack'; clientMsgId: string; ok: boolean; reason?: string }
   | { type: 'cue'; serverNow: number; cue: PublicCue }
   | { type: 'pong'; t: number; serverNow: number }
+  | { type: 'recovery'; serverNow: number; resumesAt: number }
   | { type: 'closed'; reason: 'kicked' | 'superseded' | 'sessionEnded' | 'roomExpired' };
 export interface ApiError {
   error: { code: string };
 }
 export const participantTokenClaimsSchema = z.strictObject({
   kind: z.literal('participant'),
+  nonce: id.optional(),
   participantId: id,
   sessionId: id,
   roomCode: roomCodeSchema,
@@ -133,6 +176,16 @@ export const participantTokenClaimsSchema = z.strictObject({
   expiresAt: z.number().int().positive(),
 });
 export type ParticipantTokenClaims = z.infer<typeof participantTokenClaimsSchema>;
+
+export const displayTokenClaimsSchema = z.strictObject({
+  kind: z.literal('display'),
+  sessionId: id,
+  roomCode: roomCodeSchema,
+  nonce: id,
+  issuedAt: z.number().int().nonnegative(),
+  expiresAt: z.number().int().positive(),
+});
+export type DisplayTokenClaims = z.infer<typeof displayTokenClaimsSchema>;
 
 const timestamp = z.number().int().nonnegative();
 const scoreSchema = z.strictObject({
@@ -255,6 +308,7 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
     seq: z.number().int().nonnegative(),
     serverNow: timestamp,
     view: viewSchema,
+    shell: managerShellInfoSchema.optional(),
   }),
   z.strictObject({
     type: z.literal('ack'),
@@ -264,6 +318,7 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
   }),
   z.strictObject({ type: z.literal('cue'), serverNow: timestamp, cue: publicCueSchema }),
   z.strictObject({ type: z.literal('pong'), t: z.number().finite(), serverNow: timestamp }),
+  z.strictObject({ type: z.literal('recovery'), serverNow: timestamp, resumesAt: timestamp }),
   z.strictObject({
     type: z.literal('closed'),
     reason: z.enum(['kicked', 'superseded', 'sessionEnded', 'roomExpired']),

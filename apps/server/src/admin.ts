@@ -155,6 +155,18 @@ export async function adminRoute(
       throw new ApiFailure(409, 'INSUFFICIENT_CREDITS');
     throw error;
   }
+  if (input.active === false) {
+    const cancelled = await db
+      .select()
+      .from(gameSessions)
+      .where(and(eq(gameSessions.businessId, id), eq(gameSessions.status, 'cancelled')));
+    for (const session of cancelled) {
+      await env.ROOM.get(env.ROOM.idFromName(session.roomCode)).fetch(
+        `https://room/close?sessionId=${session.id}`,
+        { method: 'POST' },
+      );
+    }
+  }
   return json({
     business: publicBusiness(
       (await db.select().from(businesses).where(eq(businesses.id, id)).get())!,

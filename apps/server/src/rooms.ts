@@ -3,10 +3,9 @@ import { joinRequestSchema, roomCodeSchema, sessionConfigSchema } from '@mol/sha
 import { and, eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/d1';
 import { z } from 'zod';
-import { ApiFailure, authenticate, body, json, SESSION_LIFETIME_MS } from './auth';
+import { ApiFailure, authenticate, body, json } from './auth';
 import { publicBusiness } from './admin';
 import { businesses, gameSessions } from './db/schema';
-import { signParticipantToken } from './security';
 const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 export function generateRoomCode(): string {
   // 32 symbols divides 256 exactly: no modulo bias.
@@ -15,11 +14,26 @@ export function generateRoomCode(): string {
     (byte) => alphabet[byte % alphabet.length],
   ).join('');
 }
+export function roomStub(env: Cloudflare.Env, code: string) {
+  return env.ROOM.get(env.ROOM.idFromName(code));
+}
+export async function closeRoom(
+  env: Cloudflare.Env,
+  code: string,
+  sessionId: string,
+  reason = 'sessionEnded',
+) {
+  await roomStub(env, code).fetch(`https://room/close?reason=${reason}&sessionId=${sessionId}`, {
+    method: 'POST',
+  });
+}
 export async function expireLobbies(env: Cloudflare.Env) {
-  await drizzle(env.DB)
+  const expired = await drizzle(env.DB)
     .update(gameSessions)
     .set({ status: 'cancelled', endedAt: Date.now(), endReason: 'lobbyExpired' })
-    .where(and(eq(gameSessions.status, 'lobby'), sql`${gameSessions.expiresAt} <= ${Date.now()}`));
+    .where(and(eq(gameSessions.status, 'lobby'), sql`${gameSessions.expiresAt} <= ${Date.now()}`))
+    .returning();
+  for (const session of expired) await closeRoom(env, session.roomCode, session.id, 'roomExpired');
 }
 export async function businessRoute(
   request: Request,
@@ -67,11 +81,19 @@ export async function businessRoute(
             now,
           )
           .run();
-        if (result.meta.changes)
-          return json(
-            { session: await db.select().from(gameSessions).where(eq(gameSessions.id, id)).get() },
-            201,
-          );
+        if (result.meta.changes) {
+          const session = (await db
+            .select()
+            .from(gameSessions)
+            .where(eq(gameSessions.id, id))
+            .get())!;
+          const initialized = await roomStub(env, code).fetch('https://room/initialize', {
+            method: 'POST',
+            body: JSON.stringify(session),
+          });
+          if (!initialized.ok) throw new ApiFailure(503, 'ROOM_INITIALIZATION_FAILED');
+          return json({ session }, 201);
+        }
         const account = await db
           .select()
           .from(businesses)
@@ -103,6 +125,7 @@ export async function businessRoute(
       )
       .returning();
     if (!result.length) throw new ApiFailure(409, 'LOBBY_NOT_CANCELLABLE');
+    await closeRoom(env, result[0]!.roomCode, result[0]!.id);
     return json({ ok: true });
   }
   throw new ApiFailure(404, 'NOT_FOUND');
@@ -135,25 +158,10 @@ export async function roomRoute(
       businessName: room.businessName,
       started: room.session.status !== 'lobby',
     });
-  const input = await body(request, joinRequestSchema);
+  const input = await body(request.clone(), joinRequestSchema);
   if (room.session.status !== 'lobby' && input.wants === 'player')
     throw new ApiFailure(409, 'GAME_ALREADY_STARTED');
   if (input.wants === 'voter' && !room.session.settings.acceptVoters)
     throw new ApiFailure(409, 'VOTERS_CLOSED');
-  const participantId = crypto.randomUUID(),
-    now = Date.now();
-  // M2b: forward join to the room engine before issuing the token; it owns nickname
-  // uniqueness, browser identity/reconnect, approvals and the participant roster.
-  const token = await signParticipantToken(
-    {
-      kind: 'participant',
-      participantId,
-      sessionId: room.session.id,
-      roomCode: code,
-      issuedAt: now,
-      expiresAt: now + SESSION_LIFETIME_MS,
-    },
-    env.TOKEN_SECRET,
-  );
-  return json({ participantId, token }, 201);
+  return roomStub(env, code).fetch(request);
 }

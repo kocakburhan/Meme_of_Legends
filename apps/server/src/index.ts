@@ -1,7 +1,8 @@
+import { pairDisplay } from './display-pairing';
 import { RoomDurableObject } from './room';
 import { ApiFailure, authRoute, json } from './auth';
 import { adminRoute } from './admin';
-import { businessRoute, expireLobbies, roomRoute } from './rooms';
+import { businessRoute, expireLobbies, roomRoute, roomStub } from './rooms';
 export { RoomDurableObject };
 export default {
   async fetch(request: Request, env: Cloudflare.Env): Promise<Response> {
@@ -27,6 +28,17 @@ export default {
       }
       if (path.startsWith('/api/admin/')) return await adminRoute(request, env, path);
       if (path.startsWith('/api/business/')) return await businessRoute(request, env, path);
+      if (path === '/api/display/pair') {
+        if (request.method !== 'POST') throw new ApiFailure(405, 'METHOD_NOT_ALLOWED');
+        return await pairDisplay(request, env);
+      }
+      const takeover = /^\/api\/rooms\/([^/]+)\/takeover$/.exec(path);
+      if (takeover) {
+        if (request.method !== 'POST') throw new ApiFailure(405, 'METHOD_NOT_ALLOWED');
+        return await roomStub(env, takeover[1]!).fetch(request);
+      }
+      const socket = /^\/api\/rooms\/([^/]+)\/ws$/.exec(path);
+      if (socket) return await roomStub(env, socket[1]!).fetch(request);
       const room = /^\/api\/rooms\/([^/]+)(\/join)?$/.exec(path);
       if (room) return await roomRoute(request, env, room[1]!, Boolean(room[2]));
       throw new ApiFailure(404, 'NOT_FOUND');
