@@ -13,7 +13,7 @@ TypeScript monorepo, Cloudflare üzerinde çalışır.
 - `packages/shared` — protokol ve ortak tipler.
 - `apps/server` — Workers, Durable Objects (oda başına bir), D1, R2.
 - `apps/web` — React + Vite tek uygulama (katılımcı, ortak ekran, konsol, işletme ve admin panelleri).
-- `tools/media` — yt-dlp + ffmpeg medya hattı (GitHub Actions).
+- `tools/media` — yt-dlp + ffmpeg medya hattı.
 
 ## Çalışma şekli
 - Oyun kuralları motorda yaşar ve testlerle korunur; kural değişikliği testsiz girmez.
@@ -21,6 +21,6 @@ TypeScript monorepo, Cloudflare üzerinde çalışır.
 - Spesifikasyonda karşılığı olmayan bir ürün kararı gerekiyorsa uydurma; durup sor.
 - Arayüz metinleri Türkçe, kod ve tanımlayıcılar İngilizce.
 - Cloudflare hesabı başka bir projeyle paylaşılıyor: yalnız `mol-` önekli kaynakları oluştur ve değiştir; diğer hiçbir kaynağa dokunma.
-- Bitirmeden önce ilgili testleri çalıştır ve kısa bir özet bırak: ne yapıldı, ne yapılmadı, açık sorular.
+- Bitirmeden önce `pnpm verify` (typecheck + lint + test + build) çalıştır ve kısa bir özet bırak: ne yapıldı, ne yapılmadı, açık sorular. GitHub Actions kullanılmıyor; doğrulama yereldir.
 
 Bunların dışında araç, yapı ve yaklaşım seçimi sende.

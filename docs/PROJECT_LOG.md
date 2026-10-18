@@ -80,7 +80,7 @@ Bu dosya, owner ile orchestrator (Claude Code) arasındaki tartışmaların ve a
   - Web uygulaması: **Cloudflare Pages** (ücretsiz, `*.pages.dev` alt alan adı).
   - Oyun sunucusu: **Durable Objects** — her oda bir DO; zamanlayıcılar (alarm), WebSocket bağlantıları (Hibernation API), kalıcı oyun durumu (SQLite-backed). Ücretsiz plan.
   - Veritabanı: **D1**. Dosyalar: **R2**.
-  - Video indirme/dönüştürme (yt-dlp + ffmpeg): başlangıçta **GitHub Actions** (gizli repoda ayda 2000 dk ücretsiz; tek ekleme ~30–60 sn). Yetmezse Cloudflare Containers (Workers Paid, ayda 5 $).
+  - Video indirme/dönüştürme (yt-dlp + ffmpeg): ~~GitHub Actions~~ → **GitHub kullanılmıyor (2026-10-18)**; aday Cloudflare Containers (Workers Paid, ayda 5 $), M5 başında kesinleşecek.
   - Reddedilenler: Firebase (sürekli sunucu yok, okuma kotası), Supabase (ücretsiz ~200 eşzamanlı bağlantı, 7 günde durdurma), Render vb. (uyku), Oracle Free (hesap/geri alma riski).
 - **Taşınabilirlik ilkesi:** Oyun motoru Cloudflare'den bağımsız saf modül olarak yazılır; DO yalnız ince bir kabuktur. VPS'e geçişte yalnız kabuk yeniden yazılır.
 - **Tahmini maliyet:** 0 TL; isteğe bağlı alan adı ~10 $/yıl; gerekirse 5 $/ay.
@@ -90,7 +90,7 @@ Bu dosya, owner ile orchestrator (Claude Code) arasındaki tartışmaların ve a
 - **Monorepo:** `packages/engine` (saf oyun motoru; saat ve rastgelelik dışarıdan enjekte), `packages/shared` (protokol ve tipler), `apps/server` (Workers + Durable Objects + D1), `apps/web` (tek SPA, rota bazlı kod bölme), `tools/media` (yt-dlp + ffmpeg işi, GitHub Actions).
 - **Web:** React + Vite, Tailwind CSS + shadcn/ui ("Gece Şovu" teması token olarak). Animasyon: CSS + Framer Motion/Lottie gerektiğinde.
 - **Sunucu:** Workers + Durable Objects (WebSocket), D1 + Drizzle ORM, şifreler WebCrypto (PBKDF2), katılımcı kimliği imzalı token.
-- **Test:** motor için kapsamlı birim + rastgele simülasyon testleri; Workers yerel ortamında sunucu testleri; Playwright çok tarayıcılı uçtan uca testler; 300 sanal katılımcılı yük testi; GitHub Actions CI ve otomatik yayın.
+- **Test:** motor için kapsamlı birim + rastgele simülasyon testleri; Workers yerel ortamında sunucu testleri; Playwright çok tarayıcılı uçtan uca testler; 300 sanal katılımcılı yük testi. ~~GitHub Actions CI~~ → yerel `pnpm verify` + orchestrator'ın yerelden yayını.
 - **Unity kullanılmaz** (yükleme boyutu, mobil tarayıcı performansı, web içerik/erişilebilirlik desteği, agent verimi). Oyun hissi CSS/Framer Motion/Lottie ile.
 - Owner'dan iş başında: GitHub hesabı + repo, Cloudflare hesabı.
 - **Hesaplar (2026-10-18):** GitHub hesabı (`kocakburhan`) ve repo (`github.com/kocakburhan/Meme_of_Legends`) mevcut. Cloudflare için owner'ın başka bir projede kullandığı **mevcut hesap** kullanılacak (diğer proje kota tüketmiyor). Tüm kaynaklar `mol-` önekli; agent'lar başka kaynağa dokunmaz (AGENTS.md kuralı).
@@ -446,7 +446,8 @@ Amaç hileyi imkânsız kılmak değil, zahmetli ve görünür kılmaktır. Bir 
 _Owner tercihi: ileriki aşamalara ait sorular gerektiği zaman sorulur, önceden sorulmaz._
 
 2. (Teknoloji aşamasında) Platform genelinde eşzamanlı oturum hedefi ve QR linkleri için alan adı.
-3. (Yayın öncesi, owner içerik işi) İlk platform durumları seti (~100+) ve meme kütüphanesi/kategoriler.
+3. (M5 başında) Medya hattı ortamı: Cloudflare Containers (Workers Paid, 5 $/ay) mı, başka yol mu?
+4. (Yayın öncesi, owner içerik işi) İlk platform durumları seti (~100+) ve meme kütüphanesi/kategoriler.
 
 ---
 
@@ -521,3 +522,4 @@ _Owner tercihi: ileriki aşamalara ait sorular gerektiği zaman sorulur, öncede
 - **M1 başladı:** Motor işi Codex'e (gpt-6.1-sol, medium) verildi; dal `m1-engine`, worktree `../mol-wt-m1`.
 - Cloudflare: owner `wrangler login` yaptı. `mol-db` D1 veritabanı oluşturuldu (EEUR). R2 hesapta etkin değil; owner'ın dashboard'dan etkinleştirmesi gerekiyor. GitHub Actions hatasının nedeni: hesapta başarısız ödeme / harcama limiti; owner'a seçenekler sunuldu.
 - R2 owner tarafından etkinleştirildi (kart bağlandı); `mol-media` bucket oluşturuldu.
+- **Owner kararı: GitHub Actions kullanılmayacak** (hesapta faturalama sorunu; owner uğraşmak istemiyor). GitHub yalnız kod deposu. CI yerine yerel `pnpm verify`; yayın orchestrator tarafından yerelden `wrangler` ile. Medya hattı ortamı M5'te (aday: Cloudflare Containers, 5 $/ay). `.github/workflows/ci.yml` silindi.

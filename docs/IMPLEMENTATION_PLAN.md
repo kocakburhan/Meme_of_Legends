@@ -20,8 +20,9 @@
 
 ### M0 — Kurulum
 - Owner: GitHub hesabı + gizli repo, Cloudflare hesabı (orchestrator adım adım rehberlik eder).
-- Monorepo iskeleti (pnpm workspaces), TypeScript, lint/format, Vitest, Wrangler yapılandırması (Pages, Workers, DO, D1, R2), GitHub Actions CI (test) ve CD (main → Cloudflare).
-- **Bitti:** boş uygulamalar yerelde ve Cloudflare'de ayağa kalkar; CI yeşil.
+- Monorepo iskeleti (pnpm workspaces), TypeScript, lint/format, Vitest, Wrangler yapılandırması (Pages, Workers, DO, D1, R2).
+- **GitHub Actions kullanılmaz** (owner kararı, 2026-10-18). Kalite kapısı yerel `pnpm verify`; orchestrator her birleştirmeden önce çalıştırır. Yayın orchestrator tarafından yerelden `wrangler` ile yapılır.
+- **Bitti:** boş uygulamalar yerelde ayağa kalkar; `pnpm verify` geçer; D1 (`mol-db`) ve R2 (`mol-media`) oluşturulmuş.
 
 ### M1 — Oyun motoru (`packages/engine`)
 - Önce orchestrator motor API'sinin taslağını (durum, komutlar, olaylar, saat/rastgelelik enjeksiyonu) yazar.
@@ -48,7 +49,7 @@
 
 ### M5 — Admin paneli ve içerik hattı
 - Admin paneli: genel bakış, işletmeler (imtiyazlar, adına giriş, pasife alma, şifre sıfırlama), oturumlar (rapor, sonlandırma, hak iadesi), kategoriler, platform durumları, işletme durumu denetimi, hata ve işlem kayıtları.
-- Medya hattı (`tools/media` + GitHub Actions): Linkten ekle, toplu içe aktarma (link listesi / klasör), dönüştürme, kapak görseli, R2'ye yükleme, etiketlenmemiş kuyruğu, hızlı etiketleme ekranı, video kesme.
+- Medya hattı (`tools/media`; çalışma ortamı M5 başında kesinleşir — aday: Cloudflare Containers, Workers Paid ayda 5 $): Linkten ekle, toplu içe aktarma (link listesi / klasör), dönüştürme, kapak görseli, R2'ye yükleme, etiketlenmemiş kuyruğu, hızlı etiketleme ekranı, video kesme.
 - **Bitti:** admin bir X/Instagram/YouTube linkiyle meme ekler ve meme oyunda kullanılabilir; 50 linklik toplu içe aktarma kuyruğa düşer, indirilemeyenler raporlanır.
 
 ### M6 — Özel içerik
