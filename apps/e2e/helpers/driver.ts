@@ -39,13 +39,30 @@ export class ManagerClient {
       ws.once('unexpected-response', (_req, res) =>
         reject(new Error(`WS HTTP ${res.statusCode}`)),
       );
+      ws.once('close', (code, reason) => {
+        if (process.env.MOL_E2E_DEBUG)
+          console.log('[manager] WS CLOSE', code, String(reason));
+      });
     });
     ws.on('message', (data) => {
       const parsed = serverMessageSchema.safeParse(JSON.parse(String(data)));
-      if (!parsed.success) return;
+      if (!parsed.success) {
+        console.log('[manager] PARSE FAIL', String(data).slice(0, 200));
+        return;
+      }
+      if (process.env.MOL_E2E_DEBUG)
+        console.log('[manager] MSG', parsed.data.type, 'seq' in parsed.data ? parsed.data.seq : '');
       this.messages.push(parsed.data);
-      for (const waiter of this.waiters.splice(0))
-        if (waiter.predicate(parsed.data)) waiter.resolve(parsed.data);
+      // Yalnız eşleşen bekleyiciler çözülür; diğerleri listede kalır.
+      const remaining = this.waiters.filter((waiter) => {
+        if (waiter.predicate(parsed.data)) {
+          if (process.env.MOL_E2E_DEBUG) console.log('[manager] bekleyici çözüldü');
+          waiter.resolve(parsed.data);
+          return false;
+        }
+        return true;
+      });
+      this.waiters = remaining;
     });
   }
 
@@ -58,14 +75,20 @@ export class ManagerClient {
     return client;
   }
 
-  private wait(predicate: (m: ServerMessage) => boolean, timeoutMs = 20_000): Promise<ServerMessage> {
+  private wait(
+    predicate: (m: ServerMessage) => boolean,
+    timeoutMs = 20_000,
+    label = 'view',
+  ): Promise<ServerMessage> {
     const found = this.messages.find(predicate);
     if (found) return Promise.resolve(found);
+    if (process.env.MOL_E2E_DEBUG) console.log(`[manager] wait(${label}) bekliyor…`);
     return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error('manager view timeout')), timeoutMs);
+      const timer = setTimeout(() => reject(new Error(`manager ${label} timeout`)), timeoutMs);
       const waiter = {
         predicate,
         resolve: (m: ServerMessage) => {
+          if (process.env.MOL_E2E_DEBUG) console.log(`[manager] wait(${label}) çözüldü`);
           clearTimeout(timer);
           resolve(m);
         },
@@ -81,6 +104,7 @@ export class ManagerClient {
     const m = (await this.wait(
       (x) => x.type === 'view' && predicate(x.view),
       timeoutMs,
+      'view',
     )) as ViewMessage;
     return m;
   }
@@ -109,7 +133,7 @@ export class ManagerClient {
   }
 
   private ack(id: string, timeoutMs = 20_000): Promise<AckResult> {
-    return this.wait((m) => m.type === 'ack' && m.clientMsgId === id, timeoutMs).then((m) => {
+    return this.wait((m) => m.type === 'ack' && m.clientMsgId === id, timeoutMs, `ack ${id.slice(0, 8)}`).then((m) => {
       if (m.type !== 'ack') throw new Error('unreachable');
       return { ok: m.ok, ...(m.reason ? { reason: m.reason } : {}) };
     });

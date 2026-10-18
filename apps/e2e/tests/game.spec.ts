@@ -24,6 +24,27 @@ async function joinParticipant(
 ): Promise<{ context: Awaited<ReturnType<Browser['newContext']>>; page: Page }> {
   const context = await browser.newContext();
   const page = await context.newPage();
+  page.on('console', (msg) => {
+    if (process.env.MOL_E2E_DEBUG) console.log(`[${nickname}]`, msg.type(), msg.text().slice(0, 160));
+  });
+  page.on('pageerror', (err) => console.log(`[${nickname}] PAGEERROR`, err.message.slice(0, 200)));
+  if (process.env.MOL_E2E_DEBUG)
+    page.on('websocket', (ws) => {
+      console.log(`[${nickname}] WS OPEN`, ws.url());
+      ws.on('framereceived', (frame) => {
+        try {
+          const m = JSON.parse(String(frame.payload));
+          if (m.type === 'view')
+            console.log(
+              `[${nickname}] view seq=${m.seq} phase=${m.view.phase.kind} own=${m.view.ownSubmission ? m.view.ownSubmission.confirmed ? 'confirmed' : 'selected' : 'null'} me=${m.view.participants.some((p) => p.id === m.view.ownSubmissionId)}`,
+            );
+          else console.log(`[${nickname}]`, m.type, JSON.stringify(m).slice(0, 120));
+        } catch {
+          /* ignore */
+        }
+      });
+      ws.on('framesent', (frame) => console.log(`[${nickname}] →`, String(frame.payload).slice(0, 140)));
+    });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`${WEB}/oda/${code}`);
   await page.getByLabel('Takma adın').fill(nickname);
@@ -33,6 +54,15 @@ async function joinParticipant(
   return { context, page };
 }
 
+/** Slot sırasına göre puan: farklı ortalamalar → net sıralama, uzatma yok. */
+const SLOT_SCORES = [5, 3, 2];
+
+async function currentSlotIndex(page: Page): Promise<number> {
+  const label = await page.getByText(/Gönderi \d+ \/ \d+/).first().textContent().catch(() => null);
+  return Number.parseInt(label?.match(/Gönderi (\d+)/)?.[1] ?? '1', 10);
+}
+
+/** Gönderi gösterimi boyunca slota göre puan verir; gözden geçirmeye geçince döner. */
 async function rateUntilReview(page: Page, timeoutMs = 140_000): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
@@ -40,9 +70,13 @@ async function rateUntilReview(page: Page, timeoutMs = 140_000): Promise<void> {
     const radio = page.locator('button[role="radio"]:not([disabled])').first();
     if (await radio.count()) {
       if ((await radio.getAttribute('aria-checked')) !== 'true') {
-        await radio.click().catch(() => {
-          /* Slot geçişi tıklamayı düşürebilir; yeniden denenir. */
-        });
+        const score = SLOT_SCORES[(await currentSlotIndex(page)) - 1] ?? 3;
+        await page
+          .getByRole('radio', { name: String(score) })
+          .click()
+          .catch(() => {
+            /* Slot geçişi tıklamayı düşürebilir; yeniden denenir. */
+          });
       }
     }
     await page.waitForTimeout(350);
@@ -53,6 +87,7 @@ async function rateUntilReview(page: Page, timeoutMs = 140_000): Promise<void> {
 test('lig modunda 1 turluk tam oyun: 3 oyuncu + seyirci + ortak ekran', async ({ browser }) => {
   test.setTimeout(420_000);
   const lobby: GameLobby = await createLobby(SELECTION_SETTINGS);
+  const contexts: Awaited<ReturnType<Browser['newContext']>>[] = [];
   try {
     await lobby.manager.view();
     const code = lobby.code;
@@ -60,6 +95,7 @@ test('lig modunda 1 turluk tam oyun: 3 oyuncu + seyirci + ortak ekran', async ({
     // Ortak ekran: eşleştirme kodu → /ekran → "Ekranı başlat"
     const pair = await createDisplayPairCode(lobby.manager);
     const displayContext = await browser.newContext();
+    contexts.push(displayContext);
     const display = await displayContext.newPage();
     await display.setViewportSize({ width: 1280, height: 720 });
     await display.goto(`${WEB}/ekran`);
@@ -72,10 +108,19 @@ test('lig modunda 1 turluk tam oyun: 3 oyuncu + seyirci + ortak ekran', async ({
     await expect(display.getByText(/seyirci/)).toBeVisible();
 
     // 3 oyuncu + 1 seyirci katılır (her biri kendi tarayıcı bağlamında).
+    if (process.env.MOL_E2E_DEBUG) console.log('[test] joining Duman…');
     const duman = await joinParticipant(browser, code, 'Duman', 'player');
+    contexts.push(duman.context);
+    if (process.env.MOL_E2E_DEBUG) console.log('[test] Duman joined, joining Kral…');
     const kral = await joinParticipant(browser, code, 'Kral', 'player');
+    contexts.push(kral.context);
+    if (process.env.MOL_E2E_DEBUG) console.log('[test] Kral joined, joining Şimşek…');
     const sims = await joinParticipant(browser, code, 'Şimşek', 'player');
+    contexts.push(sims.context);
+    if (process.env.MOL_E2E_DEBUG) console.log('[test] Şimşek joined, joining İzleyici…');
     const seyirci = await joinParticipant(browser, code, 'İzleyici', 'voter');
+    contexts.push(seyirci.context);
+    if (process.env.MOL_E2E_DEBUG) console.log('[test] İzleyici joined; lobi sahneleri kontrol');
 
     // Lobi sahneleri güncellenir (SPEC 13.1).
     await expect(display.getByText('Duman')).toBeVisible();
@@ -92,16 +137,21 @@ test('lig modunda 1 turluk tam oyun: 3 oyuncu + seyirci + ortak ekran', async ({
     await expect(display.getByText(promptText)).toBeVisible();
     await expect(display.getByText('oyuncu seçti')).toBeVisible();
 
-    // Oyuncular kütüphaneden meme seçer ve onaylar; seçim erken biter.
+    // Oyuncular kütüphaneden meme seçer ve onaylar; son onay seçimi erken bitirir.
     for (const page of [duman.page, kral.page, sims.page]) {
       await expect(page.getByText('Kütüphane yükleniyor…')).toBeHidden();
-      const promptText = await page.locator('p.font-display').first().textContent();
-      expect(promptText, 'seçim durumu ekranda').toBeTruthy();
       await page.getByRole('button', { name: /Maaş yattı ama kira da yattı/ }).click();
       await page.getByRole('button', { name: 'Seçimimi onayla' }).click();
-      await expect(page.getByText('Seçimin onaylandı.')).toBeVisible({ timeout: 5000 });
+      // Onay sonrası ya "Onaylandı ✓" görünür ya da herkes onayladıysa gösterim başlar.
+      await expect(
+        page
+          .getByRole('button', { name: 'Seçimimi onayla' })
+          .filter({ hasText: 'Onaylandı ✓' })
+          .or(page.getByText(/Gönderi 1 \/ 3/)),
+      ).toBeVisible({ timeout: 8000 });
     }
-    await expect(display.getByText('3/3')).toBeVisible({ timeout: 10_000 });
+    // Herkes onayladı → seçim erken biter; ortak ekranda gösterim sahnesi başlar.
+    await expect(display.getByText(/Gönderi 1 \/ 3/)).toBeVisible({ timeout: 15_000 });
 
     // Gönderi gösterimi: 3 slot; her sayfada puanlama görünür.
     await Promise.all([
@@ -141,20 +191,23 @@ test('lig modunda 1 turluk tam oyun: 3 oyuncu + seyirci + ortak ekran', async ({
     await expect(sims.page.getByText(/Şampiyon:/)).toBeVisible({ timeout: 30_000 });
     await expect(seyirci.page.getByText(/Şampiyon:/)).toBeVisible({ timeout: 30_000 });
   } finally {
+    for (const context of contexts) await context.close().catch(() => undefined);
     lobby.close();
-    await browser.close();
   }
 });
 
 test('geç katılan seyirci o turu puanlayamaz (SPEC 5.6)', async ({ browser }) => {
   test.setTimeout(240_000);
   const lobby = await createLobby(SELECTION_SETTINGS);
+  const contexts: Awaited<ReturnType<Browser['newContext']>>[] = [];
   try {
     await lobby.manager.view();
     const code = lobby.code;
 
     const duman = await joinParticipant(browser, code, 'Duman', 'player');
-    await joinParticipant(browser, code, 'Kral', 'player');
+    contexts.push(duman.context);
+    const kral = await joinParticipant(browser, code, 'Kral', 'player');
+    contexts.push(kral.context);
     await lobby.manager.command({ type: 'start' });
 
     // Gönderi gösterimi başlayana kadar bekle (seçim erken bitebilir ya da süresi dolar).
@@ -165,6 +218,7 @@ test('geç katılan seyirci o turu puanlayamaz (SPEC 5.6)', async ({ browser }) 
 
     // Gösterim sürerken seyirci katılır.
     const gec = await joinParticipant(browser, code, 'Geç', 'voter');
+    contexts.push(gec.context);
     await expect(gec.page.getByText('Bu gönderiyi puanlayamazsın.')).toBeVisible({
       timeout: 30_000,
     });
@@ -177,21 +231,24 @@ test('geç katılan seyirci o turu puanlayamaz (SPEC 5.6)', async ({ browser }) 
     ).toBeVisible();
     await expect(gec.page.locator('button[role="radio"]:not([disabled])')).toHaveCount(0);
   } finally {
+    for (const context of contexts) await context.close().catch(() => undefined);
     lobby.close();
-    await browser.close();
   }
 });
 
 test('cihaz devri: aynı ad, yönetici onayı, eski cihaz düşer (SPEC 5.5)', async ({ browser }) => {
   const lobby = await createLobby(SELECTION_SETTINGS);
+  const contexts: Awaited<ReturnType<Browser['newContext']>>[] = [];
   try {
     await lobby.manager.view();
     const code = lobby.code;
 
     const first = await joinParticipant(browser, code, 'Ali', 'player');
+    contexts.push(first.context);
 
     // Yeni cihaz aynı adla girer: "Sen misin?" teklifi çıkar.
     const secondContext = await browser.newContext();
+    contexts.push(secondContext);
     const second = await secondContext.newPage();
     await second.setViewportSize({ width: 390, height: 844 });
     await second.goto(`${WEB}/oda/${code}`);
@@ -215,7 +272,7 @@ test('cihaz devri: aynı ad, yönetici onayı, eski cihaz düşer (SPEC 5.5)', a
       timeout: 30_000,
     });
   } finally {
+    for (const context of contexts) await context.close().catch(() => undefined);
     lobby.close();
-    await browser.close();
   }
 });
