@@ -520,3 +520,4 @@ _Owner tercihi: ileriki aşamalara ait sorular gerektiği zaman sorulur, öncede
 - GitHub Actions CI ilk çalıştırmada 'startup_failure' verdi (iş başlamadan; workflow YAML geçerli). Muhtemel neden hesap/faturalama ayarı; owner'dan run sayfasındaki mesaj istendi.
 - **M1 başladı:** Motor işi Codex'e (gpt-6.1-sol, medium) verildi; dal `m1-engine`, worktree `../mol-wt-m1`.
 - Cloudflare: owner `wrangler login` yaptı. `mol-db` D1 veritabanı oluşturuldu (EEUR). R2 hesapta etkin değil; owner'ın dashboard'dan etkinleştirmesi gerekiyor. GitHub Actions hatasının nedeni: hesapta başarısız ödeme / harcama limiti; owner'a seçenekler sunuldu.
+- R2 owner tarafından etkinleştirildi (kart bağlandı); `mol-media` bucket oluşturuldu.
