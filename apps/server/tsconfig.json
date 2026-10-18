@@ -7,5 +7,12 @@
     "types": ["@cloudflare/vitest-plugin/types"],
     "noEmit": true
   },
-  "include": ["src", "test", "vitest.config.ts", "worker-configuration.d.ts"]
+  "include": [
+    "src",
+    "test",
+    "vitest.config.ts",
+    "worker-configuration.d.ts",
+    "scripts",
+    "drizzle.config.ts"
+  ]
 }
