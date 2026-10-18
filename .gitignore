@@ -1,1 +1,19 @@
+# Dependencies / builds
+node_modules/
+dist/
+coverage/
+
+# Cloudflare (Wrangler local state, secrets)
+.wrangler/
+.dev.vars
+
+# Tooling caches
+*.tsbuildinfo
+.eslintcache
+
+# OS / editor
+.DS_Store
+.obsidian/
+
+# Existing entry (kept)
 .superpowers/

@@ -1,0 +1,14 @@
+packages:
+  - packages/*
+  - apps/*
+
+# Native binaries (esbuild, workerd) run their install scripts; pnpm 10+ blocks
+# build scripts by default and requires explicit approval.
+allowBuilds:
+  esbuild: true
+  workerd: true
+
+# @cloudflare/workers-types publishes daily builds; they are younger than the
+# minimum release age window.
+minimumReleaseAgeExclude:
+  - '@cloudflare/workers-types@5.20261018.1'
