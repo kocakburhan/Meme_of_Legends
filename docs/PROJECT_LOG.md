@@ -1,0 +1,443 @@
+# Meme of Legends — Proje Karar ve Tartışma Kaydı
+
+Bu dosya, owner ile orchestrator (Claude Code) arasındaki tartışmaların ve alınan kararların yaşayan kaydıdır. Konuşma bağlamına bağlı kalmamak için her oturumda güncellenir.
+
+- **Başlangıç:** 2026-10-17
+- **Durum:** Tartışma aşaması — henüz kod yok
+
+---
+
+## 1. Çalışma Modeli (Karara bağlandı)
+
+| Rol | Kim | Görev |
+|---|---|---|
+| Owner | Kullanıcı | Ürün vizyonu, son karar |
+| Orchestrator | Claude Code | Owner ile iletişim; işi anlama, kurgulama, planlama, yönetme; worker'lara iş dağıtma ve çıktıları denetleme |
+| Worker | Codex | Orchestrator'ın verdiği işleri uygular |
+| Worker | OpenCode | Orchestrator'ın verdiği işleri uygular |
+
+- Proje tamamen coding agent'lar ile geliştirilecek.
+- **İstisna:** Bazen Codex orchestrator, OpenCode worker olabilir. Owner bunu açıkça belirtir.
+- **Model seçimi:** Codex ve OpenCode'da kullanılacak modeli owner söyler. Owner aksini söyleyene kadar orchestrator o modeli tekrar sormadan kullanır.
+  - Codex modeli: _henüz belirtilmedi_
+  - OpenCode modeli: _henüz belirtilmedi_
+- **AGENTS.md / CLAUDE.md:** Tartışmalar bittikten sonra yazılacak. Kısa tutulacak; sıkı talimatlar yerine modellere ve harness'lere özgürlük tanıyacak.
+
+---
+
+## 2. Ürün Tanımı
+
+Ürün bir **oyun**: işletmelerin (kafe, bar, üniversite, şirket, etkinlik organizatörü) düzenlediği, tarayıcıda oynanan, canlı bir meme yarışması. Katılımcılar QR/oda koduyla hesapsız katılır; verilen duruma ("Maaşın yattığı an") en uygun meme'i seçer, gönderiler anonim gösterilir ve 1–5 puanlanır. Güncel ürün tanımı: **`docs/PRODUCT_SPEC.md`** (v2, owner onaylı). Bu dosya kararların gerekçe ve tarihçesini tutar; spesifikasyon ise kararların birleşik ve uygulanabilir halidir.
+
+> **Eski dokümanların statüsü (owner, 2026-10-17):** `docs/old/` altındaki dosyalar ürünü doğru anlatır. Oradaki kararlar ise eleştirel gözle yeniden değerlendirilecek: mantıksızlık/tutarsızlıklar tartışılıp düzeltilecek, boşluklar kapatılacak, uygulamaya geçilebilir ve açık kapı bırakmayan hale getirilecek. Kesinleşen kararlar bu dosyaya yazılır; tartışmalar bitince `docs/old/` silinir.
+
+---
+
+## 3. Ekranlar ve Kullanıcı Akışları
+
+_Tartışılacak._
+
+## 4. Teknoloji Seçimleri
+
+_Tartışılacak._
+
+## 5. Mimari
+
+_Tartışılacak._
+
+## 6. Uygulama Planı ve İş Dağılımı
+
+_Tartışmalardan sonra._
+
+---
+
+## 7. Eski Tasarımın Eleştirel İncelemesi
+
+Orchestrator'ın 2026-10-17 tarihli incelemesi. Her madde: sorun → orchestrator önerisi → durum. Owner karar verdikçe "Durum" güncellenir ve kesin karar ilgili bölüme taşınır.
+
+### A. Oyunun adaletini / işleyişini bozan sorunlar
+
+| ID | Sorun | Öneri | Durum |
+|---|---|---|---|
+| A1 | **Stratejik oylama.** Oyuncular rakiplerine puan veriyor. Eleme düellosunda rakibe 1 vermek kazandırır. 2 oyuncu + 0 seyirci senaryosunda (eski başarı kriteri) iki oyuncu birbirine 1 verir → hep beraberlik → yönetici karar verir; oyun anlamsızlaşır. Ligde dürüst oy veren oyuncu cezalanır. | Düelloda (eleme eşleşmesi, hibrit yarı final/final) iki rakip birbirinin gönderisini puanlayamaz, diğer gönderileri puanlayabilir. Her düellonun en az 1 tarafsız puanlayıcısı olmalı → 2 oyunculu oyun ancak seyirci varsa başlar (ya da min. oyuncu 3). Ligde oyuncu oyu kalır, risk kabul edilir. | **Karar: Seçenek 1 + jüri ödülü; 2 oyuncu istisnasıyla revize edildi** → Bölüm 8 |
+| A2 | **Sahte seyirci ile oy şişirme.** Seyirci sınırsız, hesapsız, onaysız; biri 10 gizli sekme açıp kendine 5 verebilir. | Tarayıcı başına tek katılımcı kimliği; yönetici seyirci listesini görür ve çıkarabilir; "seyirci katılımı açık/kapalı" düğmesi; seyirci sayısı ortak ekranda görünür. Gizli sekme riski kabul edilir. | **Karar: a+b+c+d+e, f opsiyonel** → Bölüm 8 |
+| A3 | **Oturum süreleri çok uzun.** Gönderi başına sabit 30 sn. 16 oyunculu bir lig turu ≈ 10,5 dk → 10 tur ≈ 105 dk, 25 tur ≈ 4,4 saat. 16 oyunculu hibrit ≈ 85 dk. Eleme (16) ≈ 25 dk. Statik bir resim için 25 sn de uzun. | Hedef etkinlik süresi belirlensin. Sunum süresi medya tipine göre (resim/GIF kısa, video = klip süresi + son karar). Oluştururken tahmini süre gösterilsin. Lig tur sayısı oyuncu sayısına göre sınırlansın. | **Karar: öneriler onaylandı, süre sınırı yok** → Bölüm 8 |
+| A4 | **Beraberlik mekanizması belirsiz ve sık.** Az oyla ortalamada beraberlik sık çıkar. "Favori seçimi"nde ne gösterildiği belli değil (lig toplamında hangi meme?) → popülerlik yarışına döner. | Düello/eleme beraberliğinde **uzatma turu**: yeni durum, kısa seçim süresi, yalnız berabere kalanlar gönderir, diğerleri oylar; yine beraberlik → yönetici. Lig sıralamasında yalnız sonucu etkileyen beraberlikler çözülür (ilk 3, hibrit 4./5. sınırı); diğerleri sırayı paylaşır. | **Karar: tablo + zincir, son adım kura** → Bölüm 8 |
+
+### B. Teknik olarak riskli kararlar
+
+| ID | Sorun | Öneri | Durum |
+|---|---|---|---|
+| B1 | **TikTok / Instagram / X embed'leri.** Instagram ve X embed'lerinde oynatmayı kontrol eden resmi bir API yok gibi görünüyor (otomatik oynatma, başlangıç/bitiş kontrolü yok). Instagram oEmbed için Meta uygulama onayı gerekiyor. TikTok'ta kontrol kısıtlı. 250 telefonda üçüncü taraf iframe yükü, çerez/onay yükü ve doğrulama ("embed edilebilir mi, yaş kısıtı var mı") zor. | MVP'de dış video kaynağı yalnız **YouTube** (IFrame API başlangıç/bitiş ve kontrol destekliyor). TikTok/IG/X sonraki sürüme. Teknik tasarım aşamasında doğrulanacak. | **Karar: MVP'de yalnız YouTube** → Bölüm 8 |
+| B2 | **Ses ve otomatik oynatma.** Aynı klip 250 telefonda ve ortak ekranda aynı anda sesli çalarsa kakofoni olur. Mobil tarayıcılar sesli otomatik oynatmayı engeller. | Ortak ekran varsa ses yalnız orada; telefonlarda sessiz oynar, dokununca ses açılır. Ortak ekran yoksa telefon sessiz başlar, dokununca ses açılır. | **Karar: öneri onaylandı** → Bölüm 8 |
+| B3 | **Yönetici 5 sn koparsa oyun duruyor.** Mobilde ekran kilidi, uygulama değiştirme ya da gelen arama bunu sürekli tetikler. Ayrıca sonuç ekranı yönetici "ilerle" diyene kadar bekliyor → yönetici meşgulse (barmen) oyun takılır. | Oyun akışı otomatik ilerlesin. Sonuç ekranı geri sayımla otomatik geçsin; yönetici bekletebilir ya da hemen geçebilir. Yönetici kopması oyunu durdurmasın, yalnız uyarı versin. Yönetici yalnız gerektiğinde (medya hatası, beraberlikte karar) beklenir. | **Karar: öneri onaylandı** → Bölüm 8 |
+
+### C. Mantık boşlukları ve tutarsızlıklar
+
+| ID | Sorun | Öneri | Durum |
+|---|---|---|---|
+| C1 | En az 25 platform durumu, 25 turluk ligi tekrarsız bitirmek için yeterli sayılmış. Ama her tur 1 "durumu değiştir" hakkı var → 50 durum gerekebilir. | Havuz bitince en eski kullanılan durumlar tekrar kullanılsın; sert "25 altına arşivleme yasak" kuralı yerine uyarı. | **Karar: öneri onaylandı** → Bölüm 8 |
+| C2 | Mod, oturum oluşturulurken seçiliyor (varsayılan Hibrit) ama hibritin 4 oyuncu şartı ancak onaylardan sonra belli oluyor. Başlatma anında bekleyen istekler ne olacak, tanımlı değil. | Mod ve ayarlar oyun başlayana kadar değiştirilebilir. "Başlat" butonu kuralları denetler. Başlarken bekleyen istekler seyirci olur. | **Karar: öneri onaylandı (C2'de seyirci şartı hariç) + rövanş** → Bölüm 8 |
+| C3 | Hak oluşturma anında düşüyor + tek aktif oturum kuralı + başlatılmayan lobi süresiz kalıyor → hesap kilitlenir ya da hak boşa gider. | Hak **oyun başlatılınca** düşsün. Başlatılmamış lobi X saat sonra otomatik kapansın; yönetici lobiyi her zaman iptal edebilsin. | **Karar: öneri onaylandı (C2'de seyirci şartı hariç) + rövanş** → Bölüm 8 |
+| C4 | Eleme modunda bay geçen oyuncu meme gönderiyor mu? Aynı kişiye üst üste bay düşebilir mi? Üçüncülük kuralı yalnız "son dört" turu varsa çalışıyor (ör. 6 ya da 3 oyuncuyla başlanırsa böyle bir tur yok). | Bay geçen oyuncu o tur göndermez, seyirci gibi oy verir. Herkes bir kez bay geçmeden kimse ikinci kez geçmez. Genel sıralama: daha geç turda elenen önde, aynı turda elenenler o turun puanına göre. | **Karar: öneri onaylandı** → Bölüm 8 |
+| C5 | Hibritte ilk 4'e giremeyenlerin seyirciye dönüşmesi yazılmamış. Yarı finaller sıralı (9 tur) mı paralel mi belirsiz. 4./5. sıra eşitliği ve ilk 4'ün kendi arasındaki sıralama eşitliği tanımsız. Tam 4 oyuncuda 5 lig turu yalnız sıralama için oynanıyor. | İlk 4'e giremeyenler seyirci olur. Yarı finaller paralel oynanır (4 oyuncu aynı durum, 3 tur) → 11 tur, daha kısa. 4./5. eşitliği → A4; ilk 4 içindeki sıralama eşitliği → kura. | **Karar: öneri onaylandı** → Bölüm 8 |
+| C6 | Seçim başladıktan sonra durum değiştirilirse oyuncuların seçimleri ne olur? | Değiştirme yalnız seçimin ilk N saniyesinde yapılabilir; seçimler sıfırlanır, sayaç baştan başlar. | **Karar: öneri onaylandı** → Bölüm 8 |
+| C7 | Seyirciyi çıkarma yok. Takma ad moderasyonu yok (küfürlü takma ad ortak ekranda ve tabloda görünür). | Yönetici seyirciyi de çıkarabilir; takma adı değiştirmeye zorlayabilir; takma ad uzunluk sınırı olur. | **Karar: öneri onaylandı** → Bölüm 8 |
+| C8 | Çıkarılan oyuncu seyirci mi olur, tamamen mi atılır, tekrar girebilir mi? | İki ayrı eylem: "Seyirciye al" ve "Odadan at" (atılan cihaz geri giremez). | **Karar: öneri onaylandı** → Bölüm 8 |
+| C9 | Telefon kapanırsa başka cihazdan devam edilemiyor. Yönetici konsolu ikinci cihazda açılırsa ne olacağı tanımsız. | Aynı takma adla yeni cihazdan gelen istek yönetici onayıyla eski kimliği devralır. Yönetici konsolunda en son açılan cihaz kontrolü alır, eskisi bilgilendirilir. | **Karar: öneri onaylandı** → Bölüm 8 |
+| C10 | Ortak ekran açıkken telefonlarda meme gösteriliyor mu? Ortak ekran linkinin güvenliği tanımsız. | Telefonlar her zaman meme'i ve oylamayı gösterir; ortak ekran ek bir yüzeydir. Ortak ekran linki gizli token içerir; yeni açılan eskisini düşürür. | **Karar: öneri onaylandı** → Bölüm 8 |
+| C11 | İşletme hesabı pasife alınırsa ya da şifresi sıfırlanırsa aktif oturuma ne olur? | Devam eden oturum biter; yeni oturum açılamaz. Şifre sıfırlama diğer yönetici girişlerini düşürür. | **Karar: revize öneri onaylandı** → Bölüm 8 |
+| C12 | Yönetici aynı zamanda oyuncu olabilir mi? (Küçük grupta önemli.) | Owner kararı. | **Karar: yönetici oynayabilir; oyuncu onayı varsayılan otomatik** → Bölüm 8 |
+
+### D. İçerik güvenliği ve hukuk
+
+| ID | Sorun | Öneri | Durum |
+|---|---|---|---|
+| D1 | Özel içerik anonim ve onaysız olarak ortak ekrana düşüyor; kurumsal etkinlikte büyük risk. Yöneticinin "kaldır" yetkisi iş işten geçtikten sonra işe yarıyor. | Seçim sırasında gelen özel içerikler yönetici konsolunda canlı listelenir; yönetici reddedebilir (oyuncuya bildirilir, süre varsa yeniden seçer). Sunum sırasında "hemen gizle" düğmesi olur. Zorunlu onay kuyruğu yok. | **Karar: Açık/Kapalı (varsayılan Açık), canlı liste, hemen gizle** → Bölüm 8 |
+| D2 | KVKK: aydınlatma metni, üçüncü taraf embed çerez onayı ve raporlarda takma adların saklanma süresi tanımsız. | Katılım ekranında kısa aydınlatma metni. Rapor verisi için saklama süresi belirlenir. B1 kabul edilirse embed onayı yalnız YouTube için gerekir. | **Karar: öneri onaylandı, takma adlar 7 günde anonimleşir** → Bölüm 8 |
+
+### E. Kapsam
+
+| ID | Sorun | Öneri | Durum |
+|---|---|---|---|
+| E1 | MVP çok geniş: 4 sosyal sağlayıcı, kırpma, revizyon geçmişli işletme durumları ve admin moderasyonu, sistem video meme'leri, 3 mod, WCAG AA, 250 seyirci. | Kısılabilecekler: TikTok/IG/X (B1); işletme durumlarında revizyon geçmişi (admin engelleme kalır); lig modunda 25 tur. | **Karar: revizyon geçmişi yok, WCAG AA + 250 seyirci kalır, sade raporlar, sistem videoları R2** → Bölüm 8 |
+| E2 | Dil kapsamı belirtilmemiş. | MVP yalnız Türkçe; metinler sonradan çeviriye uygun yapıda tutulur. | **Karar: yalnız Türkçe** → Bölüm 8 |
+
+### F. Küçük netleştirmeler (itiraz edilmediği için kabul edildi)
+
+- F1: Final oy gözden geçirmesinde "herkes bitirirse erken kapanabilir" ifadesi belirsiz → herkes bitirirse **kapanır**.
+- F2: Duraklatma sırasında oy kabul edilmez; devam edilince o anki sunum slotu baştan başlar.
+- F3: Puanlar 2 ondalıkla gösterilir; hesaplama tam hassasiyetle yapılır.
+- F4: Az oy almış gönderinin ortalaması yanıltıcı olabilir (geç katılan seyirciler). MVP'de basit ortalama kalır, izlenir.
+- F5: Oturum durum makinesi (lobi → oyun → duraklatıldı → bitti/iptal) teknik tasarımda kesinleşir.
+- F6: Görsel dil (shadcn/ui Luma, "Sıcak Zine" paleti) ekran tartışmasında yeniden ele alınır.
+
+## 8. Kesinleşen Oyun Kuralları
+
+### 8.1 Puanlama yetkisi ve çıkar çatışması (A1)
+- **Düello bağlamı** (eleme eşleşmesi, hibrit yarı final, hibrit final): Düellodaki iki rakip birbirinin gönderisini puanlayamaz. O turdaki diğer gönderileri puanlayabilir.
+- **Lig bağlamı** (lig modu ve hibritin lig aşaması, 3+ oyuncu): Oyuncular kendi gönderisi dışındaki tüm gönderileri puanlar. Stratejik oy riski kabul edilir.
+- **2 oyunculu lig** düello bağlamı sayılır (iki oyuncu birbirinin tek rakibidir).
+- **Seyircisiz oyun desteklenir.** Tarafsız puanlayıcının olmadığı tek senaryo 2 oyuncu + 0 seyircidir.
+- **İstisna:** Bir düelloyu puanlayabilecek tarafsız katılımcı odada yoksa, düellodaki iki rakip birbirini puanlar. Kontrol her turun gösterimi başlarken yapılır (geç katılım kuralı A2 geçerli).
+- Hiçbir oyuncu hiçbir koşulda kendi gönderisini puanlayamaz.
+- Seyirciler, bay geçen oyuncular ve elenip seyirciye dönen oyuncular her zaman tarafsız puanlayıcıdır.
+- Geçerli puan almayan gönderi 0 sayılır. Bir düelloda iki gönderi de 0 olursa sonuç beraberliktir ve 8.5'e gider.
+- _Revizyon (owner, C2 tartışması):_ İlk A1 kararındaki "2 oyunculu oyun en az 1 seyirciyle başlar" şartı kaldırıldı ve yerine yukarıdaki istisna getirildi.
+
+### 8.2 Jüri ödülleri (A1)
+- Oyun sonu ekranında esprili iki ödül gösterilir: **"En sert jüri"** (verdiği puanların ortalaması en düşük) ve **"En cömert jüri"** (en yüksek).
+- Oyuncu ve seyirci fark etmeksizin puan veren tüm katılımcılar dahildir.
+- _Varsayılan ayrıntılar (itiraz edilmezse geçerli):_ Ödüle girmek için oyun boyunca en az 5 puan vermiş olmak gerekir. Eşitlikte ödül paylaşılır. Ödül yalnızca takma adı ve ortalamayı gösterir; kime kaç puan verildiğini göstermez.
+- Şartı sağlayan en az 2 katılımcı yoksa ödüller gösterilmez; aynı kişi iki ödülü birden alamaz.
+
+### 8.3 Seyirci hilesine karşı önlemler (A2)
+Amaç hileyi imkânsız kılmak değil, zahmetli ve görünür kılmaktır. Bir oyuncunun arkadaşlarının seyirci olarak gelip ona oy vermesi hile sayılmaz.
+- **Tarayıcı başına tek katılımcı kimliği.** Aynı tarayıcıdan ikinci katılım yapılamaz. Gizli sekme veya farklı tarayıcı riski kabul edilir.
+- **Görünürlük.** Seyirci sayısı ortak ekranda görünür. Yönetici konsolunda seyirci listesi ve katılım saatleri bulunur.
+- **Seyirciyi çıkarma.** Yönetici seyirciyi atabilir. Atılan seyircinin o turda kilitlenmemiş oyları silinir; kilitlenmiş turlar değişmez.
+- **Seyirci girişini kapatma.** Yönetici "yeni seyirci kabul et" seçeneğini açıp kapatabilir. Varsayılan: açık.
+- **Geç katılım kuralı.** O turun meme gösterimi başladıktan sonra katılan seyirci o turu izler ama puanlayamaz (final gözden geçirme dahil); bir sonraki turdan itibaren oy verir. Seçim aşamasında katılan o turda oy verebilir.
+- **Seyirci onay modu (opsiyonel).** Yönetici ayarıdır, varsayılan kapalı. Açıkken her seyirci isteği yönetici onayından geçer.
+- IP sınırlama, cihaz parmak izi ve şüpheli oy kalıbı tespiti yapılmaz.
+
+### 8.4 Oyun süresi ve zamanlama (A3)
+- **İlke:** Oyun uzun sürmeyecek şekilde tasarlanır, ancak kod kullanıcıyı süre üzerinden **sınırlamaz**. Hedef/maksimum süre kuralı yoktur.
+- **Gösterim süresi medya tipine göre (sabit, yönetici ayarı değil):**
+  - Resim / GIF: 12 sn izle-puanla + 3 sn son karar = 15 sn
+  - Video: izleme süresi = klip süresi, ancak en az 12 sn (12 sn'den kısa klip son karesinde durur) + 5 sn son karar = 17–30 sn
+- **Seçim süresi:** Varsayılan 60 sn. Yönetici 30–240 sn arasında değiştirebilir. Süren seçim aşamasına +15 / +30 / +60 sn eklenebilir; süren sayaç kısaltılamaz.
+- **Final oy gözden geçirme süresi:** Varsayılan 45 sn, 15–120 sn arası ayarlanabilir. Yönetici erken kapatabilir.
+- Tüm süre ayarı değişiklikleri bir sonraki turdan itibaren geçerlidir.
+- **Sonuç ekranı:** 15 sn geri sayımla kendiliğinden geçer. Yönetici bekletebilir veya hemen geçebilir.
+- **Tahmini süre:** Oyun oluşturma/ayar ekranında mod, oyuncu sayısı ve tur sayısına göre tahmini süre aralığı gösterilir ve canlı güncellenir.
+- **Lig tur sayısı:** 1–50. Süreye dayalı sınır yok; 50 yalnız hatalı girişe karşı güvenlik sınırıdır. Tahmini süre gösterilir, karar yöneticiye aittir.
+- **Hibrit yarı finaller paralel oynanır** (süre etkisi nedeniyle A3'te onaylandı; ayrıntılar C5'te).
+
+### 8.5 Beraberlik (A4)
+**Hangi beraberlikler çözülür:**
+
+| Beraberlik | İşlem |
+|---|---|
+| Eleme eşleşmesi (tur atlayan) | Çözülür |
+| Hibrit maç (yarı final, final) | Çözülür |
+| Hibrit ilk 4 sınırı (4./5. eşitliği, çok kişili olabilir) | Çözülür |
+| Lig modunda 1. sıra (şampiyon) | Çözülür |
+| Hibrit ilk 4 içindeki sıralama (eşleşme tohumlaması) | Kura |
+| Diğer tüm sıralar (2., 3., hibrit üçüncülüğü vb.) | Paylaşılır ("Ortak 2.") |
+
+**Çözüm zinciri:**
+1. **Hesapla ayırma** (yalnız hibrit maç): 3 turluk toplamlar eşitse lig aşaması toplamı yüksek olan kazanır.
+2. **Uzatma turu** (en fazla 1 kez): Yeni durum, 30 sn seçim süresi, yalnız berabere kalanlar gönderir, diğer herkes puanlar. A1 kuralı geçerli: berabere kalanlar birbirini puanlayamaz. Çok kişili beraberlikte hepsi aynı turda yarışır ve tur sonucu onları sıralar; hâlâ berabere kalanlar 3. adıma geçer.
+3. **Kura:** Uzatma turu da berabere biterse ekranda animasyonlu kura ile belirlenir. Yönetici karar vermez.
+- Uzatma turunda puanlama kuralları 8.1 ile aynıdır (tarafsız puanlayıcı yoksa rakipler birbirini puanlar).
+- Aynı turda birden fazla beraberlik varsa (ör. iki eleme eşleşmesi, iki yarı final) hepsi **tek bir uzatma turunda** birlikte çözülür.
+- Uzatma puanları yalnız beraberliği çözer; lig toplamına, maç toplamına veya jüri ödüllerine eklenmez.
+
+### 8.6 Dış medya kaynakları (B1)
+- **MVP'de tek dış kaynak YouTube'dur** (resmi IFrame API: başlangıç/bitiş, oynat/durdur, sessiz kontrolü).
+- TikTok, Instagram ve X MVP kapsamı dışındadır; sonraki sürümlerde değerlendirilir.
+  - Gerekçe (2026-10-17 araştırması): Instagram embed verisi Meta uygulama incelemesi ve işletme doğrulaması gerektiriyor, oynatma kontrolü yok. X embed'lerinde oynatma kontrolü yok. TikTok'un mesajlaşma tabanlı kontrolü var ama ilk oynatmadan önce komutları yok sayıyor; güvenilirliği prototipsiz bilinmiyor.
+- Oyuncu özel içerik olarak resim, GIF ve YouTube linki ekleyebilir. Video dosyası yüklenemez.
+- YouTube klipleri en fazla 25 sn'dir; oyuncu başlangıç/bitiş noktasını seçer.
+- Sistem kütüphanesinde admin tarafından yüklenen video meme'ler bulunabilir.
+
+### 8.7 Ses ve otomatik oynatma (B2)
+- **Ortak ekran varsa:** Ses yalnız ortak ekranda çalar. Telefonlarda video sessiz oynar; kullanıcı isterse kendi cihazında sesi açabilir.
+- **Ortak ekran yoksa:** Telefonlarda video sessiz başlar, belirgin bir "Sesi aç" düğmesi gösterilir. Kullanıcının ses tercihi oturum boyunca hatırlanır (tarayıcı izin verdiği sürece).
+- **Seçim önizlemesi:** Oyuncunun kendi önizlemesi normal davranır; kullanıcı kendisi başlatır, ses açıktır.
+- **Ortak ekran açılışı:** Büyük bir "Ekranı başlat" düğmesi bulunur. Bu tıklama tarayıcının ses kilidini açar ve tam ekrana geçirir.
+- Yöneticiye ayrı bir ses ayarı verilmez.
+- Oyun sessiz de tamamen anlaşılır olmalıdır.
+
+### 8.8 Kendi kendine akan oyun (B3)
+- **İlke:** Oyun başladıktan sonra baştan sona kendi kendine akar; hiçbir an yönetici müdahalesini beklemez. Yönetici kolaylaştırıcıdır: duraklatma/devam, süre ekleme, durum değiştirme, içerik gizleme, katılımcı çıkarma, erken bitirme.
+- **Yönetici bağlantısı koparsa:** Oyun durmaz, katılımcılara bir şey gösterilmez. Yönetici geri döndüğünde konsol güncel durumla açılır.
+- **Medya gösterilemezse:** Oyun durmaz. Medya seçim sırasında doğrulanır. Sunumda yükleyemeyen cihaz bir kez daha dener, olmazsa "Bu cihazda yüklenemedi" gösterir. Görebilenler puanlar; göremeyenler final gözden geçirmede yeniden deneyebilir. Hiç puan gelmezse genel kural gereği o tur 0 puan alır. Yöneticiye ayrı bir "medya hatası çöz" akışı yoktur. Hatalar platform admin raporuna yazılır. Oyuncu açısından risk bilerek kabul edildi.
+- **Sunucu yeniden başlarsa:** Bağlantılar geri gelince "Devam ediyoruz… 3-2-1" geri sayımı gösterilir; yönetici onayı beklenmez. Seçim, final gözden geçirme ve sonuç aşamaları kalan süreden devam eder. Gönderi gösterimi o gönderinin başından yeniden başlar.
+
+### 8.9 Durum havuzu (C1)
+- **Canlı çekim:** Her turun durumu o anda aktif olan havuzdan çekilir (aktif platform durumları + işletmenin aktif durumları). Oyun başında dondurma yoktur. Admin engeli devam eden oyunlarda da hemen etkili olur.
+- Oturum geçmişi, durumun oynandığı andaki metnini saklar.
+- **Tekrar kuralı:** Oturumda havuz bitene kadar hiçbir durum tekrar etmez. Havuz bitince en uzun süre önce kullanılanlar arasından rastgele seçilir. Oyun "durum kalmadı" diye asla takılmaz.
+- Uzatma turları da havuzdan çeker.
+- **Admin kısıtı yok:** "25'in altına arşivlenemez" kuralı kaldırıldı. Aktif platform durumu az olduğunda admin panelinde uyarı gösterilir.
+- Havuzdaki her durumun seçilme olasılığı eşittir; platform/işletme ağırlıklandırması yoktur.
+
+### 8.10 Durum değiştirme (C6)
+- **Tur başına 1 değiştirme hakkı** vardır; uzatma turları dahil.
+- **Önizleme:** Bir sonraki turun durumu, önceki turun sonuç ekranı süresince yönetici konsolunda görünür (ilk tur için lobide). Yönetici burada değiştirirse oyuncular fark etmez.
+- **Acil değiştirme:** Hak önizlemede kullanılmadıysa seçim aşamasının ilk 15 sn'sinde kullanılabilir. Oyuncu seçimleri sıfırlanır, seçim süresi baştan başlar.
+- Yeni durum da C1 kurallarıyla havuzdan rastgele çekilir; yönetici durumu kendisi seçmez.
+- Değiştirilen durum o oturumda kullanılmış sayılır, tekrar çekilmez.
+
+### 8.11 Lobi, ayarlar ve oyunu başlatma (C2)
+- Mod, lig tur sayısı ve diğer ayarlar lobide serbestçe değiştirilebilir. Oyun başlayınca mod ve tur sayısı kilitlenir. Süre ayarları sonraki turlar için değiştirilebilir kalır.
+- "Başlat" düğmesi kuralları denetler. Koşul sağlanmazsa pasif kalır ve nedenini yazar:
+  - Tüm modlarda en az 2 oyuncu.
+  - Hibrit modda en az 4 oyuncu.
+  - **Seyirci şartı yok:** Oyun hiç seyirci olmadan, yalnız oyuncularla oynanabilir (owner kararı: ör. 4 kişilik arkadaş grubu hepsi oyuncu olarak oynayabilmeli; sosyal ortamda adaletsizliği insanlar kendileri yönetir).
+- Oyun başlarken bekleyen oyuncu istekleri seyirciye dönüşür ve kişiye bildirim gösterilir.
+- Oyun başladıktan sonra oyuncu kadrosu kilitlenir; yeni gelenler yalnız seyirci olarak katılabilir.
+- Özel içerik ayarı oyun sırasında değiştirilebilir; bir sonraki turdan itibaren geçerlidir.
+- **Oyuncu sayısında ürün sınırı yok** (owner kararı, 2026-10-18). Yalnız hatalı/kötü niyetli kullanıma karşı 1000 oyunculuk teknik güvenlik sınırı vardır. Kalabalık oyunun uzunluğu tahmini süre ile gösterilir; karar yöneticidedir.
+- **Oyuncu kabulü (C12 ile güncellendi):** Varsayılan **otomatik kabul** — oyuncu olmak isteyen sırayla kabul edilir. İsteğe bağlı **"Oyuncu onayı"** ayarı açıksa her oyuncu isteği yönetici onayından geçer; reddedilen istek seyirci olur.
+
+### 8.12 Oturum hakları ve yaşam döngüsü (C3)
+- **Hak oyun başlatılınca düşer.** Lobi oluşturmak hak tüketmez. Başlatırken "1 oyun hakkın düşecek, kalan: N" onayı gösterilir.
+- Hakkı 0 olan işletme lobi açamaz. Başlat anında hak yeniden kontrol edilir.
+- İşletmenin aynı anda yalnız 1 aktif oturumu (lobi veya oyun) olabilir.
+- Yönetici lobiyi istediği an iptal edebilir; hak düşmediği için kayıp yoktur.
+- Başlatılmamış lobi oluşturulmasından 24 saat sonra kendiliğinden kapanır.
+- Başlamış oyunda 10 dakika boyunca bağlı hiçbir oyuncu veya seyirci yoksa (yönetici konsolu ve ortak ekran sayılmaz) oyun otomatik sonlanır.
+- Herhangi bir modda aktif oyuncu sayısı 2'nin altına düşerse oyun hemen biter; kalan oyuncu varsa şampiyon olur.
+- Erken bitirilen veya otomatik sonlanan oyunda hak iade edilmez. Platform admin elle hak ekleyebilir.
+
+### 8.13 Rövanş (C3 ek)
+- Oyun bitince yönetici tek tuşla aynı odada yeni bir lobi açabilir.
+- Katılımcılar odadan çıkmadan yeni lobiye geçer; oyuncu olmak isteyenler yeniden istek gönderir.
+- Yeni oyun başlatıldığında 1 hak düşer (normal kural).
+
+### 8.14 Eleme modu: bay ve sıralama (C4)
+- Tek sayıda aktif oyuncu varsa bir oyuncu bay geçer ve doğrudan sonraki tura çıkar.
+- **Bay geçen oyuncu o tur meme göndermez,** o turu tarafsız puanlayıcı olarak puanlar.
+- Bay, o ana kadar en az bay geçmiş oyuncular arasından rastgele seçilir; herkes bir kez geçmeden kimse ikinci kez geçmez.
+- Tur başında ekranda "X bay geçti" gösterilir.
+- **Sıralama:** Final galibi 1., final kaybedeni 2. Diğerlerinde daha geç turda elenen önde; aynı turda elenenler o turdaki gönderi puanına göre sıralanır; eşitlikte sıra paylaşılır (8.5).
+
+### 8.15 Hibrit modun yapısı (C5)
+- **Lig aşaması:** 5 tur, tüm oyuncular. 4 oyuncuda da 5 tur oynanır.
+- İlk 4'e giremeyenler seyirciye dönüşür (elenme geçişi gösterilir) ve puanlamaya devam eder.
+- **Yarı finaller paralel:** 1.–4. ve 2.–3. eşleşmeleri aynı turlarda oynanır. 4 oyuncu aynı duruma gönderir; 3 tur. Eşleşmedeki rakipler birbirini puanlayamaz, diğer eşleşmeyi puanlar (8.1).
+- **Final:** 3 tur. Toplam hibrit: 5 + 3 + 3 = 11 tur.
+- Maç sonucu 3 turun puan toplamıyla belirlenir; beraberlik 8.5.
+- İlk 4 içindeki sıra eşitliği kura ile çözülür.
+- **Sıralama:** Final galibi 1., kaybeden 2. Yarı final kaybedenlerinden lig puanı yüksek olan 3., diğeri 4. (eşitlikte paylaşılır). 5. ve sonrası lig aşaması sırasına göre.
+
+### 8.16 Katılımcı yönetimi (C7, C8)
+**Yönetici eylemleri:**
+
+| Eylem | Kime | Sonuç |
+|---|---|---|
+| Seyirciye al | Oyuncu | Odada kalır, puanlamaya devam eder, artık yarışmaz. |
+| Odadan at | Oyuncu / seyirci | Odadan çıkarılır; aynı tarayıcıyla geri giremez. O turdaki kilitlenmemiş oyları silinir. |
+| Takma adı sıfırla | Oyuncu / seyirci | Geçici ada ("Katılımcı 7") döner, yeni ad seçmesi istenir. Rol ve puanlar korunur. |
+
+**Oyuncu ayrılınca (seyirciye alma, atma veya kendi isteği):**
+- Geçmiş turlar ve verdiği oylar değişmez.
+- O turun kilitlenmemiş gönderisi geçersiz olur.
+- Gelecek turlara ve sıralamaya dahil edilmez.
+- Eleme/hibrit: Turun eşleşmeleri belirlenmeden ayrılırsa kalanlar yeniden eşleştirilir; belirlendikten sonra ayrılırsa rakip hükmen kazanır.
+- Hibrit: İlk 4 belli olmadan aktif oyuncu 4'ün altına düşerse yarı finaller iptal edilir, lig tablosu final sonuç olur. İlk 4 belli olduktan sonra ayrılan yarı finalistin rakibi hükmen finale çıkar; finalist ayrılırsa diğeri hükmen şampiyon olur. Hiç uygun oyuncu kalmazsa oyun şampiyonsuz biter.
+- **Kendi isteğiyle ayrılma:** Oyuncu menüden "Oyunu bırak, seyirci ol" seçebilir; sonuç "seyirciye al" ile aynıdır.
+- **Bağlantısı kopan oyuncu** otomatik çıkarılmaz; gönderi yapmadığı turlardan 0 alır. Çıkarma kararı yöneticinindir.
+
+**Takma ad kuralları:**
+- 2–20 karakter; harf, rakam, boşluk, emoji. Link kabul edilmez.
+- Oda içinde benzersiz (büyük/küçük harf duyarsız).
+- Otomatik küfür filtresi yoktur; yöneticinin "takma adı sıfırla" aracı kullanılır.
+
+### 8.17 Cihazlar ve yeniden bağlanma (C9)
+- **Aynı cihaz:** Yenileme veya kısa kopmada kişi otomatik olarak aynı rol ve durumla geri döner (tarayıcıda saklanan katılımcı kimliği).
+- **Yeni cihaz:** Kişi kendi takma adıyla girmeye çalışınca "Bu ad kullanımda. Sen misin? Yöneticiden devam onayı iste" seçeneği çıkar. Yönetici onaylarsa yeni cihaz kimliği (rol, puanlar, o turun seçimi) devralır; eski cihaz oturumdan düşer. Oyuncu ve seyirci için aynıdır.
+- **Yönetici konsolu:** Aynı işletme hesabıyla birden fazla cihazda aynı anda açılabilir. Devralma ekranı yoktur. Komutlar sunucu tarafından denetlenir; eşzamanlı aynı komutlar ayrı ayrı uygulanabilir (ör. iki kez +30 sn = +60 sn), bu kabul edilmiştir.
+
+### 8.18 Ortak ekran (C10)
+- Telefonlar her durumda meme'i ve puanlama ekranını gösterir; ortak ekran ek bir yüzeydir.
+- **Açma yolları:** (1) Konsoldan "Ortak ekranı aç" ile aynı cihazda yeni sekme. (2) Başka cihazda `/ekran` sayfasına gidip eşleştirme kodunu girme. Eşleştirme kodu yönetici konsolda "Ekran eşleştir"e basınca üretilir; **6 haneli rakam** (oda kodundan farklı biçim), tek kullanımlık, 5 dakika geçerli.
+- **Aynı anda tek ortak ekran.** Yeni eşleşen ekran eskisini düşürür.
+- Ekran bağlantısı gizli anahtarla korunur, yalnız izler, komut gönderemez.
+- Ekran koparsa oyun devam eder.
+- Oyun boyunca ekranın köşesinde küçük QR ve oda kodu gösterilir (sonradan gelen seyirciler için).
+
+### 8.19 Hesap durumu değişiklikleri (C11)
+- **Hesap pasife alınırsa:** Yöneticinin tüm girişleri kapanır, yeni oturum açılamaz, açık lobi kapanır. Süren oyun sonuna kadar devam eder.
+- **Platform admin herhangi bir aktif oturumu tek tuşla sonlandırabilir** (kötüye kullanım, şikâyet vb.).
+- **Admin şifre sıfırlarsa:** Yöneticinin tüm cihazlardaki girişleri kapanır; süren oyun etkilenmez.
+- **İşletme kendi şifresini değiştirirse:** Değişikliği yaptığı cihaz açık kalır, diğer cihazlardaki girişler kapanır.
+
+### 8.20 Yöneticinin rolü ve oynaması (C12)
+- **Yöneticinin zorunlu işleri yalnız lobidedir:** oturumu açmak ve oyunu başlatmak (oyuncu onayı ayarı açıksa onaylar da). Oyun başladıktan sonra hiçbir modda zorunlu yönetici eylemi yoktur.
+- Duruma bağlı onaylar: cihaz devri (8.17) ve açıksa seyirci onay modu (8.3).
+- **Yönetici aynı zamanda oyuncu olabilir.** Odaya normal bir katılımcı olarak (QR/kod ile, başka cihaz veya ayrı sekme) girer; konsol ve katılımcı kimliği sistemde ayrıdır.
+- Konsolda özel içeriği gönderenin adı yöneticiye gösterilir (gizlenmez). Oynayan yöneticinin bu bilgi, durum önizlemesi (8.10) ve rakip içeriğini gizleyebilme (8.21) avantajları MVP'de bilinerek kabul edilmiştir.
+
+### 8.21 Özel içerik ve denetim (D1)
+- **Özel içerik ayarı: Açık / Kapalı.** Varsayılan **Açık**. Ayar ekranında kısa açıklama gösterilir ("Oyuncular kendi resim, GIF ve YouTube içeriklerini ekleyebilir"). Riski almak istemeyen topluluk Kapalı'yı seçer.
+- **Konsolda canlı liste (ayar Açıkken):** Seçim aşamasında gelen özel içerikler gönderen adıyla listelenir. Yönetici isterse bir içeriği reddeder; oyuncu "Bu içerik kabul edilmedi" bildirimi alır, süre varsa yeniden seçer, yoksa o tur 0 alır. Yönetici bakmazsa hiçbir şey beklemez.
+- **"Hemen gizle":** Gösterim sırasında her içerik (sistem meme'leri dahil) tek tuşla tüm ekranlardan anında kaldırılabilir. Eylem platform admin raporuna yazılır.
+  - Özel içerik gizlenirse: gönderi geçersiz, oyuncu o tur 0 alır.
+  - Sistem meme'i gizlenirse: oyuncu cezalandırılmaz. Lig, hibrit lig aşaması ve hibrit maçlarda o tur için aynı aşamadaki diğer turlarının ortalamasını alır (aşamada başka turu yoksa 0). Eleme düellosunda rakibiyle uzatma turuna gider.
+- **Otomatik uygunsuz içerik tespiti yoktur** (MVP sonrası).
+- **Yükleme kuralları:** JPG, PNG, WebP, GIF; en fazla 10 MB. Yüklenen dosyalardan EXIF/konum gibi meta veriler otomatik silinir.
+- Özel dosyalar ve YouTube link ayrıntıları oturum bitince silinir; raporlarda yalnız "özel içerik kullanıldı" ve tür bilgisi kalır.
+
+### 8.22 KVKK ve veri saklama (D2)
+- **Katılımcı bilgilendirmesi:** Katılım ekranında takma ad alanının altında kısa bir satır ve aydınlatma metni linki. Ayrı onay kutusu yok.
+- **YouTube** gizlilik modlu `youtube-nocookie.com` üzerinden gösterilir. Kendi çerezlerimiz yalnız teknik olarak zorunlu olanlardır; çerez onay penceresi yok, gizlilik metninde bilgilendirme var.
+- **Saklama:**
+  - Özel dosyalar ve YouTube linkleri: oturum bitince silinir.
+  - Takma adlar: önemli bir veri değildir. Oturum bitiminden **7 gün** sonra "Katılımcı 1, 2…" olarak anonimleştirilir; skorlar, oylar ve istatistikler kalır. _(Owner "daha önce de anonimleştirilebilir" dedi; 7 gün orchestrator varsayılanı — itiraz edilmezse geçerli.)_
+  - Teknik loglar (IP vb.): 5651 sayılı kanun kapsamındaki yükümlülüğe göre; süre avukata teyit ettirilecek.
+  - İşletme hesabı verileri: hesap aktif olduğu sürece.
+- **İşletme kullanım koşulları:** Özel içerik ayarını açan işletme kendi oturumlarındaki içerikten ve yazdığı durumlardan sorumludur.
+- Canlıya çıkmadan önce aydınlatma metni, gizlilik metni ve kullanım koşulları hukuki incelemeden geçirilecek.
+
+### 8.23 Sistem meme kütüphanesi depolaması (E1 / owner sorusu)
+- Sistem kütüphanesi (resim, GIF, video) **kendi depolamamızda dosya olarak** tutulur; hedef sağlayıcı **Cloudflare (R2)**. Platform bağımlılığı yoktur.
+- Google Drive oynatma kaynağı olarak kullanılmaz (oynatıcı kontrolü yok, açıklanmayan görüntüleme kotaları).
+- Admin'in sistem kütüphanesine YouTube linki eklemesi kaldırılır; oyuncu özel içeriğinde YouTube linki kalır.
+- Videolar içe aktarma/yükleme sırasında tüm cihazlarda oynayan tek biçime dönüştürülür, küçültülür, kapak görseli çıkarılır. 25 sn'den uzunlar admin tarafından başlangıç/bitiş seçilerek dosya üzerinde kesilir.
+- **Kaynak arşiv:** Owner'ın elinde ağırlıklı X, nadiren Instagram/YouTube linklerinden oluşan bir meme arşivi var. Owner bunları indirip dosya arşivi oluşturacak (yt-dlp önerildi). Bizim taraf: klasörden toplu içe aktarma aracı.
+- Her kütüphane öğesinin orijinal kaynak linki admin tarafında meta veri olarak saklanır (tekrar indirme ve mükerrer kontrolü için).
+- Başlık, etiket ve kategoriler admin tarafından **elle** girilir. Yapay zekâ ile etiket önerisi yok.
+
+### 8.24 Kapsam (E1)
+- İşletme durumları: oluşturma, düzenleme, arşivleme, yeniden etkinleştirme. **Revizyon geçmişi tutulmaz.** Admin tüm işletme durumlarını görebilir, engelleyebilir/yeniden açabilir, metni düzenleyemez. Admin'in engellediği durum işletme tarafından düzenlense de admin açana kadar engelli kalır.
+- Erişilebilirlik hedefi **WCAG 2.1 AA** kalır.
+- Kapasite doğrulama hedefi oturum başına **toplam 300 eşzamanlı katılımcı** (oyuncu + seyirci, herhangi bir dağılım) + yönetici cihazları + 1 ortak ekran. _(Oyuncu sınırı kalkınca eski 16+250 hedefi buna çevrildi.)_
+- **Platform admin raporları sade:** oturum listesi ve filtreler; oturum detayı (ayarlar, katılımcılar, turlar, durumlar, sonuçlar, gizlenen içerikler, hatalar, çıkarmalar); işletme bazında kullanım. Grafikli analiz panelleri yok.
+
+### 8.25 Dil (E2)
+- Hedef pazar Türkiye. **Yalnız Türkçe**; çok dil desteği MVP kapsamında değil.
+
+### 8.26 Küçük netleştirmeler (F)
+- Final oy gözden geçirmede tüm **bağlı** uygun katılımcılar "Bitirdim" derse aşama kapanır.
+- Duraklatma sırasında tüm katılımcı eylemleri (seçim, oy) dondurulur. Devam edilince o anki gönderi gösterimi baştan başlar; seçim ve diğer aşamalar kalan süreden devam eder.
+- Duraklatmanın süre sınırı yoktur (yöneticinin bilinçli kararı). Sonuç ekranında "beklet" de bir duraklatmadır.
+- Puanlar 2 ondalıkla gösterilir; hesaplama tam hassasiyetle yapılır.
+- Puan, geçerli oyların aritmetik ortalamasıdır; az oy alan gönderiye düzeltme uygulanmaz.
+- Oturum durum makinesi teknik tasarımda kesinleşir.
+- Görsel dil (bileşen kütüphanesi, palet, ton) ekran tartışmasında yeniden ele alınır.
+
+### 8.27 Platform admin hesabı
+- **Tek bir admin hesabı** vardır; sunucu tarafında bir komutla oluşturulur. Panelden admin hesabı oluşturulamaz.
+- Owner ve proje ortağı bu hesabı **ortak** kullanır; kişi başına ayrı hesap yoktur ve gerekmez.
+- Giriş kullanıcı adı + güçlü şifre ile yapılır. İki aşamalı doğrulama MVP sonrası.
+
+### 8.28 Oda kodu
+- 6 karakter; birbirine karışan karakterler (0/O, 1/I vb.) kullanılmaz.
+- QR, oda kodunu içeren bir linktir; QR ile gelen kod girmez.
+- Oturum bitince kod geçersiz olur; rövanşta aynı kod korunur.
+
+### 8.29 Admin: platformun sahibi (owner ilkesi — ÖNEMLİ)
+- **İlke:** Platform admin oyunun ve platformun her şeyinin sahibidir. İstediği müşteriye istediği imtiyazı verebilir. Kriz anında sorunu admin panelinden tek hamlede çözebilmelidir.
+- İşletmelere karşı **bonkör** davranılır.
+- **Deneme oturumu yoktur.** Yeni işletme denemek isterse admin ek hak verir. Hak ekleme/çıkarma admin panelinden %100 ayarlanabilir.
+- **İşletme bazında imtiyazlar** (boş bırakılırsa platform varsayılanı geçerli):
+  - Oyun hakkı: istenen kadar ekleme/çıkarma veya **sınırsız hak**.
+  - Aynı anda aktif oturum sayısı (varsayılan 1).
+  - Başlatılmamış lobi ömrü (varsayılan 24 saat).
+- **Kriz araçları:** oturum detayında "hakkı iade et"; aktif oturumu sonlandırma; **işletme adına giriş** (admin işletmenin konsolunu açıp müdahale eder; her giriş kayda geçer).
+- Platform genelindeki sabitler (gösterim süreleri, dosya boyutu, varsayılanlar) admin paneline taşınmaz; sunucu ayarıdır.
+
+---
+
+## 9. MVP Sonrasına Ertelenenler
+- TikTok, Instagram ve X içerik desteği (B1).
+- Oynayan yönetici için konsolda gönderen adının ve durum önizlemesinin gizlenmesi (C12).
+- Özel içerik için ara seviyeler (ör. yönetici ön onaylı "Onaylı" modu) (D1).
+- Otomatik uygunsuz görsel tespiti (D1).
+- Yapay zekâ ile kütüphane etiket önerisi (8.23).
+- Çok dil desteği (E2).
+- Admin girişinde iki aşamalı doğrulama (8.27).
+
+## 10. Owner'ın Ayrıca Ele Alacağı Konular
+- **Hukuki konular (telif, platform kuralları, KVKK metinleri, 5651 log süreleri):** Owner aksini söyleyene kadar ürün ve teknik kararlarda hukuki risk **dikkate alınmaz**; kararlar hukuki sorun yokmuş gibi verilir. Owner bu konuları daha sonra bir hukukçuyla ayrıca ele alacak.
+
+---
+
+## Açık Sorular
+
+_Owner tercihi: ileriki aşamalara ait sorular gerektiği zaman sorulur, önceden sorulmaz._
+
+1. Codex ve OpenCode için hangi modeller kullanılacak? → Owner, iş dağıtımı başladığında söyleyecek.
+2. (Teknoloji aşamasında) Platform genelinde eşzamanlı oturum hedefi ve QR linkleri için alan adı.
+3. (Yayın öncesi, owner içerik işi) İlk platform durumları seti (~100+) ve meme kütüphanesi/kategoriler.
+
+---
+
+## Akış Kaydı
+
+### 2026-10-17 — Oturum 1
+- Owner çalışma modelini tanımladı: Claude Code orchestrator, Codex ve OpenCode worker (bazen Codex orchestrator / OpenCode worker).
+- Kararların bu dosyada ilk andan itibaren tutulmasına karar verildi.
+- AGENTS.md ve CLAUDE.md yazımı tartışmalar sonrasına ertelendi; kısa ve özgürlük tanıyan biçimde yazılacak.
+- Orchestrator, repoda silinmiş ama git geçmişinde duran eski MVP spec'ini fark etti; owner'a soruldu.
+- Owner yanıtı: Eski dokümanlar `docs/old/` altına geri alındı. Ürün aynı, ancak eski kararlar referans alınmayacak; tüm kararlar sıfırdan burada verilecek. Tartışmalar bitince `docs/old/` silinecek.
+- Worker modelleri iş dağıtımı başladığında bildirilecek.
+- Sıradaki adım: Owner ürünü kendi anlatımıyla tarif edecek.
+- Owner netleştirdi: `docs/old/` ürünü doğru anlatıyor. Kararlar eleştirel olarak yeniden değerlendirilecek, boşluklar kapatılacak ve uygulamaya geçilebilir hale getirilecek.
+- Orchestrator iki eski dokümanı okudu ve incelemesini Bölüm 7'ye yazdı (A1–A4, B1–B3, C1–C12, D1–D2, E1–E2, F1–F6). Owner kararı bekleniyor.
+- A1 karara bağlandı: Seçenek 1 (çıkar çatışması kuralı) + jüri ödülleri. Bölüm 8'e yazıldı.
+- A2 karara bağlandı: a+b+c+d+e kesin, f (seyirci onay modu) opsiyonel ayar, varsayılan kapalı. Bölüm 8.3'e yazıldı.
+- A3 karara bağlandı: süreyi kısaltan öneriler onaylandı (medya tipine göre 15/30 sn gösterim, 60 sn varsayılan seçim, 15 sn otomatik sonuç ekranı, tahmini süre, paralel yarı finaller). Owner kodda süre sınırı istemiyor; lig tur sayısında sınır yok, karar yöneticide.
+- A4 karara bağlandı: çözülecek beraberlikler tablosu, zincir (hesap → 1 uzatma turu → kura). Lig tur sayısı 1–50 (50 güvenlik sınırı).
+- A grubu tamamlandı; B grubuna geçildi.
+- B1 karara bağlandı: TikTok/Instagram/X embed kısıtları araştırıldı; owner MVP'de yalnız YouTube'u seçti.
+- B2 karara bağlandı: ses ortak ekranda, telefonlarda sessiz + kullanıcı açabilir; 'Ekranı başlat' ile ses kilidi açılır.
+- B3 karara bağlandı: oyun kendi kendine akar; yönetici kopması ve medya hatası oyunu durdurmaz; sunucu yeniden başlarsa geri sayımla otomatik devam. B grubu tamamlandı.
+- C1 ve C6 karara bağlandı: canlı havuz çekimi + havuz bitince tekrar kullanım; önizleme/acil değiştirme, tur başına 1 hak.
+- C2 ve C3 karara bağlandı; rövanş düğmesi MVP'ye eklendi. Owner, 2 oyunculu oyunda seyirci şartını reddetti: oyun seyircisiz de oynanabilmeli, oyuncuların kendine oy verememesi yeterli. Bunun A1'deki düello kuralına etkisi owner'a soruldu.
+- A1 revize edildi: düello kuralı kalıyor; tarafsız puanlayıcı yoksa (2 oyuncu, 0 seyirci) rakipler birbirini puanlar. A4 zinciri buna göre güncellendi.
+- C4 ve C5 karara bağlandı (bay kuralları, genel eleme sıralaması, hibrit yapısı 5+3+3=11 tur, 4 oyuncuda da 5 lig turu).
+- C7 ve C8 karara bağlandı: seyirciye al / odadan at / takma adı sıfırla eylemleri, ayrılma kuralları, 'Oyunu bırak' seçeneği, takma ad kuralları, küfür filtresi yok.
+- C9 ve C10 karara bağlandı: yönetici onaylı cihaz devri, çoklu cihazda yönetici konsolu, ortak ekran eşleştirme kodu, tek ortak ekran, köşede QR.
+- C11 karara bağlandı: pasif hesapta süren oyun biter, admin her oturumu sonlandırabilir, şifre sıfırlama girişleri düşürür.
+- C12 tartışması: owner, modların yöneticiye gerçekten ihtiyaç duyup duymadığının kontrolünü istedi. Analiz: oyun sırasında hiçbir modda zorunlu yönetici eylemi kalmadı; zorunlu olanlar yalnız lobide (oturum açma, oyuncu onayı, başlatma).
+- C12 karara bağlandı: yönetici oynayabilir, gönderen adı konsolda görünür (gizleme MVP sonrası). Oyuncu kabulü varsayılan otomatik, isteğe bağlı oyuncu onayı ayarı. Bölüm 9 (MVP sonrasına ertelenenler) açıldı. C grubu tamamlandı.
+- D1 kısmi karar: özel içerik ayarı yalnız Açık/Kapalı kalır; 'Onaylı' ara seviyesi MVP sonrasına. Owner diğer D1 sorularının bu karara göre yeniden sorulmasını istedi.
+- D1 karara bağlandı: varsayılan Açık, konsolda canlı liste + reddetme, her içerik için 'Hemen gizle', otomatik tespit yok, yükleme kuralları onaylandı.
+- Orchestrator kendi önerisindeki hatayı düzeltti: sistem meme'i gizlenince ligde 'toplama eklenmez' = 0 demekti. Düzeltme önerisi: aynı aşamadaki diğer turlarının ortalaması; eleme düellosunda uzatma. Owner onayı bekleniyor.
+- D2 karara bağlandı: kısa bilgilendirme (onay kutusu yok), youtube-nocookie, takma adlar 7 gün sonra anonimleşir (owner takma adları önemsemiyor), işletme sorumluluğu kullanım koşullarında. D grubu tamamlandı (D1 düzeltmesi hâlâ owner onayında).
+- Owner sorusu: sistem meme videoları için YouTube yerine Google Drive kullanılabilir mi (elde Drive'da çok sayıda meme videosu var)? Orchestrator değerlendirdi: Drive oynatma için uygun değil (oynatıcı kontrolü yok, resmi olmayan görüntüleme kotaları, 250 cihazın aynı anda aynı dosyayı istemesi kotayı tetikleyen tam senaryo). Öneri: Drive arşivi bir kez içe aktarılıp kendi nesne depolamamıza (ör. Cloudflare R2; çıkış trafiği ücretsiz, 10 GB'a kadar ücretsiz) alınsın. Owner kararı bekleniyor.
+- Owner netleştirdi: Drive arşivi yok; elde link arşivi var (çoğu X). Owner linkleri indirip kendi video arşivini oluşturmak istiyor; Cloudflare depolama onaylandı. Orchestrator telif/platform kuralları riskini (sistem kütüphanesinde içerik sağlayıcı sorumluluğu) bildirdi ve önlemler önerdi. Bekleyenler: risk kararı, yapay zekâ etiketleme, D1 düzeltmesi, E1 kalanı, E2.
+- Owner kararı: hukuki risk aksi söylenene kadar kararlarda dikkate alınmayacak; owner bunu bir hukukçuyla ayrıca ele alacak (Bölüm 10).
+- D1 düzeltmesi, E1 ve E2 karara bağlandı; yapay zekâ etiketleme reddedildi (elle etiketleme). F maddeleri itiraz edilmediği için kabul edildi. **Eski tasarımın eleştirel incelemesi (Bölüm 7) tamamlandı.**
+- Admin hesabı (tek ortak hesap, sunucu komutuyla) ve oda kodu kuralları karara bağlandı.
+- Owner, spesifikasyondan önce tüm kararların toplu self-review'ını istedi: tutarsızlık/eksik kontrolü; sorulmadan düzeltilebilecekler düzeltilecek, diğerleri sorulacak.
+- Self-review yapıldı; orchestrator sorulmadan düzeltilebilecek 14 tutarsızlık/boşluğu Bölüm 8'de düzeltti (2 oyunculu lig = düello, 0 puan kuralı, jüri ödülü alt sınırı, kısa video süresi, süre ayarları, toplu uzatma, uzatma puanlarının toplama girmemesi, değiştirilen durumun kullanılmış sayılması, kadro kilidi, özel içerik ayarının oyun içi değişimi, 10 dk kuralının kapsamı, <2 oyuncuda bitiş, ekran eşleştirme kodu güvenliği, duraklatma davranışı). Owner'a sorulacaklar ayrıca iletildi.
+- Deneme oturumu: seçenek (a), ayrı deneme modu yok. Owner ilkesi kaydedildi: admin platformun her şeyinin sahibidir, istediği müşteriye istediği imtiyazı verebilir, krizleri panelden tek hamlede çözer (8.29). İleriki aşama soruları gerektiğinde sorulacak.
+- Admin imtiyaz listesi ve kriz araçları onaylandı. Owner oyuncu üst sınırını kaldırdı (teknik güvenlik sınırı 1000); kapasite hedefi toplam 300 katılımcıya çevrildi. Birleşik spesifikasyon yazımına geçildi.
+- Birleşik ürün spesifikasyonu yazıldı: `docs/PRODUCT_SPEC.md` (v2 taslak). Owner incelemesi ve onayı bekleniyor; onaydan sonra `docs/old/` silinecek.
+- Owner spesifikasyonu onayladı, şu eklemelerle: (1) admin işletme hesabını kolayca tanımlar (tek kısa form, kopyalanabilir giriş özeti), işletme kendi kimliğiyle girip QR/link paylaşabilir; (2) 'ani ölüm turu' adı **'uzatma turu'** olarak değiştirildi; (3) esprili ton ekran aşamasında ele alınacak. `docs/old/` silindi.
