@@ -1,0 +1,14 @@
+packages:
+  - packages/*
+  - apps/*
+
+# Native binaries (esbuild, workerd) run their install scripts; pnpm 10+ blocks
+# build scripts by default and requires explicit approval.
+allowBuilds:
+  esbuild: true
+  workerd: true
+
+# wrangler has an optional peer on @cloudflare/workers-types, which publishes
+# daily builds younger than the minimumReleaseAge window.
+minimumReleaseAgeExclude:
+  - '@cloudflare/workers-types'

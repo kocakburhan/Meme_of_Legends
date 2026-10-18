@@ -1,0 +1,48 @@
+// Meme of Legends game server (Cloudflare Worker).
+//
+// M0 scaffold: only a /health endpoint and an empty RoomDurableObject.
+// Remote resources are NOT created in M0 — values marked with PLACEHOLDER
+// below must be filled after the corresponding `mol-` resource is created
+// (never touch non-`mol-` resources in the shared Cloudflare account).
+//
+// After changing this file, regenerate types: `pnpm --filter @mol/server types`.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mol-server",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-09-15",
+  "compatibility_flags": ["nodejs_compat"],
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "mol-db",
+      // PLACEHOLDER: run `wrangler d1 create mol-db` and paste the real id.
+      "database_id": "00000000-0000-0000-0000-000000000000",
+    },
+  ],
+
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      "bucket_name": "mol-media",
+    },
+  ],
+
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "ROOM",
+        "class_name": "RoomDurableObject",
+      },
+    ],
+  },
+
+  // SQLite-backed Durable Object (per-room state).
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["RoomDurableObject"],
+    },
+  ],
+}
