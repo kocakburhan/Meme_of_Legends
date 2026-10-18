@@ -1,0 +1,24 @@
+{
+  "name": "@mol/loadtest",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/cli.ts",
+    "prepare:local": "tsx src/prepare-local.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run src",
+    "build": "tsc -p tsconfig.build.json --outDir dist"
+  },
+  "dependencies": {
+    "@mol/shared": "workspace:*",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "@types/ws": "^8.18.0",
+    "tsx": "^4.23.15",
+    "typescript": "~5.9.3",
+    "vitest": "~4.1.12"
+  }
+}
