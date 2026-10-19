@@ -1,5 +1,5 @@
 import { compareScores } from './score.js';
-import { currentRound, eligibleParticipant } from './competition.js';
+import { currentRound, eligibleParticipant, reviewParticipants } from './competition.js';
 import type { Ctx, EngineState, Round, Submission, SubmissionView, View, Viewer } from './types.js';
 
 /** Construct an allowlisted JSON view; returning a clone prevents caller mutation of engine state. */
@@ -128,6 +128,16 @@ export function project(state: EngineState, viewer: Viewer, _ctx: Ctx): View {
           }))
       : [],
   };
+  // Only a locked outcome establishes that no overtime or further round follows.
+  if (r)
+    view.isFinalRound = r.locked && s.stage.pending === 'finish' && s.stage.tieGroups.length === 0;
+  if (r && s.phase.kind === 'review' && (manager || viewer.kind === 'display')) {
+    const eligible = reviewParticipants(s, r);
+    view.review = {
+      finished: eligible.filter((id) => r.reviewFinished.includes(id)).length,
+      eligible: eligible.length,
+    };
+  }
   if (manager) view.promptPreview = s.promptPreview;
   if (r && admitted && s.phase.kind === 'presentation')
     view.presentation = { index: s.phase.index, total: r.order.length };
