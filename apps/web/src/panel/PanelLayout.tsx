@@ -19,7 +19,10 @@ export function PanelLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-dvh flex-col lg:flex-row">
       {/* Masaüstü yan menüsü. */}
-      <aside className="hidden lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-60 lg:shrink-0 lg:flex-col lg:gap-1 lg:border-r lg:border-line lg:bg-surface lg:px-3 lg:py-6">
+      <aside
+        aria-label="Panel menü"
+        className="hidden lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-60 lg:shrink-0 lg:flex-col lg:gap-1 lg:border-r lg:border-line lg:bg-surface lg:px-3 lg:py-6"
+      >
         <p className="mb-4 px-3 text-xs font-bold uppercase tracking-wider text-muted">
           İşletme paneli
         </p>

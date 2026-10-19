@@ -47,13 +47,13 @@ export default function BusinessAccountPage() {
       setChanged(true);
     } catch (err) {
       setBusy(false);
-      if (err instanceof HttpError && err.status === 401) {
-        navigate(`/isletme/giris?next=${encodeURIComponent('/isletme/hesap')}`, { replace: true });
-        return;
-      }
+      // Hatalı mevcut şifre de 401 döner; önce kod ayrımı, oturum düşmesi sonra.
       if (err instanceof HttpError && err.code === 'INVALID_CREDENTIALS')
         setError('Mevcut şifren hatalı.');
-      else setError('Şifre değiştirilemedi; biraz sonra tekrar dene.');
+      else if (err instanceof HttpError && err.status === 401) {
+        navigate(`/isletme/giris?next=${encodeURIComponent('/isletme/hesap')}`, { replace: true });
+        return;
+      } else setError('Şifre değiştirilemedi; biraz sonra tekrar dene.');
     }
   }
 

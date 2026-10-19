@@ -61,11 +61,12 @@ test('panel: giriş → şifre → yeni oyun → konsol → Oyuna dön → lobiy
     expect(code).toBeDefined();
     await expect(page.getByText(`Oda ${code}`)).toBeVisible({ timeout: 15_000 });
 
-    // Panele dönüş; aktif oturum listesinde "Oyuna dön".
-    await page.getByRole('link', { name: 'Ana sayfa' }).click();
+    // Panele dönüş (telefon geri tuşu; konsolda panel gezinmesi yoktur);
+    // aktif oturum listesinde "Oyuna dön".
+    await page.goBack();
     await expect(page).toHaveURL(/\/isletme$/);
     await expect(page.getByText(`Oda ${code}`)).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText('Lobi', { exact: true })).toBeVisible();
+    await expect(page.getByText('Hibrit · Lobi')).toBeVisible();
     await page.getByRole('button', { name: 'Oyuna dön' }).click();
     await expect(page).toHaveURL(new RegExp(`/isletme/oyun/${code}$`));
     await expect(page.getByText(`Oda ${code}`)).toBeVisible();
@@ -79,15 +80,16 @@ test('panel: giriş → şifre → yeni oyun → konsol → Oyuna dön → lobiy
     await cancelDone;
 
     // Panelde açık oturum kalmaz; yeni oyun tekrar mümkün.
-    await page.getByRole('link', { name: 'Ana sayfa' }).click();
+    await page.goBack();
     await expect(page).toHaveURL(/\/isletme$/);
     await expect(page.getByText('Açık oturum yok.')).toBeVisible({ timeout: 15_000 });
 
     // Masaüstünde yan menü görünür, alt gezinme gizlenir.
     await page.setViewportSize({ width: 1280, height: 800 });
-    await expect(page.getByRole('navigation', { name: 'Panel menü' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Durumlarım' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Geçmiş' })).toBeVisible();
+    const menu = page.getByRole('complementary', { name: 'Panel menü' });
+    await expect(menu.getByRole('link', { name: 'Durumlarım' })).toBeVisible();
+    await expect(menu.getByRole('link', { name: 'Geçmiş' })).toBeVisible();
+    await expect(page.getByRole('navigation', { name: 'Panel menü' })).toBeHidden();
   } finally {
     await context.close().catch(() => undefined);
   }
