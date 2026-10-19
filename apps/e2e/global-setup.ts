@@ -66,7 +66,7 @@ function pngChunk(type: string, data: Uint8Array): Buffer {
 }
 
 /** Damalı iki renkli küçük PNG: testte üretilir, depoda ikili dosya yok. */
-function makePng(size: number, rgb: [number, number, number]): Buffer {
+export function makePng(size: number, rgb: [number, number, number]): Buffer {
   const ihdr = Buffer.alloc(13);
   ihdr.writeUInt32BE(size, 0);
   ihdr.writeUInt32BE(size, 4);

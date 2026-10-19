@@ -31,7 +31,9 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: `pnpm --filter @mol/server dev --port ${server} --inspector-port 0`,
+      // `MOL_YOUTUBE_STUB`: e2e'de YouTube doğrulama ucu tarayıcıda sahtelenir;
+      // sunucu oEmbed ağ çağrısı yapmaz (testler ağdan bağımsız kalır).
+      command: `pnpm --filter @mol/server dev --port ${server} --inspector-port 0 --var MOL_YOUTUBE_STUB:1`,
       url: `http://localhost:${server}/health`,
       reuseExistingServer: false,
       timeout: 150_000,

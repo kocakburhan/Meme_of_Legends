@@ -1,8 +1,9 @@
 import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import { fakeReviewView, fakeSpectatorSelectionView } from '@/lib/fake';
-import { DisplayReviewScene } from './DisplayScenes';
+import { CustomMediaProvider } from '@/components/CustomMedia';
+import { fakePresentationView, fakeReviewView, fakeSpectatorSelectionView } from '@/lib/fake';
+import { DisplayPresentationScene, DisplayReviewScene } from './DisplayScenes';
 import { SpectatorSelectionScreen } from './SpectatorSelectionScreen';
 
 const NOW = 1_000_000;
@@ -43,5 +44,19 @@ describe('DisplayReviewScene', () => {
     const list = screen.getByLabelText('Gönderiler');
     expect(within(list).getAllByRole('listitem')).toHaveLength(7);
     expect(screen.getByText(/7\/7 gönderi onaylandı/)).toBeInTheDocument();
+  });
+});
+
+describe('DisplayPresentationScene', () => {
+  it('özel yüklemeyi ortak ekranda gösterir (madde 3)', () => {
+    const view = fakePresentationView(NOW, 'image');
+    view.submissions[0]!.media = { source: 'upload', uploadId: 'u1', mediaType: 'image' };
+    render(
+      <CustomMediaProvider settings={{ code: 'KA7FT2' }}>
+        <DisplayPresentationScene view={view} now={NOW} room={ROOM} />
+      </CustomMediaProvider>,
+    );
+
+    expect(document.querySelector('img[src="/api/rooms/KA7FT2/custom/uploads/u1"]')).not.toBeNull();
   });
 });

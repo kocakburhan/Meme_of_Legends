@@ -4,6 +4,7 @@ import type { ManagerCommand, ShellAction } from '@mol/shared';
 import { cancelBusinessSession, listBusinessSessions, type BusinessAccount } from '@/net/http';
 import type { AckResult } from '@/net/socket';
 import { Card, Note, PrimaryButton, GhostButton } from '@/components/ui';
+import { MemeFrame } from '@/components/MemeFrame';
 import { QrCode } from '@/components/QrCode';
 import { Badge, ConfirmButton, HoldButton, Section, Segmented } from '@/console/bits';
 import { SettingsEditor } from '@/console/SettingsEditor';
@@ -58,6 +59,34 @@ function mediaLabel(media: MediaRef): string {
   if (media.mediaType === 'gif') return 'GIF';
   if (media.mediaType === 'video') return 'Video';
   return 'Resim';
+}
+
+/**
+ * Canlı listenin küçük önizlemesi: yüklemede dosyanın kendisi (konsol
+ * çerezle erişir), YouTube'da kapak resmi gösterilir; tam oynatma gösterim
+ * kartındadır.
+ */
+function SubmissionPreview({
+  media,
+  submissionId,
+}: {
+  media: MediaRef;
+  submissionId: string;
+}) {
+  return (
+    <div className="h-14 w-14 shrink-0">
+      {media.source === 'youtube' ? (
+        <img
+          src={`https://i.ytimg.com/vi/${media.videoId}/mqdefault.jpg`}
+          alt=""
+          aria-hidden="true"
+          className="h-full w-full rounded-md border border-line object-cover"
+        />
+      ) : (
+        <MemeFrame media={media} submissionId={submissionId} className="h-full w-full" />
+      )}
+    </div>
+  );
 }
 
 /* --------------------------------- Lobi ---------------------------------- */
@@ -265,30 +294,43 @@ function SelectionCard({ view, now, send, onAckNote }: GameTabProps) {
         title="Özel içerik (canlı)"
         aside={<Badge>{custom.length}</Badge>}
       >
-        {custom.length === 0 ? (
+        {!view.config.customContent ? (
+          <Note>Bu turda özel içerik kapalı; oyuncular yalnız kütüphaneden seçebilir.</Note>
+        ) : custom.length === 0 ? (
           <Note>Henüz özel içerik yok.</Note>
         ) : (
           <ul className="flex flex-col gap-2">
-            {custom.map((s) => (
-              <li key={s.id} className="flex items-center justify-between gap-2 rounded-md border border-line bg-background px-3 py-2">
-                <span className="min-w-0">
-                  <span className="block truncate text-sm font-bold">
-                    {s.playerId ? nicknameOf(view, s.playerId) : 'Katılımcı'}
-                  </span>
-                  <span className="text-xs text-muted">{s.media ? mediaLabel(s.media) : 'İçerik kaldırıldı'}</span>
-                </span>
-                {!s.media ? (
-                  <Badge tone="danger">Reddedildi</Badge>
-                ) : (
-                  <GhostButton
-                    className="min-h-11 w-24 px-2 text-sm"
-                    onClick={() => s.playerId && void run({ type: 'rejectCustom', participantId: s.playerId })}
-                  >
-                    Reddet
-                  </GhostButton>
-                )}
-              </li>
-            ))}
+            {custom.map((s) => {
+              const playerId = s.playerId;
+              return (
+                <li
+                  key={s.id}
+                  className="flex flex-col gap-2 rounded-md border border-line bg-background px-3 py-2"
+                >
+                  <div className="flex items-center gap-3">
+                    {s.media ? <SubmissionPreview media={s.media} submissionId={s.id} /> : null}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-bold">
+                        {playerId ? nicknameOf(view, playerId) : 'Katılımcı'}
+                      </span>
+                      <span className="text-xs text-muted">
+                        {s.media ? mediaLabel(s.media) : 'İçerik kaldırıldı'}
+                      </span>
+                    </span>
+                    {!s.media ? <Badge tone="danger">Reddedildi</Badge> : null}
+                  </div>
+                  {s.media && playerId ? (
+                    <ConfirmButton
+                      label="Reddet"
+                      note="İçerik tüm ekranlardan kaldırılır; oyuncu süre varsa yeniden seçer."
+                      confirmLabel="Evet, reddet"
+                      className="min-h-11 text-sm"
+                      onConfirm={() => void run({ type: 'rejectCustom', participantId: playerId })}
+                    />
+                  ) : null}
+                </li>
+              );
+            })}
           </ul>
         )}
       </Section>
@@ -326,14 +368,19 @@ function PresentationCard({ view, now, send, onAckNote }: GameTabProps) {
         {view.prompt ? <p className="font-display text-xl leading-snug">{view.prompt.text}</p> : null}
         {onScreen && !onScreen.hidden ? (
           <div className="flex items-center justify-between gap-2 rounded-md border border-line bg-background px-3 py-2">
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-bold">
-                {onScreen.playerId ? nicknameOf(view, onScreen.playerId) : 'Anonim'}
+            <div className="flex min-w-0 items-center gap-3">
+              {onScreen.media ? (
+                <SubmissionPreview media={onScreen.media} submissionId={onScreen.id} />
+              ) : null}
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-bold">
+                  {onScreen.playerId ? nicknameOf(view, onScreen.playerId) : 'Anonim'}
+                </span>
+                <span className="text-xs text-muted">
+                  {onScreen.media ? mediaLabel(onScreen.media) : ''} · {onScreen.ratingProgress ? `${onScreen.ratingProgress.received}/${onScreen.ratingProgress.eligible} puan verdi` : '—'}
+                </span>
               </span>
-              <span className="text-xs text-muted">
-                {onScreen.media ? mediaLabel(onScreen.media) : ''} · {onScreen.ratingProgress ? `${onScreen.ratingProgress.received}/${onScreen.ratingProgress.eligible} puan verdi` : '—'}
-              </span>
-            </span>
+            </div>
             <Badge>{formatClock(remainingSeconds(phase.endsAt, now))}</Badge>
           </div>
         ) : onScreen ? (

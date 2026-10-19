@@ -71,6 +71,7 @@ export function ReviewScreen({
             >
               <MemeFrame
                 media={submission.media}
+                submissionId={submission.id}
                 title={submission.hidden ? 'Bu gönderi gizlendi' : undefined}
                 className="aspect-video min-h-0 flex-none"
               />

@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
+import { CustomMediaProvider } from '@/components/CustomMedia';
 import { fakeReviewView } from '@/lib/fake';
 import { ReviewScreen } from './ReviewScreen';
 
@@ -45,5 +46,24 @@ describe('ReviewScreen', () => {
 
     rerender(<ReviewScreen view={view} now={NOW} onRate={() => undefined} onFinish={onFinish} finished />);
     expect(screen.getByRole('button', { name: 'Bitirdin, bekleniyor…' })).toBeDisabled();
+  });
+
+  it('özel yüklemeyi final gözden geçirmede de gösterir (madde 3)', () => {
+    const view = fakeReviewView(NOW);
+    view.submissions = [
+      {
+        id: 's9',
+        media: { source: 'upload', uploadId: 'u1', mediaType: 'image' },
+        hidden: false,
+        canRate: true,
+      },
+    ];
+    render(
+      <CustomMediaProvider settings={{ code: 'ABCDEF' }}>
+        <ReviewScreen view={view} now={NOW} onRate={() => undefined} onFinish={() => undefined} />
+      </CustomMediaProvider>,
+    );
+
+    expect(document.querySelector('img[src="/api/rooms/ABCDEF/custom/uploads/u1"]')).not.toBeNull();
   });
 });

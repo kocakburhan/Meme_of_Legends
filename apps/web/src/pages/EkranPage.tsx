@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import type { View } from '@mol/engine';
 import type { SocketReason } from '@/net/socket';
 import { pairDisplay } from '@/net/http';
+import { reportMediaError } from '@/net/custom';
 import { forgetDisplay, loadDisplay, saveDisplay, type StoredDisplay } from '@/net/tokens';
 import { LibraryMediaProvider } from '@/components/MemeFrame';
+import { CustomMediaProvider } from '@/components/CustomMedia';
 import { useLibrary, useParticipantSocket } from '@/net/useRoom';
 import { Card, GhostButton, Note, PrimaryButton, Screen, TopBar } from '@/components/ui';
 import { remainingSeconds } from '@/lib/format';
@@ -43,6 +45,33 @@ export default function EkranPage() {
   );
 
   const { library } = useLibrary(stored?.roomCode ?? '', !!stored);
+
+  // Ortak ekran özel dosyayı Bearer ile alır (custom-content.md); yüklenemeyen
+  // medya bir kez bildirilir ve oyun akışı durmaz (SPEC 12.3). Ses ortak
+  // ekranda mümkünse açıktır (SPEC 13.2).
+  const displayCode = stored?.roomCode ?? null;
+  const displayToken = stored?.token ?? null;
+  const handledMediaErrorsRef = useRef(new Set<string>());
+  const handleMediaError = useCallback(
+    (submissionId: string) => {
+      if (!displayCode || !displayToken) return;
+      if (handledMediaErrorsRef.current.has(submissionId)) return;
+      handledMediaErrorsRef.current.add(submissionId);
+      void reportMediaError(displayCode, submissionId, displayToken).catch(() => {
+        handledMediaErrorsRef.current.delete(submissionId);
+      });
+    },
+    [displayCode, displayToken],
+  );
+  const customMediaSettings = useMemo(
+    () => ({
+      code: displayCode ?? '',
+      ...(displayToken ? { token: displayToken } : {}),
+      muted: false,
+      onMediaError: handleMediaError,
+    }),
+    [displayCode, displayToken, handleMediaError],
+  );
 
   // Token geçersizse (görünüm hiç gelmediyse) eşleştirmeye dön. Sıfırlama
   // mikro göreve kaydırılır; etkide senkron setState basamaklı render yaratır.
@@ -147,7 +176,9 @@ export default function EkranPage() {
       <LibraryMediaProvider
         entries={library.map((m) => ({ memeId: m.id, src: m.mediaUrl, coverUrl: m.coverUrl }))}
       >
-        <Stage>{sceneFor(view, now, room, recoveryResumesAt)}</Stage>
+        <CustomMediaProvider settings={customMediaSettings}>
+          <Stage>{sceneFor(view, now, room, recoveryResumesAt)}</Stage>
+        </CustomMediaProvider>
       </LibraryMediaProvider>
     </div>
   );
