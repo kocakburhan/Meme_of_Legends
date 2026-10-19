@@ -1,3 +1,4 @@
+import type { SessionSummary } from '@mol/shared';
 import type { SessionConfig } from '@mol/engine';
 import { estimateDuration } from '@mol/engine';
 
@@ -33,6 +34,46 @@ export const MODE_LABELS: Record<SessionConfig['mode'], string> = {
   league: 'Lig',
   hybrid: 'Hibrit',
 };
+
+/** Oturum durumunun tek Türkçe eşlemesi (panel listeleri; SPEC 14.4). */
+export const SESSION_STATUS_LABELS: Record<SessionSummary['status'], string> = {
+  lobby: 'Lobi',
+  running: 'Oyun',
+  paused: 'Duraklatıldı',
+  finished: 'Bitti',
+  cancelled: 'İptal edildi',
+  terminated: 'Sonlandırıldı',
+};
+
+/**
+ * Bitiş nedeni (business-api.md `endReason`): motor ve sunucu nedenlerinin tek
+ * Türkçe eşlemesi; bilinmeyenlerde "Bilinmiyor" der.
+ */
+export const END_REASON_LABELS: Record<string, string> = {
+  completed: 'Oyun tamamlandı',
+  players: 'Yeterli oyuncu kalmadı',
+  manager: 'Yönetici oyunu bitirdi',
+  empty: 'Oda boşaldı',
+  noPrompts: 'Durum havuzu boşaldı',
+  managerCancelled: 'Lobi iptal edildi',
+  lobbyExpired: 'Lobi süresi doldu',
+  businessInactive: 'İşletme hesabı devre dışı bırakıldı',
+};
+
+export function formatEndReason(reason: string | null): string {
+  if (!reason) return '—';
+  return END_REASON_LABELS[reason] ?? 'Bilinmiyor';
+}
+
+/** "3 dk 20 sn" / "45 sn" biçimli oturum süresi; süre yoksa null. */
+export function formatDuration(startedAt: number | null, endedAt: number | null): string | null {
+  if (startedAt === null || endedAt === null || endedAt < startedAt) return null;
+  const total = Math.max(1, Math.round((endedAt - startedAt) / 1000));
+  const min = Math.floor(total / 60);
+  const sec = total % 60;
+  if (min === 0) return `${sec} sn`;
+  return sec > 0 ? `${min} dk ${sec} sn` : `${min} dk`;
+}
 
 /** "12 Şub 17:03" biçimli kısa tarih (panel listeleri; Saat dilimi cihazın). */
 export function formatDateTime(timestamp: number): string {

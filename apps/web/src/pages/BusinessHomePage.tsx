@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router';
-import type { SessionSummary } from '@mol/shared';
 import {
   HttpError,
   createBusinessSession,
@@ -11,29 +10,12 @@ import { Card, GhostButton, Note, PrimaryButton, TopBar } from '@/components/ui'
 import { PanelLayout } from '@/panel/PanelLayout';
 import { passwordHintDismissed, dismissPasswordHint } from '@/panel/passwordHint';
 import { useBusinessAccount } from '@/panel/useBusinessAccount';
-import { formatDateTime, MODE_LABELS } from '@/lib/format';
+import { SESSION_STATUS_LABELS, formatDateTime, MODE_LABELS } from '@/lib/format';
 
 /**
  * `/isletme` (SPEC 14.4, M4c-1): işletme adı, kalan hak, ayarsız lobi açan
  * "Yeni oyun", aktif oturumlarda "Oyuna dön" ve son oyunların kısa listesi.
  */
-
-const ACTIVE_STATUS_LABELS: Record<'lobby' | 'running' | 'paused', string> = {
-  lobby: 'Lobi',
-  running: 'Oyun',
-  paused: 'Duraklatıldı',
-};
-const PAST_STATUS_LABELS: Record<'finished' | 'cancelled' | 'terminated', string> = {
-  finished: 'Bitti',
-  cancelled: 'İptal edildi',
-  terminated: 'Sonlandırıldı',
-};
-
-function sessionStatusLabel(session: SessionSummary): string {
-  return session.status === 'lobby' || session.status === 'running' || session.status === 'paused'
-    ? ACTIVE_STATUS_LABELS[session.status]
-    : PAST_STATUS_LABELS[session.status];
-}
 
 type ListState =
   | { state: 'loading' }
@@ -175,7 +157,7 @@ export default function BusinessHomePage() {
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-bold">Oda {session.roomCode}</span>
                   <span className="text-xs text-muted">
-                    {MODE_LABELS[session.mode]} · {sessionStatusLabel(session)}
+                    {MODE_LABELS[session.mode]} · {SESSION_STATUS_LABELS[session.status]}
                   </span>
                 </span>
                 <GhostButton
@@ -204,12 +186,15 @@ export default function BusinessHomePage() {
         ) : (
           <ul className="flex flex-col gap-2">
             {past.data.sessions.map((session) => (
-              <li key={session.id} className="rounded-md border border-line bg-background px-3 py-2">
+              <li
+                key={session.id}
+                className="rounded-md border border-line bg-background px-3 py-2"
+              >
                 <span className="block truncate text-sm font-bold">
                   {formatDateTime(session.createdAt)} · {MODE_LABELS[session.mode]}
                 </span>
                 <span className="text-xs text-muted">
-                  {sessionStatusLabel(session)}
+                  {SESSION_STATUS_LABELS[session.status]}
                   {session.champion ? ` · Şampiyon: ${session.champion}` : ''}
                 </span>
               </li>
