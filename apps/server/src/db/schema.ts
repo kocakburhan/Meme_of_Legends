@@ -158,6 +158,8 @@ export const prompts = sqliteTable(
 );
 export const customUploads = sqliteTable('custom_uploads', {
   id: id(),
+  participantId: text('participant_id'),
+  mediaType: text('media_type', { enum: ['image', 'gif'] }),
   sessionId: text('session_id')
     .notNull()
     .references(() => gameSessions.id),

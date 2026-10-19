@@ -19,3 +19,5 @@
 | `custom_uploads` | Oyuncu yüklemeleri: oturum, R2 anahtarı, oluşturulma, silinme (oturum sonunda silinir). |
 | `admin_actions` | Admin işlem kaydı: zaman, işlem (hak değişimi, iade, sonlandırma, adına giriş, engelleme…), hedef, ayrıntı. |
 | `error_log` | Sistem ve medya hataları (admin raporu için). |
+
+M6a (`0003_unique_rattler.sql`): `custom_uploads` satırlarına `participant_id` ve `media_type` (`image`/`gif`) eklenir. Yeni yüklemeler bu alanları doldurur; seçimde sahiplik/oturum/tür birlikte kontrol edilir. Eski satırlar için alanlar nullable'dır. Oturum sonunda satır fiziksel olarak silinir; `deleted_at` geçmiş alanı kullanılmaz. Ayrıntılar [custom-content.md](custom-content.md).
