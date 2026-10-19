@@ -37,12 +37,15 @@ import { pairingRegistry, pairingRegistryRoute, expirePairIndex } from './displa
 type Session = typeof gameSessions.$inferSelect;
 type Attachment = { viewer: Viewer; credential: string; expiresAt: number; closed?: boolean };
 type Ack = Extract<ServerMessage, { type: 'ack' }>;
+// DO get/put support 128 keys; leave room for the snapshot and a transition ACK.
+const COMMAND_BATCH_SIZE = 120;
 interface Pending {
   engine: EngineState;
   events: EngineEvent[];
   id: string;
   now: number;
   ack?: { key: string; value: Ack };
+  acks?: { key: string; value: Ack }[];
 }
 interface Takeover {
   requestId: string;
@@ -79,6 +82,20 @@ export class RoomDurableObject {
   private data: Snapshot | undefined;
   private prompts: Ctx['prompts'] = [];
   private promptsLoadedAt = -Infinity;
+  private incoming: {
+    ws: WebSocket;
+    message: string | ArrayBuffer;
+    resolve: () => void;
+    reject: (error: unknown) => void;
+  }[] = [];
+  private draining = false;
+  private batch: {
+    events: EngineEvent[];
+    previous: Map<string, Ack>;
+    acks: Map<string, Ack>;
+    dirty: boolean;
+    replies: { ws: WebSocket; message: Ack }[];
+  } | null = null;
   constructor(
     readonly state: DurableObjectState,
     readonly env: Cloudflare.Env,
@@ -137,6 +154,10 @@ export class RoomDurableObject {
     await this.state.storage.put('room', this.data!);
   }
   private send(ws: WebSocket, message: ServerMessage) {
+    if (message.type === 'ack' && this.batch) {
+      this.batch.replies.push({ ws, message });
+      return;
+    }
     try {
       ws.send(JSON.stringify(message));
     } catch {
@@ -206,9 +227,17 @@ export class RoomDurableObject {
   }
   private async broadcast() {
     this.data!.broadcastAt = null;
+    // Only share within this publication: revocation must be checked again next time.
+    const managers = new Map<string, Promise<boolean>>();
     for (const ws of this.sockets()) {
       const a = this.attachment(ws);
-      if (await this.authorized(a)) this.view(ws);
+      let allowed: boolean;
+      if (a.viewer.kind === 'manager') {
+        const key = `${a.credential}:${a.expiresAt}`;
+        if (!managers.has(key)) managers.set(key, this.authorized(a));
+        allowed = await managers.get(key)!;
+      } else allowed = await this.authorized(a);
+      if (allowed) this.view(ws);
       else
         this.close(
           ws,
@@ -327,10 +356,32 @@ export class RoomDurableObject {
     d.seq++;
     d.pending = null;
     await this.state.storage.transaction(async (txn) => {
-      await txn.put('room', d);
-      if (p.ack) await txn.put(p.ack.key, p.ack.value);
+      await txn.put(
+        Object.fromEntries([
+          ['room', d],
+          ...(p.ack ? [[p.ack.key, p.ack.value]] : []),
+          ...(p.acks ?? []).map((ack) => [ack.key, ack.value]),
+        ]),
+      );
     });
     return true;
+  }
+  private async flushBatch() {
+    const batch = this.batch;
+    if (!batch?.dirty) return;
+    const d = this.data!;
+    d.pending = {
+      engine: d.engine,
+      events: batch.events,
+      acks: [...batch.acks].map(([key, value]) => ({ key, value })),
+      id: crypto.randomUUID(),
+      now: this.engineNow(),
+    };
+    await this.save();
+    await this.replay();
+    batch.events = [];
+    batch.dirty = false;
+    await this.schedule();
   }
   private async apply(command: Command, ack?: Pending['ack']): Promise<Ack | undefined> {
     await this.replay();
@@ -346,7 +397,20 @@ export class RoomDurableObject {
         ok: !rejected,
         ...(rejected ? { reason: String(rejected.reason) } : {}),
       };
+    const samePhase =
+      JSON.stringify(result.state.phase) === JSON.stringify(d.engine.phase) &&
+      result.state.status === d.engine.status;
+    if (this.batch && !rejected && samePhase && ['rate', 'finishReview'].includes(command.type)) {
+      d.engine = result.state;
+      d.broadcastAt ??= ctx.now + 250;
+      this.batch.events.push(...result.events);
+      if (ack) this.batch.acks.set(ack.key, ack.value);
+      this.batch.dirty = true;
+      return ack?.value;
+    }
+    await this.flushBatch();
     if (result.state === d.engine && !result.events.length) {
+      if (ack) await this.state.storage.put(ack.key, ack.value);
       await this.schedule();
       return ack?.value;
     }
@@ -354,6 +418,11 @@ export class RoomDurableObject {
       if (ack) await this.state.storage.put(ack.key, ack.value);
       return ack?.value;
     }
+    const coalesce =
+      samePhase &&
+      ['rate', 'join', 'connection', 'select', 'confirm', 'finishReview'].includes(command.type);
+    // Include the publication deadline in the durable intent's snapshot.
+    d.broadcastAt = coalesce ? (d.broadcastAt ?? ctx.now + 250) : null;
     d.pending = {
       engine: result.state,
       events: result.events,
@@ -364,16 +433,12 @@ export class RoomDurableObject {
     await this.save();
     const ok = await this.replay();
     if (!ok) return ack ? await this.state.storage.get<Ack>(ack.key) : undefined;
-    if (command.type === 'rate') {
-      // Persist every vote immediately, coalesce only outward projections at 4 Hz.
-      d.broadcastAt ??= ctx.now + 250;
-    } else await this.broadcast();
+    if (!coalesce) await this.broadcast();
     for (const ws of this.sockets()) {
       const v = this.attachment(ws).viewer;
       if (v.kind === 'participant' && d.engine.participants[v.participantId]?.status === 'kicked')
         this.close(ws, 'kicked');
     }
-    await this.save();
     await this.schedule();
     return ack?.value;
   }
@@ -828,10 +893,9 @@ export class RoomDurableObject {
         participantId: a.viewer.participantId,
         connected: true,
       });
-    else {
-      await this.context();
-      this.view(pair[1]);
-    }
+    await this.context();
+    // A fresh/replacement socket always gets a snapshot, even when fanout is deferred.
+    this.view(pair[1]);
     if (a.viewer.kind === 'display') {
       this.data!.seq++;
       await this.save();
@@ -855,92 +919,154 @@ export class RoomDurableObject {
       .first());
   }
   async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer) {
-    await this.state.blockConcurrencyWhile(async () => {
-      const a = this.attachment(ws);
-      if (!(await this.authorized(a))) {
-        this.close(ws, 'superseded');
-        return;
+    return new Promise<void>((resolve, reject) => {
+      this.incoming.push({ ws, message, resolve, reject });
+      if (!this.draining) {
+        this.draining = true;
+        void this.drainMessages();
       }
-      let input: unknown;
-      try {
-        if (typeof message !== 'string' || message.length > 16384) throw new Error();
-        input = JSON.parse(message);
-      } catch {
-        ws.close(1008, 'INVALID_MESSAGE');
-        return;
-      }
-      const parsed = clientMessageSchema.safeParse(input);
-      if (!parsed.success) {
-        const id = (input as { clientMsgId?: unknown })?.clientMsgId;
-        if (typeof id === 'string' && id.length <= 200)
-          this.send(ws, { type: 'ack', clientMsgId: id, ok: false, reason: 'INVALID_COMMAND' });
-        return;
-      }
-      const msg = parsed.data;
-      if (msg.type === 'ping') {
-        this.send(ws, { type: 'pong', t: msg.t, serverNow: this.now() });
-        return;
-      }
-      // IDs stay consumed across rematches and across cmd/shell message kinds.
-      const key = this.ackKey(a.viewer, msg.clientMsgId);
-      const previous = await this.state.storage.get<Ack>(key);
-      if (previous) {
-        this.send(ws, previous);
-        return;
-      }
-      if (msg.type === 'shell') {
-        const ack: Ack = { type: 'ack', clientMsgId: msg.clientMsgId, ok: true };
-        try {
-          if (a.viewer.kind !== 'manager') throw new ApiFailure(403, 'FORBIDDEN');
-          await this.shell(msg.action, { key, value: ack });
-        } catch (error) {
-          if (!(error instanceof ApiFailure)) throw error;
-          ack.ok = false;
-          ack.reason = error.code;
-          await this.state.storage.put(key, ack);
-        }
-        this.send(ws, (await this.state.storage.get<Ack>(key)) ?? ack);
-        return;
-      }
-      if (this.data!.recoveryUntil !== null) {
-        const ack: Ack = {
-          type: 'ack',
-          clientMsgId: msg.clientMsgId,
-          ok: false,
-          reason: 'RECOVERING',
-        };
-        await this.state.storage.put(key, ack);
-        this.send(ws, ack);
-        return;
-      }
-      const valid =
-        a.viewer.kind === 'manager'
-          ? managerCommandSchema.safeParse(msg.cmd)
-          : a.viewer.kind === 'participant'
-            ? participantCommandSchema.safeParse(msg.cmd)
-            : null;
-      if (!valid?.success) {
-        const ack: Ack = {
-          type: 'ack',
-          clientMsgId: msg.clientMsgId,
-          ok: false,
-          reason: 'FORBIDDEN',
-        };
-        await this.state.storage.put(key, ack);
-        this.send(ws, ack);
-        return;
-      }
-      const command = (
-        a.viewer.kind === 'participant'
-          ? { ...valid.data, participantId: a.viewer.participantId }
-          : valid.data
-      ) as Command;
-      const ack = await this.apply(command, {
-        key,
-        value: { type: 'ack', clientMsgId: msg.clientMsgId, ok: true },
-      });
-      if (ack) this.send(ws, ack);
     });
+  }
+  private async drainMessages() {
+    try {
+      while (this.incoming.length) {
+        // Outside the input gate so a burst can enter the same durable commit.
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        const jobs = this.incoming.splice(0, COMMAND_BATCH_SIZE);
+        try {
+          await this.state.blockConcurrencyWhile(async () => {
+            const keys = jobs.flatMap(({ ws, message }) => {
+              try {
+                if (typeof message !== 'string' || message.length > 16384) return [];
+                const parsed = clientMessageSchema.safeParse(JSON.parse(message));
+                return parsed.success && parsed.data.type !== 'ping'
+                  ? [this.ackKey(this.attachment(ws).viewer, parsed.data.clientMsgId)]
+                  : [];
+              } catch {
+                return [];
+              }
+            });
+            this.batch = {
+              events: [],
+              previous: keys.length ? await this.state.storage.get<Ack>(keys) : new Map(),
+              acks: new Map(),
+              dirty: false,
+              replies: [],
+            };
+            try {
+              for (const job of jobs) await this.processMessage(job.ws, job.message);
+              await this.flushBatch();
+              const replies = this.batch.replies;
+              this.batch = null;
+              for (const reply of replies) this.send(reply.ws, reply.message);
+            } finally {
+              this.batch = null;
+            }
+          });
+          for (const job of jobs) job.resolve();
+        } catch (error) {
+          for (const job of jobs) job.reject(error);
+        }
+      }
+    } finally {
+      this.draining = false;
+    }
+  }
+  private async processMessage(ws: WebSocket, message: string | ArrayBuffer) {
+    const a = this.attachment(ws);
+    if (!(await this.authorized(a))) {
+      this.close(ws, 'superseded');
+      return;
+    }
+    let input: unknown;
+    try {
+      if (typeof message !== 'string' || message.length > 16384) throw new Error();
+      input = JSON.parse(message);
+    } catch {
+      ws.close(1008, 'INVALID_MESSAGE');
+      return;
+    }
+    const parsed = clientMessageSchema.safeParse(input);
+    if (!parsed.success) {
+      const id = (input as { clientMsgId?: unknown })?.clientMsgId;
+      if (typeof id === 'string' && id.length <= 200)
+        this.send(ws, { type: 'ack', clientMsgId: id, ok: false, reason: 'INVALID_COMMAND' });
+      return;
+    }
+    const msg = parsed.data;
+    if (msg.type === 'ping') {
+      this.send(ws, { type: 'pong', t: msg.t, serverNow: this.now() });
+      return;
+    }
+    // IDs stay consumed across rematches and across cmd/shell message kinds.
+    const key = this.ackKey(a.viewer, msg.clientMsgId);
+    const previous = this.batch
+      ? (this.batch.acks.get(key) ?? this.batch.previous.get(key))
+      : await this.state.storage.get<Ack>(key);
+    if (previous) {
+      this.send(ws, previous);
+      return;
+    }
+    if (msg.type === 'shell') {
+      await this.flushBatch();
+      const ack: Ack = { type: 'ack', clientMsgId: msg.clientMsgId, ok: true };
+      try {
+        if (a.viewer.kind !== 'manager') throw new ApiFailure(403, 'FORBIDDEN');
+        await this.shell(msg.action, { key, value: ack });
+      } catch (error) {
+        if (!(error instanceof ApiFailure)) throw error;
+        ack.ok = false;
+        ack.reason = error.code;
+        await this.state.storage.put(key, ack);
+      }
+      const stored = (await this.state.storage.get<Ack>(key)) ?? ack;
+      this.batch?.previous.set(key, stored);
+      this.send(ws, stored);
+      return;
+    }
+    if (this.data!.recoveryUntil !== null) {
+      const ack: Ack = {
+        type: 'ack',
+        clientMsgId: msg.clientMsgId,
+        ok: false,
+        reason: 'RECOVERING',
+      };
+      await this.state.storage.put(key, ack);
+      this.batch?.previous.set(key, ack);
+      this.send(ws, ack);
+      return;
+    }
+    const valid =
+      a.viewer.kind === 'manager'
+        ? managerCommandSchema.safeParse(msg.cmd)
+        : a.viewer.kind === 'participant'
+          ? participantCommandSchema.safeParse(msg.cmd)
+          : null;
+    if (!valid?.success) {
+      const ack: Ack = {
+        type: 'ack',
+        clientMsgId: msg.clientMsgId,
+        ok: false,
+        reason: 'FORBIDDEN',
+      };
+      await this.state.storage.put(key, ack);
+      this.batch?.previous.set(key, ack);
+      this.send(ws, ack);
+      return;
+    }
+    const command = (
+      a.viewer.kind === 'participant'
+        ? { ...valid.data, participantId: a.viewer.participantId }
+        : valid.data
+    ) as Command;
+    const ack = await this.apply(command, {
+      key,
+      value: { type: 'ack', clientMsgId: msg.clientMsgId, ok: true },
+    });
+    if (ack) {
+      this.batch?.previous.set(key, ack);
+      this.send(ws, ack);
+    }
   }
   async webSocketClose(ws: WebSocket, code: number, reason: string, _wasClean: boolean) {
     await this.state.blockConcurrencyWhile(async () => {

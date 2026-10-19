@@ -1,0 +1,71 @@
+{
+  "room": "MZE4T9",
+  "players": 16,
+  "voters": 284,
+  "mode": "league",
+  "rounds": 2,
+  "durationMs": 180160,
+  "completed": false,
+  "failure": "Error: Seçim, puanlama ve gözden geçirme komutları doğrulanamadı",
+  "connectionMs": {
+    "count": 510,
+    "p50": 733.5540169999986,
+    "p95": 15465.469360000003,
+    "p99": 15586.401629999978,
+    "max": 15623.941399000018
+  },
+  "ackMs": {
+    "count": 2215,
+    "p50": 3480.4455080000043,
+    "p95": 6923.777583000003,
+    "p99": 10383.216612999997,
+    "max": 10784.121951000008
+  },
+  "phaseSpread": {
+    "transitions": 8,
+    "completeTransitions": 1,
+    "localMs": {
+      "count": 8,
+      "p50": 90,
+      "p95": 116,
+      "p99": 116,
+      "max": 116
+    },
+    "serverNowMs": {
+      "count": 8,
+      "p50": 152,
+      "p95": 188,
+      "p99": 188,
+      "max": 188
+    }
+  },
+  "errors": {
+    "cannotRate": 204,
+    "notCurrentSubmission": 135,
+    "RUN_FAILED": 1
+  },
+  "acceptedCommands": {
+    "start": 1,
+    "select": 16,
+    "confirm": 16,
+    "rate": 1843
+  },
+  "settings": {
+    "mode": "league",
+    "leagueRounds": 2,
+    "selectionSeconds": 30,
+    "reviewSeconds": 15,
+    "customContent": false,
+    "playerApproval": false,
+    "voterApproval": false,
+    "acceptVoters": true
+  },
+  "disconnects": 226,
+  "plannedDisconnects": 250,
+  "reconnects": 226,
+  "targets": {
+    "ackWithin1s": false,
+    "phaseWithin1s": true
+  },
+  "result": null
+}

@@ -507,7 +507,27 @@ export function reduce(
     return cmd.type === 'tick' || cmd.type === 'restore'
       ? { state, events: [], nextDeadline: null }
       : reject('sessionClosed');
-  const s: EngineState = structuredClone(state),
+  // Rating changes only the current round's voter row and review completion.
+  // Copy those paths instead of cloning the entire roster and all past rounds per vote.
+  const ratingRound = cmd.type === 'rate' ? currentRound(state) : undefined;
+  const s: EngineState =
+      cmd.type === 'rate'
+        ? {
+            ...state,
+            rounds: state.rounds.map((round) =>
+              round === ratingRound
+                ? {
+                    ...round,
+                    ratings: {
+                      ...round.ratings,
+                      [cmd.participantId]: { ...round.ratings[cmd.participantId] },
+                    },
+                    reviewFinished: [...round.reviewFinished],
+                  }
+                : round,
+            ),
+          }
+        : structuredClone(state),
     events: EngineEvent[] = [];
   const r = currentRound(s),
     p =

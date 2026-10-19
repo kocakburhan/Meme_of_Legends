@@ -6,6 +6,7 @@ import {
   estimateDuration,
   mediaSlot,
   project,
+  reduce,
 } from './index.js';
 import { stageTotals } from './competition.js';
 import { Game } from './test-helpers.js';
@@ -1203,4 +1204,44 @@ it('normalizes explicitly undefined optional media fields into strict JSON state
     media: { source: 'system', memeId: 'image', mediaType: 'image', durationMs: undefined },
   });
   expect(JSON.parse(JSON.stringify(g.state))).toStrictEqual(g.state);
+});
+
+describe('rating structural copies', () => {
+  it('keeps frozen input and previous vote states intact when ratings change', () => {
+    const game = new Game({}, 2, 2).start();
+    game.submitAll();
+    const submissionId = game.round.order[0]!;
+    const original = structuredClone(game.state);
+    function freeze(value: unknown) {
+      if (value && typeof value === 'object') {
+        Object.freeze(value);
+        for (const child of Object.values(value)) freeze(child);
+      }
+    }
+    freeze(game.state);
+    const first = reduce(
+      game.state,
+      { type: 'rate', participantId: 'v0', submissionId, score: 3 },
+      game.ctx,
+    );
+    expect(game.state).toEqual(original);
+    expect(first.events).toEqual([{ type: 'ratingProgress', submissionId, count: 1 }]);
+    const savedFirst = structuredClone(first.state);
+    freeze(first.state);
+    const second = reduce(
+      first.state,
+      { type: 'rate', participantId: 'v0', submissionId, score: 5 },
+      game.ctx,
+    );
+    expect(first.state).toEqual(savedFirst);
+    expect(second.state.rounds.at(-1)!.ratings.v0![submissionId]).toBe(5);
+    const third = reduce(
+      second.state,
+      { type: 'rate', participantId: 'v1', submissionId, score: 4 },
+      game.ctx,
+    );
+    expect(second.state.rounds.at(-1)!.ratings.v1).toBeUndefined();
+    expect(third.events).toEqual([{ type: 'ratingProgress', submissionId, count: 2 }]);
+    expect(third.nextDeadline).toBe(first.nextDeadline);
+  });
 });
