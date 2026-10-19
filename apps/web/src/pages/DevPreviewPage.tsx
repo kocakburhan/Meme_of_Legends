@@ -138,6 +138,15 @@ function SelectionEntry() {
       categories={fakeCategories()}
       onSelect={(media) => setOwn(ownSubmission(media))}
       onConfirm={() => setOwn((o) => (o ? { ...o, confirmed: true } : o))}
+      onUploadCustom={async (file, onProgress) => {
+        onProgress(40);
+        return {
+          uploadId: 'preview-upload',
+          mediaType: file.type === 'image/gif' ? 'gif' : 'image',
+          previewUrl: URL.createObjectURL(file),
+        };
+      }}
+      onVerifyYoutube={async () => ({ videoId: 'dQw4w9WgXcQ', durationMs: null })}
     />
   );
 }

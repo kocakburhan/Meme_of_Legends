@@ -94,3 +94,46 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* YouTube kırpma tutamaçları: 44 px dokunma hedefi (SPEC 18). */
+.crop-range {
+  width: 100%;
+  height: 44px;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.crop-range::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 9999px;
+  background: var(--color-line);
+}
+
+.crop-range::-webkit-slider-thumb {
+  width: 28px;
+  height: 28px;
+  margin-top: -10px;
+  border: 2px solid var(--color-background);
+  border-radius: 9999px;
+  background: var(--color-accent);
+  box-shadow: 0 0 0 1px var(--color-line);
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.crop-range::-moz-range-track {
+  height: 8px;
+  border-radius: 9999px;
+  background: var(--color-line);
+}
+
+.crop-range::-moz-range-thumb {
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--color-background);
+  border-radius: 9999px;
+  background: var(--color-accent);
+  box-shadow: 0 0 0 1px var(--color-line);
+}

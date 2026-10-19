@@ -3,6 +3,12 @@ import { useParams } from 'react-router';
 import type { MediaRef, View } from '@mol/engine';
 import { getRoom, joinRoom, requestTakeover, HttpError, type RoomInfo } from '@/net/http';
 import {
+  uploadCustomMedia,
+  verifyYoutubeLink,
+  type CustomUpload,
+  type YoutubeVerification,
+} from '@/net/custom';
+import {
   forgetParticipant,
   loadParticipant,
   saveParticipant,
@@ -14,6 +20,7 @@ import { useLibrary, useParticipantSocket, type LibraryEntry } from '@/net/useRo
 import type { SocketReason } from '@/net/socket';
 import { LibraryMediaProvider, MemeFrame } from '@/components/MemeFrame';
 import type { RateScore, RoundOutcome } from '@/lib/contracts';
+import { uploadErrorMessage, youtubeErrorMessage } from '@/lib/custom';
 import { remainingSeconds } from '@/lib/format';
 import { JoinScreen } from '@/screens/JoinScreen';
 import { LobbyScreen } from '@/screens/LobbyScreen';
@@ -125,6 +132,18 @@ function ackNoteFor(reason: string | undefined): string {
       return 'Bu ad kullanımda; başka bir ad dene.';
     case 'RECOVERING':
       return 'Devam ediyoruz; komutlar kısa süre içinde açık.';
+    case 'CUSTOM_UPLOAD_NOT_FOUND':
+      return 'Yükleme bulunamadı; dosyayı yeniden yükle.';
+    case 'CUSTOM_MEDIA_INVALID':
+    case 'CUSTOM_MEDIA_TOO_LARGE':
+    case 'CUSTOM_CONTENT_DISABLED':
+    case 'RATE_LIMITED':
+      return uploadErrorMessage(reason);
+    case 'YOUTUBE_INVALID_URL':
+    case 'YOUTUBE_NOT_EMBEDDABLE':
+    case 'YOUTUBE_NOT_PUBLIC':
+    case 'YOUTUBE_UNAVAILABLE':
+      return youtubeErrorMessage(reason);
     default:
       return 'Komut uygulanmadı.';
   }
@@ -250,6 +269,22 @@ export function OdaPage() {
       votingFromRound: stored.votingFromRound,
     };
   }, [stored, connection.view]);
+
+  const participantToken = stored?.token ?? null;
+  const handleUploadCustom = useCallback(
+    (file: File, onProgress: (percent: number) => void): Promise<CustomUpload> => {
+      if (!participantToken) return Promise.reject(new HttpError(0, 'INVALID_TOKEN'));
+      return uploadCustomMedia(roomCode, participantToken, file, onProgress);
+    },
+    [roomCode, participantToken],
+  );
+  const handleVerifyYoutube = useCallback(
+    (url: string): Promise<YoutubeVerification> => {
+      if (!participantToken) return Promise.reject(new HttpError(0, 'INVALID_TOKEN'));
+      return verifyYoutubeLink(roomCode, participantToken, url);
+    },
+    [roomCode, participantToken],
+  );
 
   async function handleJoin(input: { nickname: string; role: 'player' | 'voter' }) {
     setJoinError(null);
@@ -546,6 +581,8 @@ export function OdaPage() {
           }}
           onSelect={(media: MediaRef) => void sendParticipant({ type: 'select', media })}
           onConfirm={() => void sendParticipant({ type: 'confirm' })}
+          onUploadCustom={handleUploadCustom}
+          onVerifyYoutube={handleVerifyYoutube}
           onBrowseLibrary={() => setBrowsing(true)}
           soundOn={soundOn}
           onToggleSound={toggleSound}
@@ -599,6 +636,8 @@ interface SceneProps {
   onReviewFinish: () => void;
   onSelect: (media: MediaRef) => void;
   onConfirm: () => void;
+  onUploadCustom: (file: File, onProgress: (percent: number) => void) => Promise<CustomUpload>;
+  onVerifyYoutube: (url: string) => Promise<YoutubeVerification>;
   onBrowseLibrary: () => void;
   soundOn: boolean;
   onToggleSound: () => void;
@@ -643,6 +682,8 @@ function Scene(props: SceneProps) {
             categories={props.categories}
             onSelect={props.onSelect}
             onConfirm={props.onConfirm}
+            onUploadCustom={props.onUploadCustom}
+            onVerifyYoutube={props.onVerifyYoutube}
           />
         );
       return (
