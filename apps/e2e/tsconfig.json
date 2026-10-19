@@ -11,5 +11,5 @@
       "@mol/engine": ["../../packages/engine/src/index.ts"]
     }
   },
-  "include": ["global-setup.ts", "helpers/**/*.ts", "tests/**/*.ts", "playwright.config.ts"]
+  "include": ["global-setup.ts", "helpers/**/*.ts", "scripts/**/*.ts", "tests/**/*.ts", "playwright.config.ts"]
 }

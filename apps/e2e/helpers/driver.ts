@@ -122,6 +122,22 @@ export class ManagerClient {
     return m.shell;
   }
 
+  /** En son alınan yönetici görünümü (yoksa null). */
+  latestView(): ViewMessage | null {
+    for (let i = this.messages.length - 1; i >= 0; i--) {
+      const m = this.messages[i]!;
+      if (m.type === 'view') return m;
+    }
+    return null;
+  }
+
+  onMessage(listener: (m: ServerMessage) => void): void {
+    this.ws.on('message', (data) => {
+      const parsed = serverMessageSchema.safeParse(JSON.parse(String(data)));
+      if (parsed.success) listener(parsed.data);
+    });
+  }
+
   async command(cmd: ManagerCommand, id = crypto.randomUUID()): Promise<AckResult> {
     this.ws.send(JSON.stringify({ type: 'cmd', clientMsgId: id, cmd }));
     return await this.ack(id);
