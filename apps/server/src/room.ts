@@ -1,4 +1,11 @@
 import {
+  MAX_CUSTOM_BYTES,
+  sanitizeCustomMedia,
+  youtubeId,
+  validateYoutube,
+  cleanupCustomUploads,
+} from './custom-media';
+import {
   createSession,
   reduce,
   project,
@@ -12,6 +19,8 @@ import {
 } from '@mol/engine';
 import {
   clientMessageSchema,
+  youtubeRequestSchema,
+  mediaErrorRequestSchema,
   participantCommandSchema,
   managerCommandSchema,
   joinRequestSchema,
@@ -336,7 +345,7 @@ export class RoomDurableObject {
           p.now,
         ),
       );
-      // M6 hook: durable, idempotent cleanup intent; physical asset deletion is deferred.
+      // Audit marker accompanies the replayable transition and physical cleanup below.
       statements.push(
         this.env.DB.prepare(
           'INSERT OR IGNORE INTO session_audit (id,session_id,occurred_at,type,payload) VALUES (?,?,?,?,?)',
@@ -350,6 +359,7 @@ export class RoomDurableObject {
       );
     }
     await this.env.DB.batch(statements);
+    if (ended) await this.cleanupCustom();
     d.engine = p.engine;
     d.session.status = p.engine.status;
     d.session.settings = p.engine.config;
@@ -389,6 +399,35 @@ export class RoomDurableObject {
         ['start', 'replacePrompt', 'tick', 'skipResults', 'restore'].includes(command.type),
       ),
       d = this.data!;
+    if (command.type === 'select' && command.media.source !== 'system') {
+      try {
+        this.canCustom(command.participantId);
+        if (command.media.source === 'upload') {
+          const row = await this.env.DB.prepare(
+            'SELECT 1 FROM custom_uploads WHERE id=? AND session_id=? AND participant_id=? AND media_type=?',
+          )
+            .bind(
+              command.media.uploadId,
+              d.session.id,
+              command.participantId,
+              command.media.mediaType,
+            )
+            .first();
+          if (!row) throw new ApiFailure(422, 'CUSTOM_UPLOAD_NOT_FOUND');
+        } else {
+          await this.checkYoutube(command.participantId, command.media.videoId);
+        }
+        this.canCustom(command.participantId);
+        ctx.now = this.engineNow();
+      } catch (error) {
+        if (!(error instanceof ApiFailure)) throw error;
+        if (ack) {
+          ack.value = { ...ack.value, ok: false, reason: error.code };
+          await this.state.storage.put(ack.key, ack.value);
+        }
+        return ack?.value;
+      }
+    }
     const result = reduce(d.engine, command, ctx);
     const rejected = result.events.find((e) => e.type === 'commandRejected');
     if (ack)
@@ -759,6 +798,7 @@ export class RoomDurableObject {
           ).bind(`${id}:adminTerminated`, now, id, id),
         ]);
       }
+      await this.cleanupCustom();
       this.data.closed = true;
       await this.save();
       const reason =
@@ -768,12 +808,227 @@ export class RoomDurableObject {
       return new Response(null, { status: 204 });
     }
     if (this.data.closed) throw new ApiFailure(404, 'ROOM_NOT_FOUND');
+    if (path.includes('/custom/')) return await this.customRoute(request);
     if (path === '/display-pair') return await this.pairDisplay(request);
     if (path.endsWith('/takeover') && request.method === 'POST')
       return await this.takeover(request);
     if (path.endsWith('/join') && request.method === 'POST') return await this.join(request);
     if (path.endsWith('/ws') && request.method === 'GET') return await this.connect(request);
     throw new ApiFailure(404, 'NOT_FOUND');
+  }
+  private async cleanupCustom() {
+    await cleanupCustomUploads(this.env, this.data!.session.id);
+    const keys = await this.state.storage.list({
+      prefix: `customYoutube:${this.data!.session.id}:`,
+    });
+    const names = [...keys.keys()];
+    for (let i = 0; i < names.length; i += 128)
+      await this.state.storage.delete(names.slice(i, i + 128));
+  }
+  private canCustom(participantId: string) {
+    const d = this.data!,
+      r = d.engine.rounds.at(-1),
+      p = d.engine.participants[participantId];
+    if (!r?.config.customContent) throw new ApiFailure(409, 'CUSTOM_CONTENT_DISABLED');
+    if (d.recoveryUntil !== null) throw new ApiFailure(409, 'RECOVERING');
+    if (
+      d.engine.status !== 'running' ||
+      d.engine.phase.kind !== 'selection' ||
+      d.engine.phase.endsAt <= this.now() ||
+      !r.players.includes(participantId) ||
+      p?.role !== 'player' ||
+      p.status !== 'active'
+    )
+      throw new ApiFailure(409, 'CANNOT_SELECT');
+  }
+  private async customRate(identity: string, kind: string, limit: number) {
+    const key = `customRate:${this.data!.session.id}:${identity}:${kind}`;
+    const times = ((await this.state.storage.get<number[]>(key)) ?? []).filter(
+      (t) => t > this.now() - 60000,
+    );
+    if (times.length >= limit) throw new ApiFailure(429, 'RATE_LIMITED');
+    times.push(this.now());
+    await this.state.storage.put(key, times);
+  }
+  private async checkYoutube(participantId: string, videoId: string) {
+    if (!/^[A-Za-z0-9_-]{11}$/.test(videoId)) throw new ApiFailure(422, 'YOUTUBE_INVALID_URL');
+    const key = `customYoutube:${this.data!.session.id}:${videoId}`;
+    if (((await this.state.storage.get<number>(key)) ?? 0) > this.now()) return;
+    await this.customRate(participantId, 'youtube', 10);
+    await validateYoutube(videoId);
+    await this.state.storage.put(key, this.now() + 60000);
+  }
+  private async customViewer(request: Request): Promise<Viewer> {
+    const token = this.token(request);
+    const display = token ? await verifyDisplayToken(token, this.env.TOKEN_SECRET) : null;
+    if (display) {
+      const d = this.data!;
+      if (
+        display.roomCode !== d.session.roomCode ||
+        display.sessionId !== d.display?.sessionId ||
+        (await digest(token!)) !== d.display.credential
+      )
+        throw new ApiFailure(401, 'INVALID_TOKEN');
+      return { kind: 'display' };
+    }
+    const explicit =
+      new URL(request.url).searchParams.has('token') || request.headers.has('authorization');
+    if (!explicit && request.headers.get('cookie')?.includes('mol_business_session=')) {
+      const auth = await authenticate(request, this.env, 'business');
+      if (auth.ownerId !== this.data!.session.businessId) throw new ApiFailure(403, 'FORBIDDEN');
+      return { kind: 'manager' };
+    }
+    const identity = await this.identity(request);
+    if (!identity || !this.data!.engine.participants[identity.participantId])
+      throw new ApiFailure(401, 'INVALID_TOKEN');
+    return { kind: 'participant', participantId: identity.participantId };
+  }
+  private async customRoute(request: Request): Promise<Response> {
+    const path = new URL(request.url).pathname.split('/custom/')[1]!;
+    const viewer = await this.customViewer(request);
+    const d = this.data!;
+    const view = project(d.engine, viewer, await this.context());
+    if (path.startsWith('uploads/') && ['GET', 'HEAD'].includes(request.method)) {
+      const id = path.slice(8);
+      const row = await this.env.DB.prepare(
+        'SELECT r2_key,participant_id FROM custom_uploads WHERE id=? AND session_id=?',
+      )
+        .bind(id, d.session.id)
+        .first<{ r2_key: string; participant_id: string }>();
+      const visible = [
+        ...view.submissions,
+        ...view.completedRounds.flatMap((r) => r.submissions),
+        ...(view.ownSubmission ? [view.ownSubmission] : []),
+      ].some((s) => s.media?.source === 'upload' && s.media.uploadId === id);
+      const admitted =
+        viewer.kind !== 'participant' ||
+        d.engine.participants[viewer.participantId]?.status === 'active';
+      const phase =
+        d.engine.phase.kind === 'selection'
+          ? d.engine.phase
+          : (d.engine.pausedFrom ?? d.engine.phase);
+      const presented =
+        admitted &&
+        d.engine.rounds.some((round) =>
+          round.order.some((subId, index) => {
+            const sub = round.submissions[subId];
+            return (
+              sub?.media?.source === 'upload' &&
+              sub.media.uploadId === id &&
+              !sub.hidden &&
+              !sub.invalid &&
+              (round.locked ||
+                round !== d.engine.rounds.at(-1) ||
+                (phase.kind === 'presentation' && index <= phase.index) ||
+                ['review', 'reveal', 'results', 'draw'].includes(phase.kind))
+            );
+          }),
+        );
+      const owner = viewer.kind === 'participant' && row?.participant_id === viewer.participantId;
+      if (
+        !row ||
+        (!visible && !presented && !owner && viewer.kind !== 'manager') ||
+        ['finished', 'terminated'].includes(d.engine.status)
+      )
+        throw new ApiFailure(404, 'NOT_FOUND');
+      const object = await this.env.MEDIA.get(row.r2_key);
+      if (!object) throw new ApiFailure(404, 'NOT_FOUND');
+      const headers = new Headers({
+        'Cache-Control': 'private, no-store',
+        'X-Content-Type-Options': 'nosniff',
+        'Content-Length': String(object.size),
+      });
+      object.writeHttpMetadata(headers);
+      return new Response(request.method === 'HEAD' ? null : object.body, { headers });
+    }
+    if (request.method !== 'POST') throw new ApiFailure(405, 'METHOD_NOT_ALLOWED');
+    if (path === 'errors') {
+      const input = await body(request, mediaErrorRequestSchema);
+      const sub = [
+        ...view.submissions,
+        ...view.completedRounds.flatMap((r) => r.submissions),
+        ...(view.ownSubmission ? [view.ownSubmission] : []),
+      ].find((s) => s.id === input.submissionId && s.media);
+      if (!sub?.media) throw new ApiFailure(404, 'NOT_FOUND');
+      await this.customRate(
+        viewer.kind === 'participant' ? viewer.participantId : viewer.kind,
+        'errors',
+        10,
+      );
+      await this.env.DB.prepare(
+        'INSERT INTO error_log (id,occurred_at,source,session_id,code,details) VALUES (?,?,?,?,?,?)',
+      )
+        .bind(
+          crypto.randomUUID(),
+          this.now(),
+          'media',
+          d.session.id,
+          'MEDIA_LOAD_FAILED',
+          JSON.stringify({
+            submissionId: sub.id,
+            mediaType: sub.media.source === 'youtube' ? 'youtube' : sub.media.mediaType,
+          }),
+        )
+        .run();
+      return json({ ok: true });
+    }
+    if (viewer.kind !== 'participant') throw new ApiFailure(403, 'FORBIDDEN');
+    this.canCustom(viewer.participantId);
+    if (path === 'youtube') {
+      const { url } = await body(request, youtubeRequestSchema);
+      const videoId = youtubeId(url);
+      await this.checkYoutube(viewer.participantId, videoId);
+      this.canCustom(viewer.participantId);
+      return json({ videoId, durationMs: null });
+    }
+    if (path !== 'uploads') throw new ApiFailure(404, 'NOT_FOUND');
+    await this.customRate(viewer.participantId, 'uploads', 6);
+    // Stream with an explicit bound, even when Content-Length is absent or forged.
+    if (Number(request.headers.get('content-length')) > MAX_CUSTOM_BYTES)
+      throw new ApiFailure(413, 'CUSTOM_MEDIA_TOO_LARGE');
+    const reader = request.body?.getReader();
+    if (!reader) throw new ApiFailure(422, 'CUSTOM_MEDIA_INVALID');
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.length;
+      if (size > MAX_CUSTOM_BYTES) {
+        await reader.cancel();
+        throw new ApiFailure(413, 'CUSTOM_MEDIA_TOO_LARGE');
+      }
+      chunks.push(value);
+    }
+    const bytes = new Uint8Array(size);
+    let offset = 0;
+    for (const chunk of chunks) {
+      bytes.set(chunk, offset);
+      offset += chunk.length;
+    }
+    const file = sanitizeCustomMedia(bytes, request.headers.get('content-type') ?? '');
+    this.canCustom(viewer.participantId);
+    const uploadId = crypto.randomUUID(),
+      key = `custom/${d.session.id}/${uploadId}.${file.ext}`;
+    try {
+      await this.env.MEDIA.put(key, file.data, { httpMetadata: { contentType: file.contentType } });
+      await this.env.DB.prepare(
+        'INSERT INTO custom_uploads (id,session_id,participant_id,media_type,r2_key,created_at) VALUES (?,?,?,?,?,?)',
+      )
+        .bind(uploadId, d.session.id, viewer.participantId, file.mediaType, key, this.now())
+        .run();
+    } catch (error) {
+      await this.env.MEDIA.delete(key);
+      throw error;
+    }
+    return json(
+      {
+        uploadId,
+        mediaType: file.mediaType,
+        previewUrl: `/api/rooms/${d.session.roomCode}/custom/uploads/${uploadId}`,
+      },
+      201,
+    );
   }
   private token(request: Request) {
     const url = new URL(request.url);
@@ -1179,6 +1434,7 @@ export class RoomDurableObject {
           )
             .bind(this.now(), d.session.id)
             .run();
+          await this.cleanupCustom();
           d.closed = true;
           await this.save();
           for (const ws of this.sockets()) this.close(ws, 'roomExpired');

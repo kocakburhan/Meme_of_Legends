@@ -1,3 +1,5 @@
+import { customFixture } from './fixtures/custom';
+import { sweepCustomUploads } from '../src/custom-media';
 import { env, exports } from 'cloudflare:workers';
 import { evictDurableObject, runDurableObjectAlarm, runInDurableObject } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -1332,4 +1334,381 @@ describe('room WebSockets', () => {
     expect(saved.alarm).toBe(recovery.resumesAt);
     expect((await snapshot()).engine.phase.kind).toBe('selection');
   });
+});
+
+async function uploadCustom(
+  token: string,
+  data = customFixture('gps.jpg'),
+  mime = 'image/jpeg',
+  headers: Record<string, string> = {},
+) {
+  return exports.default.fetch(`https://example.com/api/rooms/${code}/custom/uploads`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${token}`, 'content-type': mime, ...headers },
+    body: data,
+  });
+}
+async function selection(customContent = true) {
+  await lobby();
+  const manager = await connect(undefined, true);
+  await manager.view();
+  const a = await join('Birinci'),
+    b = await join('İkinci');
+  const ca = await connect(a.token),
+    cb = await connect(b.token);
+  await ca.view();
+  await cb.view();
+  await manager.command({ type: 'updateSettings', patch: { customContent } });
+  expect((await manager.command({ type: 'start' })).ok).toBe(true);
+  return { manager, a, b, ca, cb };
+}
+describe('custom content HTTP and room boundary', () => {
+  it('keeps selection private, enforces ownership, presents anonymously, logs failures and deletes assets on end', async () => {
+    const { manager, a, b, ca, cb } = await selection();
+    const response = await uploadCustom(a.token);
+    expect(response.status).toBe(201);
+    const uploaded = await response.json<{
+      uploadId: string;
+      mediaType: 'image';
+      previewUrl: string;
+    }>();
+    const media = { source: 'upload', uploadId: uploaded.uploadId, mediaType: 'image' };
+    expect(await cb.command({ type: 'select', media })).toMatchObject({
+      ok: false,
+      reason: 'CUSTOM_UPLOAD_NOT_FOUND',
+    });
+    expect((await ca.command({ type: 'select', media })).ok).toBe(true);
+    const get = (headers: Record<string, string> = {}) =>
+      api(uploaded.previewUrl, undefined, headers);
+    expect((await get({ cookie: `mol_participant_${code}=${a.token}` })).status).toBe(200);
+    expect((await get({ authorization: `Bearer ${b.token}` })).status).toBe(404);
+    expect((await get({ cookie })).status).toBe(200);
+    expect((await get()).status).toBe(401);
+    const pair = await createPairCode(manager);
+    const paired = await api('/api/display/pair', { code: pair.code });
+    const { token: displayToken } = await paired.json<{ token: string }>();
+    expect((await get({ authorization: `Bearer ${displayToken}` })).status).toBe(404);
+    const d = await snapshot();
+    const { project } = await import('@mol/engine');
+    const ctx = { now, prompts: [], timing: DEFAULT_TIMING };
+    expect(
+      JSON.stringify(
+        project(d.engine, { kind: 'participant', participantId: b.participantId }, ctx),
+      ),
+    ).not.toContain(uploaded.uploadId);
+    expect(JSON.stringify(project(d.engine, { kind: 'display' }, ctx))).not.toContain(
+      uploaded.uploadId,
+    );
+    const managerView = project(d.engine, { kind: 'manager' }, ctx);
+    expect(managerView.submissions[0]).toMatchObject({ playerId: a.participantId, media });
+    expect(managerView.participants.find((p) => p.id === a.participantId)?.nickname).toBe(
+      'Birinci',
+    );
+    await cb.command({
+      type: 'select',
+      media: { source: 'system', memeId: 'test', mediaType: 'image' },
+    });
+    await ca.command({ type: 'confirm' });
+    await cb.command({ type: 'confirm' });
+    // Advance to the uploaded submission's slot, if it was shuffled second.
+    if (
+      (await snapshot()).engine.rounds.at(-1)!.submissions[
+        (await snapshot()).engine.rounds.at(-1)!.order[0]!
+      ]!.media?.source !== 'upload'
+    )
+      await advance();
+    const shown = await get({ authorization: `Bearer ${b.token}` });
+    expect(shown.status).toBe(200);
+    expect(shown.headers.get('cache-control')).toContain('no-store');
+    expect((await get({ authorization: `Bearer ${displayToken}` })).status).toBe(200);
+    expect(new TextDecoder().decode(await shown.arrayBuffer())).not.toContain('Exif');
+    const current = await snapshot();
+    const sub = Object.values(current.engine.rounds.at(-1)!.submissions).find(
+      (s) => s.media?.source === 'upload',
+    )!;
+    expect(
+      project(current.engine, { kind: 'participant', participantId: b.participantId }, ctx)
+        .submissions[0],
+    ).not.toHaveProperty('playerId');
+    expect(
+      (
+        await api(
+          `/api/rooms/${code}/custom/errors`,
+          { submissionId: sub.id },
+          { authorization: `Bearer ${b.token}` },
+        )
+      ).status,
+    ).toBe(200);
+    const error = await env.DB.prepare('SELECT * FROM error_log WHERE session_id=?')
+      .bind(sessionId)
+      .first<{ details: string }>();
+    expect(JSON.parse(error!.details)).toEqual({ submissionId: sub.id, mediaType: 'image' });
+    expect(error!.details).not.toContain(uploaded.uploadId);
+    for (let i = 0; i < 9; i++)
+      expect(
+        (
+          await api(
+            `/api/rooms/${code}/custom/errors`,
+            { submissionId: sub.id },
+            { authorization: `Bearer ${b.token}` },
+          )
+        ).status,
+      ).toBe(200);
+    expect(
+      (
+        await api(
+          `/api/rooms/${code}/custom/errors`,
+          { submissionId: sub.id },
+          { authorization: `Bearer ${b.token}` },
+        )
+      ).status,
+    ).toBe(429);
+    expect(
+      (
+        await api(
+          `/api/rooms/${code}/custom/errors`,
+          { submissionId: 'unknown' },
+          { authorization: `Bearer ${a.token}` },
+        )
+      ).status,
+    ).toBe(404);
+
+    expect((await manager.command({ type: 'endGame' })).ok).toBe(true);
+    expect((await env.MEDIA.list({ prefix: `custom/${sessionId}/` })).objects).toHaveLength(0);
+    expect(
+      (
+        await env.DB.prepare('SELECT * FROM custom_uploads WHERE session_id=?')
+          .bind(sessionId)
+          .all()
+      ).results,
+    ).toHaveLength(0);
+    expect((await get({ authorization: `Bearer ${a.token}` })).status).toBe(404);
+  });
+  it('rejects disabled custom content and ended phases', async () => {
+    const { manager, a, ca } = await selection(false);
+    expect((await uploadCustom(a.token)).status).toBe(409);
+    expect(
+      (
+        await api(
+          `/api/rooms/${code}/custom/youtube`,
+          { url: 'https://youtu.be/dQw4w9WgXcQ' },
+          { authorization: `Bearer ${a.token}` },
+        )
+      ).status,
+    ).toBe(409);
+    expect(
+      await ca.command({
+        type: 'select',
+        media: { source: 'youtube', videoId: 'dQw4w9WgXcQ', startMs: 0, endMs: 1 },
+      }),
+    ).toMatchObject({ ok: false, reason: 'CUSTOM_CONTENT_DISABLED' });
+    await manager.command({ type: 'endGame' });
+    const r = await uploadCustom(a.token);
+    expect(r.status).toBe(409);
+  });
+  it('checks upload limits and persists rate limits across requests', async () => {
+    const { a } = await selection();
+    expect((await uploadCustom(a.token, customFixture('gps.jpg'), 'image/png')).status).toBe(422);
+    expect((await uploadCustom(a.token, new Uint8Array([1, 2, 3]))).status).toBe(422);
+    expect(
+      (
+        await uploadCustom(a.token, undefined, undefined, {
+          'content-length': String(10 * 1024 * 1024 + 1),
+        })
+      ).status,
+    ).toBe(413);
+    for (let i = 0; i < 3; i++) expect((await uploadCustom(a.token)).status).toBe(201);
+    expect((await uploadCustom(a.token)).status).toBe(429);
+    now += 60001;
+    expect((await uploadCustom(a.token)).status).toBe(409); // selection deadline passed
+  });
+  it('validates YouTube on select even when the validation endpoint was bypassed', async () => {
+    const { a, ca, manager } = await selection();
+    const mock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('', { status: 403 }));
+    const media = { source: 'youtube', videoId: 'dQw4w9WgXcQ', startMs: 0, endMs: 25000 };
+    expect(await ca.command({ type: 'select', media })).toMatchObject({
+      ok: false,
+      reason: 'YOUTUBE_NOT_EMBEDDABLE',
+    });
+    mock.mockImplementation(async () => Response.json({ html: '<iframe></iframe>' }));
+    const verified = await api(
+      `/api/rooms/${code}/custom/youtube`,
+      { url: 'https://youtu.be/dQw4w9WgXcQ' },
+      { authorization: `Bearer ${a.token}` },
+    );
+    expect(await verified.json()).toEqual({ videoId: media.videoId, durationMs: null });
+    expect((await ca.command({ type: 'select', media })).ok).toBe(true);
+    expect(await ca.command({ type: 'select', media: { ...media, endMs: 25001 } })).toMatchObject({
+      ok: false,
+      reason: 'INVALID_COMMAND',
+    });
+    expect(
+      await ca.command({ type: 'select', media: { ...media, videoId: 'invalid' } }),
+    ).toMatchObject({ ok: false, reason: 'INVALID_COMMAND' });
+    await runInDurableObject(stub(), async (_instance, state) => {
+      for (let i = 0; i < 130; i++)
+        await state.storage.put(`customYoutube:${sessionId}:test${i}`, now);
+    });
+    await manager.command({ type: 'endGame' });
+    await runInDurableObject(stub(), async (_instance, state) => {
+      expect((await state.storage.list({ prefix: 'customYoutube:' })).size).toBe(0);
+    });
+  });
+  it('sweeps terminal-session rows and orphan objects, retaining live-session assets', async () => {
+    const { a, manager } = await selection();
+    const r = await uploadCustom(a.token);
+    const { uploadId } = await r.json<{ uploadId: string }>();
+    await sweepCustomUploads(env);
+    expect(
+      await env.DB.prepare('SELECT 1 FROM custom_uploads WHERE id=?').bind(uploadId).first(),
+    ).toBeTruthy();
+    await env.DB.prepare("UPDATE game_sessions SET status='cancelled' WHERE id=?")
+      .bind(sessionId)
+      .run();
+    await sweepCustomUploads(env);
+    expect((await env.MEDIA.list({ prefix: `custom/${sessionId}/` })).objects).toHaveLength(0);
+    expect(
+      await env.DB.prepare('SELECT 1 FROM custom_uploads WHERE id=?').bind(uploadId).first(),
+    ).toBeNull();
+    const key = `custom/orphan/${crypto.randomUUID()}.jpg`;
+    await env.MEDIA.put(key, new Uint8Array([1]));
+    now += 3600001;
+    await sweepCustomUploads(env);
+    expect(await env.MEDIA.head(key)).toBeNull();
+    await manager.command({ type: 'endGame' });
+  });
+});
+
+describe('custom media lifecycle edge cases', () => {
+  it.each([
+    ['metadata.png', 'image/png', 'image'],
+    ['metadata.webp', 'image/webp', 'image'],
+    ['animated.gif', 'image/gif', 'gif'],
+  ])('uploads sanitized %s and removes it on normal completion', async (name, mime, mediaType) => {
+    const { a, ca, cb } = await selection();
+    const response = await uploadCustom(a.token, customFixture(name!), mime!);
+    expect(response.status).toBe(201);
+    const upload = await response.json<{ uploadId: string; mediaType: string }>();
+    expect(upload.mediaType).toBe(mediaType);
+    expect(
+      await ca.command({
+        type: 'select',
+        media: {
+          source: 'upload',
+          uploadId: upload.uploadId,
+          mediaType: mediaType === 'image' ? 'gif' : 'image',
+        },
+      }),
+    ).toMatchObject({ ok: false, reason: 'CUSTOM_UPLOAD_NOT_FOUND' });
+    expect(
+      (
+        await ca.command({
+          type: 'select',
+          media: { source: 'upload', uploadId: upload.uploadId, mediaType },
+        })
+      ).ok,
+    ).toBe(true);
+    await cb.command({
+      type: 'select',
+      media: { source: 'system', memeId: 'regular', mediaType: 'image' },
+    });
+    await ca.command({ type: 'confirm' });
+    await cb.command({ type: 'confirm' });
+    // Stable non-tied ratings avoid an overtime round.
+    while ((await snapshot()).engine.phase.kind === 'presentation') await advance();
+    for (const sub of Object.values((await snapshot()).engine.rounds.at(-1)!.submissions)) {
+      await (sub.playerId === a.participantId ? cb : ca).command({
+        type: 'rate',
+        submissionId: sub.id,
+        score: sub.playerId === a.participantId ? 5 : 1,
+      });
+    }
+    let steps = 0;
+    while (!['finished', 'terminated'].includes((await snapshot()).engine.status) && steps++ < 20)
+      await advance();
+    expect((await snapshot()).engine.status).toBe('finished');
+    expect((await env.MEDIA.list({ prefix: `custom/${sessionId}/` })).objects).toHaveLength(0);
+    expect(
+      (
+        await env.DB.prepare('SELECT * FROM custom_uploads WHERE session_id=?')
+          .bind(sessionId)
+          .all()
+      ).results,
+    ).toHaveLength(0);
+    const report = await env.DB.prepare('SELECT summary FROM session_reports WHERE session_id=?')
+      .bind(sessionId)
+      .first<{ summary: string }>();
+    expect(report!.summary).not.toContain(upload.uploadId);
+    expect(report!.summary).toContain('customType');
+  });
+  it.each(['cancel', 'expire', 'admin'] as const)(
+    'deletes stored assets through %s close path',
+    async (kind) => {
+      await lobby();
+      const id = crypto.randomUUID(),
+        key = `custom/${sessionId}/${id}.jpg`;
+      // Fixtures represent a leftover row from an interrupted earlier write.
+      await env.MEDIA.put(key, customFixture('gps.jpg'));
+      await env.DB.prepare(
+        'INSERT INTO custom_uploads (id,session_id,participant_id,media_type,r2_key,created_at) VALUES (?,?,?,?,?,?)',
+      )
+        .bind(id, sessionId, 'test', 'image', key, now)
+        .run();
+      if (kind === 'cancel')
+        expect(
+          (await api(`/api/business/sessions/${sessionId}/cancel`, {}, { cookie })).status,
+        ).toBe(200);
+      else if (kind === 'expire') {
+        now += 86400001;
+        await runDurableObjectAlarm(stub());
+      } else
+        expect(
+          (
+            await stub().fetch(`https://room/close?reason=adminTerminated&sessionId=${sessionId}`, {
+              method: 'POST',
+            })
+          ).status,
+        ).toBe(204);
+      expect(await env.MEDIA.head(key)).toBeNull();
+      expect(
+        await env.DB.prepare('SELECT 1 FROM custom_uploads WHERE id=?').bind(id).first(),
+      ).toBeNull();
+    },
+  );
+});
+
+it('bounds chunked uploads without trusting content-length', async () => {
+  const { a } = await selection();
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(new Uint8Array(6 * 1024 * 1024));
+      controller.enqueue(new Uint8Array(5 * 1024 * 1024));
+      controller.close();
+    },
+  });
+  const response = await exports.default.fetch(
+    `https://example.com/api/rooms/${code}/custom/uploads`,
+    {
+      method: 'POST',
+      headers: { authorization: `Bearer ${a.token}`, 'content-type': 'image/jpeg' },
+      body: stream,
+    },
+  );
+  expect(response.status).toBe(413);
+  expect((await env.MEDIA.list({ prefix: `custom/${sessionId}/` })).objects).toHaveLength(0);
+});
+
+it('rechecks the selection deadline after YouTube network validation', async () => {
+  const { ca } = await selection();
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
+    now += 30001;
+    return Response.json({ html: '<iframe></iframe>' });
+  });
+  expect(
+    await ca.command({
+      type: 'select',
+      media: { source: 'youtube', videoId: 'dQw4w9WgXcQ', startMs: 0, endMs: 1 },
+    }),
+  ).toMatchObject({ ok: false, reason: 'CANNOT_SELECT' });
+  expect(Object.values((await snapshot()).engine.rounds.at(-1)!.submissions)).toHaveLength(0);
 });

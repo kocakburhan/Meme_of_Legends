@@ -1,3 +1,4 @@
+import { sweepCustomUploads } from './custom-media';
 import { serveMedia } from './media';
 import { pairDisplay } from './display-pairing';
 import { RoomDurableObject } from './room';
@@ -41,6 +42,10 @@ export default {
       }
       const library = /^\/api\/rooms\/([^/]+)\/library$/.exec(path);
       if (library) return await libraryRoute(request, env, library[1]!);
+      const custom = /^\/api\/rooms\/([^/]+)\/custom\/(uploads(?:\/[^/]+)?|youtube|errors)$/.exec(
+        path,
+      );
+      if (custom) return await roomStub(env, custom[1]!).fetch(request);
       const socket = /^\/api\/rooms\/([^/]+)\/ws$/.exec(path);
       if (socket) return await roomStub(env, socket[1]!).fetch(request);
       const room = /^\/api\/rooms\/([^/]+)(\/join)?$/.exec(path);
@@ -55,5 +60,6 @@ export default {
   },
   async scheduled(_controller: ScheduledController, env: Cloudflare.Env): Promise<void> {
     await expireLobbies(env);
+    await sweepCustomUploads(env);
   },
 } satisfies ExportedHandler<Cloudflare.Env>;
