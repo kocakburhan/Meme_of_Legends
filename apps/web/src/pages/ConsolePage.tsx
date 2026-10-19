@@ -5,7 +5,6 @@ import { HttpError, getBusinessMe, getRoom, type BusinessAccount } from '@/net/h
 import { useManagerSocket } from '@/net/useRoom';
 import { cn } from '@/lib/cn';
 import { Card, GhostButton, Note } from '@/components/ui';
-import { Badge } from '@/console/bits';
 import { StatusBar } from '@/console/StatusBar';
 import { GameTab } from '@/console/GameTab';
 import { ParticipantsTab } from '@/console/ParticipantsTab';
@@ -264,7 +263,11 @@ function TabPanel({
     <section
       aria-label={label}
       id={`console-${id}`}
-      className={cn('flex flex-col gap-4 px-4 pb-8 pt-4 lg:px-0 lg:pt-4', !active && 'hidden', active && 'lg:block')}
+      // Telefondan sekmeler; masaüstünde üç bölüm yan yana sütunda (PROJECT_LOG 3.3).
+      className={cn(
+        'flex flex-col gap-4 px-4 pb-8 pt-4 lg:px-0 lg:pt-4',
+        !active && 'hidden lg:block',
+      )}
     >
       {children}
     </section>
