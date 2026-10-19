@@ -406,11 +406,12 @@ export function DisplayFinishedScene({ view, room }: { view: View; room: StageRo
           </span>
         </p>
       </div>
-      <div className="flex items-end justify-center gap-3">
-        {[2, 1, 0].map((slot) => {
+      <section aria-label="Kürsü" className="flex items-end justify-center gap-3">
+        {/* Soldan sağa: 2., 1. (en yüksek, vurgulu), 3.; rakam sıra numarasıdır. */}
+        {[1, 0, 2].map((slot) => {
           const entry = top3[slot];
           if (!entry) return null;
-          const heights = ['h-28', 'h-40', 'h-24'];
+          const heights = ['h-40', 'h-28', 'h-24'];
           return (
             <div key={entry.participantId} className="flex w-40 flex-col items-center gap-2">
               <span className="font-display text-2xl uppercase">
@@ -418,17 +419,17 @@ export function DisplayFinishedScene({ view, room }: { view: View; room: StageRo
               </span>
               <div
                 className={
-                  slot === 1
-                    ? `flex w-full items-start justify-center rounded-t-[var(--radius-card)] border border-accent bg-accent/20 ${heights[slot]}`
-                    : `flex w-full items-start justify-center rounded-t-[var(--radius-card)] border border-line bg-surface ${heights[slot]}`
+                  entry.rank === 1
+                    ? `flex w-full items-start justify-center rounded-t-[var(--radius-card)] border border-accent bg-accent/20 ${heights[entry.rank - 1]}`
+                    : `flex w-full items-start justify-center rounded-t-[var(--radius-card)] border border-line bg-surface ${heights[entry.rank - 1]}`
                 }
               >
-                <span className="font-display pt-3 text-5xl">{slot + 1}</span>
+                <span className="font-display pt-3 text-5xl">{entry.rank}</span>
               </div>
             </div>
           );
         })}
-      </div>
+      </section>
       {result?.jury ? (
         <div className="grid grid-cols-2 gap-4">
           {(
