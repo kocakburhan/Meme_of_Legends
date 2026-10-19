@@ -301,7 +301,11 @@ function SelectionCard({ view, now, send, onAckNote }: GameTabProps) {
 function PresentationCard({ view, now, send, onAckNote }: GameTabProps) {
   if (view.phase.kind !== 'presentation') return null;
   const phase = view.phase;
-  const live = view.submissions.filter((s) => !s.hidden && s.media);
+  // Ekrandaki gönderi motordan kimlikle gelir (sözleşme v0.2); kart yalnız onu gösterir.
+  const presentation = view.presentation;
+  const onScreen = presentation
+    ? view.submissions.find((s) => s.id === presentation.submissionId) ?? null
+    : null;
   const hidden = view.submissions.filter((s) => s.hidden);
 
   async function run(cmd: Parameters<GameTabProps['send']>[0]) {
@@ -316,31 +320,29 @@ function PresentationCard({ view, now, send, onAckNote }: GameTabProps) {
   return (
     <div className="flex flex-col gap-4">
       <Section
-        title="Gösterim"
-        aside={view.presentation ? <Badge>{`Gönderi ${view.presentation.index + 1} / ${view.presentation.total}`}</Badge> : null}
+        title="Şu an ekranda"
+        aside={presentation ? <Badge>{`Gönderi ${presentation.index + 1} / ${presentation.total}`}</Badge> : null}
       >
         {view.prompt ? <p className="font-display text-xl leading-snug">{view.prompt.text}</p> : null}
-        {live.length > 0 ? (
-          <ul className="flex flex-col gap-2">
-            {live.map((s) => (
-              <li key={s.id} className="flex items-center justify-between gap-2 rounded-md border border-line bg-background px-3 py-2">
-                <span className="min-w-0">
-                  <span className="block truncate text-sm font-bold">
-                    {s.playerId ? nicknameOf(view, s.playerId) : 'Anonim'}
-                  </span>
-                  <span className="text-xs text-muted">
-                    {s.media ? mediaLabel(s.media) : ''} · {s.ratingProgress ? `${s.ratingProgress.received}/${s.ratingProgress.eligible} puan verdi` : '—'}
-                  </span>
-                </span>
-                <Badge>{formatClock(remainingSeconds(phase.endsAt, now))}</Badge>
-              </li>
-            ))}
-          </ul>
+        {onScreen && !onScreen.hidden ? (
+          <div className="flex items-center justify-between gap-2 rounded-md border border-line bg-background px-3 py-2">
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-bold">
+                {onScreen.playerId ? nicknameOf(view, onScreen.playerId) : 'Anonim'}
+              </span>
+              <span className="text-xs text-muted">
+                {onScreen.media ? mediaLabel(onScreen.media) : ''} · {onScreen.ratingProgress ? `${onScreen.ratingProgress.received}/${onScreen.ratingProgress.eligible} puan verdi` : '—'}
+              </span>
+            </span>
+            <Badge>{formatClock(remainingSeconds(phase.endsAt, now))}</Badge>
+          </div>
+        ) : onScreen ? (
+          <Note>Bu gönderi gizlendi; tüm ekranlardan kaldırıldı.</Note>
         ) : (
           <Note>Gönderi bekleniyor…</Note>
         )}
-        <Note>Ortak ekranda gönderiler sırayla, her an yalnız biri gösterilir.</Note>
         <HoldButton
+          disabled={!onScreen || onScreen.hidden}
           onComplete={() => void run({ type: 'hideCurrent' })}
           hint="Tüm ekranlardan anında kaldırılır; kazara basmaya karşı 1 sn."
         >
