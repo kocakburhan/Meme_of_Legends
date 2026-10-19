@@ -11,9 +11,6 @@ export function project(state: EngineState, viewer: Viewer, _ctx: Ctx): View {
   const participant = id ? s.participants[id] : undefined;
   const admitted = !id || participant?.status === 'active';
   function submissionView(round: Round, sub: Submission, reveal: boolean): SubmissionView {
-    const eligible = (round.eligibility[sub.id] ?? []).filter((x) =>
-      eligibleParticipant(s, x, round),
-    );
     const v: SubmissionView = {
       id: sub.id,
       media: sub.hidden || sub.invalid ? null : sub.media,
@@ -26,6 +23,10 @@ export function project(state: EngineState, viewer: Viewer, _ctx: Ctx): View {
         votes: round.scores[sub.playerId]!.votes,
       };
     if (!round.locked && s.phase.kind !== 'selection') {
+      const eligible = (round.eligibility[sub.id] ?? []).filter((x) =>
+        eligibleParticipant(s, x, round),
+      );
+
       v.ratingProgress = {
         received: Object.values(round.ratings).filter((v) => v[sub.id] !== undefined).length,
         eligible: eligible.length,

@@ -1,0 +1,94 @@
+{
+  "room": "A7XYRM",
+  "players": 4,
+  "voters": 46,
+  "mode": "league",
+  "rounds": 1,
+  "durationMs": 84610,
+  "completed": true,
+  "failure": null,
+  "connectionMs": {
+    "count": 71,
+    "p50": 91.98572800000011,
+    "p95": 244.5955829999998,
+    "p99": 446.14984900000127,
+    "max": 446.14984900000127
+  },
+  "ackMs": {
+    "count": 241,
+    "p50": 202.8255280000012,
+    "p95": 672.5114669999966,
+    "p99": 756.1967739999964,
+    "max": 765.7530229999975
+  },
+  "phaseSpread": {
+    "transitions": 12,
+    "completeTransitions": 2,
+    "localMs": {
+      "count": 12,
+      "p50": 8,
+      "p95": 12,
+      "p99": 12,
+      "max": 12
+    },
+    "serverNowMs": {
+      "count": 12,
+      "p50": 11,
+      "p95": 15,
+      "p99": 15,
+      "max": 15
+    }
+  },
+  "errors": {},
+  "acceptedCommands": {
+    "start": 1,
+    "select": 4,
+    "confirm": 4,
+    "rate": 190,
+    "finishReview": 42
+  },
+  "settings": {
+    "mode": "league",
+    "leagueRounds": 1,
+    "selectionSeconds": 30,
+    "reviewSeconds": 15,
+    "customContent": false,
+    "playerApproval": false,
+    "voterApproval": false,
+    "acceptVoters": true
+  },
+  "disconnects": 20,
+  "plannedDisconnects": 27,
+  "reconnects": 20,
+  "targets": {
+    "ackWithin1s": true,
+    "phaseWithin1s": true
+  },
+  "result": {
+    "champion": "29dbfad4-81f2-4f67-8aef-5da5305fa9e0",
+    "ranking": [
+      {
+        "participantId": "29dbfad4-81f2-4f67-8aef-5da5305fa9e0",
+        "rank": 1,
+        "score": 3.409090909090909
+      },
+      {
+        "participantId": "a1db443b-a126-4cd9-8900-a75a11d690b4",
+        "rank": 2,
+        "score": 3.2291666666666665
+      },
+      {
+        "participantId": "5ca23f38-32c9-445f-8644-8ab045c445f9",
+        "rank": 3,
+        "score": 3.142857142857143
+      },
+      {
+        "participantId": "32c03141-df70-432c-bdbb-43c46318b3b0",
+        "rank": 4,
+        "score": 3.0408163265306123
+      }
+    ],
+    "jury": null,
+    "reason": "completed"
+  }
+}

@@ -1,0 +1,94 @@
+{
+  "room": "LVSW95",
+  "players": 4,
+  "voters": 46,
+  "mode": "league",
+  "rounds": 1,
+  "durationMs": 83428,
+  "completed": true,
+  "failure": null,
+  "connectionMs": {
+    "count": 73,
+    "p50": 56.10109000000011,
+    "p95": 169.95693700000004,
+    "p99": 209.67415100000017,
+    "max": 209.67415100000017
+  },
+  "ackMs": {
+    "count": 235,
+    "p50": 45.633104,
+    "p95": 52.96624499999962,
+    "p99": 64.32187300000032,
+    "max": 64.48449800000026
+  },
+  "phaseSpread": {
+    "transitions": 12,
+    "completeTransitions": 1,
+    "localMs": {
+      "count": 12,
+      "p50": 9,
+      "p95": 15,
+      "p99": 15,
+      "max": 15
+    },
+    "serverNowMs": {
+      "count": 12,
+      "p50": 11,
+      "p95": 17,
+      "p99": 17,
+      "max": 17
+    }
+  },
+  "errors": {},
+  "acceptedCommands": {
+    "start": 1,
+    "select": 4,
+    "confirm": 4,
+    "rate": 188,
+    "finishReview": 38
+  },
+  "settings": {
+    "mode": "league",
+    "leagueRounds": 1,
+    "selectionSeconds": 30,
+    "reviewSeconds": 15,
+    "customContent": false,
+    "playerApproval": false,
+    "voterApproval": false,
+    "acceptVoters": true
+  },
+  "disconnects": 23,
+  "plannedDisconnects": 37,
+  "reconnects": 22,
+  "targets": {
+    "ackWithin1s": true,
+    "phaseWithin1s": true
+  },
+  "result": {
+    "champion": "b435a0fb-be38-4ad2-b943-0877d4331650",
+    "ranking": [
+      {
+        "participantId": "b435a0fb-be38-4ad2-b943-0877d4331650",
+        "rank": 1,
+        "score": 3.326530612244898
+      },
+      {
+        "participantId": "25fdb4e6-d08d-42a5-90a1-dc6c62bcb51d",
+        "rank": 2,
+        "score": 3.1666666666666665
+      },
+      {
+        "participantId": "e25ae480-b03c-4a2c-95f5-fec6349ebb9c",
+        "rank": 3,
+        "score": 2.847826086956522
+      },
+      {
+        "participantId": "5fec9dfd-249c-4892-be8b-301ea1759acf",
+        "rank": 4,
+        "score": 2.8
+      }
+    ],
+    "jury": null,
+    "reason": "completed"
+  }
+}

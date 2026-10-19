@@ -1,0 +1,167 @@
+{
+  "room": "4Y8WP9",
+  "players": 16,
+  "voters": 284,
+  "mode": "league",
+  "rounds": 2,
+  "durationMs": 575128,
+  "completed": true,
+  "failure": null,
+  "connectionMs": {
+    "count": 301,
+    "p50": 133.93766200000005,
+    "p95": 222.3098399999999,
+    "p99": 268.4017300000005,
+    "max": 299.70753499999955
+  },
+  "ackMs": {
+    "count": 10233,
+    "p50": 189.58067600001232,
+    "p95": 467.1134830000228,
+    "p99": 868.7523960000835,
+    "max": 1673.4341759999515
+  },
+  "phaseSpread": {
+    "transitions": 71,
+    "completeTransitions": 71,
+    "localMs": {
+      "count": 71,
+      "p50": 141,
+      "p95": 190,
+      "p99": 250,
+      "max": 250
+    },
+    "serverNowMs": {
+      "count": 71,
+      "p50": 231,
+      "p95": 307,
+      "p99": 376,
+      "max": 376
+    }
+  },
+  "errors": {},
+  "acceptedCommands": {
+    "start": 1,
+    "select": 32,
+    "confirm": 32,
+    "rate": 9568,
+    "finishReview": 600
+  },
+  "settings": {
+    "mode": "league",
+    "leagueRounds": 2,
+    "selectionSeconds": 30,
+    "reviewSeconds": 15,
+    "customContent": false,
+    "playerApproval": false,
+    "voterApproval": false,
+    "acceptVoters": true
+  },
+  "disconnects": 0,
+  "plannedDisconnects": 0,
+  "reconnects": 0,
+  "targets": {
+    "ackWithin1s": false,
+    "phaseWithin1s": true
+  },
+  "result": {
+    "champion": "80a73a0a-e13a-43e4-9034-3c2469a672ff",
+    "ranking": [
+      {
+        "participantId": "80a73a0a-e13a-43e4-9034-3c2469a672ff",
+        "rank": 1,
+        "score": 6.127090301003345
+      },
+      {
+        "participantId": "4469b133-2406-4947-957e-7387cc328c78",
+        "rank": 2,
+        "score": 6.11371237458194
+      },
+      {
+        "participantId": "e261423e-5a2a-44ec-906c-275c697a384d",
+        "rank": 3,
+        "score": 6.066889632107024
+      },
+      {
+        "participantId": "82ec1345-f839-4346-b6d7-85ea3fe47dc2",
+        "rank": 4,
+        "score": 6.046822742474916
+      },
+      {
+        "participantId": "254a7b3e-42f2-4db1-aeaa-99cf854d3199",
+        "rank": 5,
+        "score": 6.043478260869565
+      },
+      {
+        "participantId": "b602451c-bfee-4dff-afb8-2391aced8cdb",
+        "rank": 6,
+        "score": 6.020066889632107
+      },
+      {
+        "participantId": "9c7a0d0d-8dfa-4a7d-aafb-8d628cd80dc2",
+        "rank": 7,
+        "score": 6.016722408026756
+      },
+      {
+        "participantId": "94185e06-19c2-4181-9d3e-7371c8ef82db",
+        "rank": 8,
+        "score": 6.010033444816054
+      },
+      {
+        "participantId": "347df9fb-90d0-4e07-a73a-e4d70040f3ef",
+        "rank": 8,
+        "score": 6.010033444816053
+      },
+      {
+        "participantId": "70b02b49-e0ed-4f3b-b329-bc6477d51c64",
+        "rank": 10,
+        "score": 5.986622073578595
+      },
+      {
+        "participantId": "d2473c3c-a42a-463d-b716-bba13758e721",
+        "rank": 11,
+        "score": 5.976588628762542
+      },
+      {
+        "participantId": "efd99aeb-e22e-4bd2-b12b-3f112f097d6b",
+        "rank": 12,
+        "score": 5.909698996655518
+      },
+      {
+        "participantId": "fae6b3f6-5fc4-488b-baac-e6ae3344cee2",
+        "rank": 13,
+        "score": 5.889632107023411
+      },
+      {
+        "participantId": "1fb37886-ebd4-4c1f-b5bf-92958d42a8c3",
+        "rank": 14,
+        "score": 5.8762541806020065
+      },
+      {
+        "participantId": "b35899cd-b871-4c44-9e02-25e9bf1450c2",
+        "rank": 15,
+        "score": 5.862876254180602
+      },
+      {
+        "participantId": "e0a91a14-e8ad-4c36-b6e8-c2f7e7f4e07a",
+        "rank": 16,
+        "score": 5.785953177257525
+      }
+    ],
+    "jury": {
+      "harshest": [
+        {
+          "nickname": "Bot 49",
+          "average": 2.21875
+        }
+      ],
+      "mostGenerous": [
+        {
+          "nickname": "Bot 64",
+          "average": 3.71875
+        }
+      ]
+    },
+    "reason": "completed"
+  }
+}
