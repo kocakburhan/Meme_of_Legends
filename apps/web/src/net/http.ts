@@ -2,6 +2,7 @@ import {
   businessPromptResponseSchema,
   businessPromptSchema,
   businessPromptsResponseSchema,
+  businessSessionResponseSchema,
   businessSessionsResponseSchema,
   createBusinessPromptRequestSchema,
   displayPairRequestSchema,
@@ -198,6 +199,7 @@ export function cancelBusinessSession(sessionId: string): Promise<{ ok: true }> 
 }
 
 export type BusinessSessionList = z.infer<typeof businessSessionsResponseSchema>;
+export type BusinessSessionDetail = z.infer<typeof businessSessionResponseSchema>;
 
 /**
  * İşletmenin oturum listesi (docs/contracts/business-api.md §2): `active`
@@ -211,6 +213,14 @@ export function listBusinessSessions(
   if (opts.cursor) params.set('cursor', opts.cursor);
   if (opts.limit) params.set('limit', String(opts.limit));
   return request(`/api/business/sessions?${params.toString()}`, businessSessionsResponseSchema);
+}
+
+/** Tek oturum + rapor (docs/contracts/business-api.md §2); rapor yoksa null. */
+export function getBusinessSession(sessionId: string): Promise<BusinessSessionDetail> {
+  return request(
+    `/api/business/sessions/${encodeURIComponent(sessionId)}`,
+    businessSessionResponseSchema,
+  );
 }
 
 /** Şifre değiştirir; bu oturum açık kalır, diğer cihazlardaki girişler kapanır. */
