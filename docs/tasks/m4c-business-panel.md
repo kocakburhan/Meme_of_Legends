@@ -25,3 +25,9 @@ Sunucu/motor/shared değişikliği (ihtiyaç olursa özetinde yaz). Admin paneli
 
 ## Teslim
 Kısa, doğru özet (uydurma yok), açık sorular.
+
+## Parçalar (orchestrator, 2026-10-19)
+glm-5.3-flash uzun işlerde bağlamı kaybettiği için iş üç ayrı oturumda yapılır; her oturum yalnız kendi parçasını yapar, `pnpm verify` + ilgili e2e'yi geçirir ve commit atar.
+- **M4c-1:** ortak panel düzeni (alt gezinme / yan menü, oturum düşünce girişe yönlendirme) + Ana sayfa (madde 1; M4b'deki geçici "Panel yakında" metinleri ve oda kodu kutusu kalkar) + Hesap (madde 4). Konsol düzeltmeleri: (a) gösterim kartı yalnız **o an ekrandaki** gönderiyi göstersin (`view.presentation.index` yöneticiye geliyor; gönderiler `view.submissions` sırasında) — gönderen, oy sayacı, Hemen gizle; (b) "Lobiyi iptal et" oturum kimliğini localStorage yerine `GET /api/business/sessions?status=active` yanıtından oda koduna göre bulsun. E2E: giriş → Yeni oyun → konsol → panele dönüş → Oyuna dön; şifre değiştir.
+- **M4c-2:** Durumlarım (madde 2) + e2e.
+- **M4c-3:** Geçmiş + detay (madde 3) + e2e; tüm e2e paketi geçer.
