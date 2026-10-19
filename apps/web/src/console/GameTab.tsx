@@ -12,7 +12,7 @@ import {
   ackReasonNote,
   startBlockReason,
 } from '@/console/reasons';
-import { formatEstimatedDuration, formatScore, MODE_LABELS, remainingSeconds } from '@/lib/format';
+import { formatClock, formatEstimatedDuration, formatScore, MODE_LABELS, remainingSeconds } from '@/lib/format';
 
 /**
  * Oyun sekmesi (PROJECT_LOG 3.3): aşamaya göre tek kart. Her komut `ack`
@@ -62,16 +62,9 @@ function mediaLabel(media: MediaRef): string {
   return 'Resim';
 }
 
-function joinedClock(view: View, id: string, now: number): string {
-  const p = view.participants.find((x) => x.id === id);
-  if (!p?.joinedAt) return '';
-  const minutes = Math.max(0, Math.round((now - p.joinedAt) / 60_000));
-  return `${minutes} dk önce`;
-}
-
 /* --------------------------------- Lobi ---------------------------------- */
 
-function LobbyCard({ view, code, now, account, sessionId, send, onAckNote }: GameTabProps) {
+function LobbyCard({ view, code, account, sessionId, send, onAckNote }: GameTabProps) {
   const players = view.participants.filter((p) => p.role === 'player' && p.status === 'active');
   const duration = formatEstimatedDuration(view.config, players.length);
   const block = startBlockReason(view, account ?? { credits: 1, unlimitedCredits: false });
@@ -210,13 +203,16 @@ function LobbyCard({ view, code, now, account, sessionId, send, onAckNote }: Gam
 /* -------------------------------- Seçim ---------------------------------- */
 
 function SelectionCard({ view, now, send, onAckNote }: GameTabProps) {
+  if (view.phase.kind !== 'selection') return null;
   const phase = view.phase;
   const submitters = view.participants.filter(
     (p) => p.role === 'player' && p.status === 'active' && !view.byes.includes(p.id),
   );
   const readyCount = submitters.filter((p) => p.ready).length;
   const replaceOpen = now < phase.promptReplaceUntil;
-  const custom = view.submissions.filter((s) => s.media && s.media.source !== 'system');
+  // Görünümde geçersiz gönderi medyası null gelir (projection); seçimde bu
+  // yalnız reddedilmiş özel içerik olabilir.
+  const custom = view.submissions.filter((s) => s.media?.source !== 'system');
 
   async function run(cmd: Parameters<GameTabProps['send']>[0]) {
     try {
@@ -277,9 +273,9 @@ function SelectionCard({ view, now, send, onAckNote }: GameTabProps) {
                   <span className="block truncate text-sm font-bold">
                     {s.playerId ? nicknameOf(view, s.playerId) : 'Katılımcı'}
                   </span>
-                  <span className="text-xs text-muted">{mediaLabel(s.media!)}</span>
+                  <span className="text-xs text-muted">{s.media ? mediaLabel(s.media) : 'İçerik kaldırıldı'}</span>
                 </span>
-                {s.invalid ? (
+                {!s.media ? (
                   <Badge tone="danger">Reddedildi</Badge>
                 ) : (
                   <GhostButton
@@ -301,6 +297,7 @@ function SelectionCard({ view, now, send, onAckNote }: GameTabProps) {
 /* ------------------------------- Gösterim -------------------------------- */
 
 function PresentationCard({ view, now, send, onAckNote }: GameTabProps) {
+  if (view.phase.kind !== 'presentation') return null;
   const phase = view.phase;
   const live = view.submissions.filter((s) => !s.hidden && s.media);
   const hidden = view.submissions.filter((s) => s.hidden);
@@ -363,8 +360,8 @@ function PresentationCard({ view, now, send, onAckNote }: GameTabProps) {
 /* --------------------------- Gözden geçirme ------------------------------ */
 
 function ReviewCard({ view, send, onAckNote }: GameTabProps) {
-  // `review` alanı M4a ile gelir; alan yoksa sayı gösterilmeden çalış.
-  const review = (view as View & { review?: { finished: number; eligible: number } }).review;
+  // M4a ile View'e taşınan bitiren/uygun sayıları (projection) doğrudan oku.
+  const review = view.review;
 
   async function run(cmd: Parameters<GameTabProps['send']>[0]) {
     try {
