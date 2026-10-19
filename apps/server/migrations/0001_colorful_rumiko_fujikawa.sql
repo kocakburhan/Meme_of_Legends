@@ -1,0 +1,2 @@
+CREATE UNIQUE INDEX `meme_source_unique` ON `memes` (`source_url`);--> statement-breakpoint
+CREATE UNIQUE INDEX `platform_prompt_unique` ON `prompts` (`normalized_text`) WHERE "prompts"."owner_type" = 'platform';

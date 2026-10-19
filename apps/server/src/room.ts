@@ -281,7 +281,7 @@ export class RoomDurableObject {
           `UPDATE businesses SET credits=credits-1 WHERE id=? AND active=1 AND unlimited_credits=0 AND credits>0 AND EXISTS (SELECT 1 FROM game_sessions WHERE id=? AND status='lobby' AND credit_consumed=0)`,
         ).bind(d.session.businessId, d.session.id),
         this.env.DB.prepare(
-          `UPDATE game_sessions SET credit_consumed=1,started_at=?,status='running' WHERE id=? AND status='lobby' AND credit_consumed=0 AND (changes()=1 OR EXISTS (SELECT 1 FROM businesses WHERE id=? AND active=1 AND unlimited_credits=1))`,
+          `UPDATE game_sessions SET credit_consumed=1,credit_charged=(changes()=1),started_at=?,status='running' WHERE id=? AND status='lobby' AND credit_consumed=0 AND (changes()=1 OR EXISTS (SELECT 1 FROM businesses WHERE id=? AND active=1 AND unlimited_credits=1))`,
         ).bind(p.now, d.session.id, d.session.businessId),
       ]);
       if (!result[1]!.meta.changes) {
@@ -726,9 +726,39 @@ export class RoomDurableObject {
     if (!this.data) throw new ApiFailure(404, 'ROOM_NOT_FOUND');
     await this.replay();
     await this.replayRematch();
-    if (path === '/close') {
+    if (path === '/admin-report' && request.method === 'GET') {
       if (url.searchParams.get('sessionId') !== this.data.session.id)
+        throw new ApiFailure(404, 'NOT_FOUND');
+      const { participants, rounds, result } = this.data.engine;
+      return json({ participants, rounds, result });
+    }
+    if (path === '/close') {
+      if (url.searchParams.get('sessionId') !== this.data.session.id) {
+        if (url.searchParams.get('reason') === 'adminTerminated')
+          throw new ApiFailure(409, 'SESSION_NOT_ACTIVE');
         return new Response(null, { status: 204 });
+      }
+      if (url.searchParams.get('reason') === 'adminTerminated') {
+        const intentKey = `adminTermination:${this.data.session.id}`;
+        const intended = await this.state.storage.get<boolean>(intentKey);
+        if (!intended) {
+          if (this.data.closed || ['finished', 'terminated'].includes(this.data.engine.status))
+            throw new ApiFailure(409, 'SESSION_NOT_ACTIVE');
+          await this.state.storage.put(intentKey, true);
+        }
+        if (!['finished', 'terminated'].includes(this.data.engine.status))
+          await this.apply({ type: 'endGame' });
+        const now = this.now(),
+          id = this.data.session.id;
+        await this.env.DB.batch([
+          this.env.DB.prepare(
+            `UPDATE game_sessions SET status='terminated',ended_at=coalesce(ended_at,?),end_reason='adminTerminated',admin_intervention=1 WHERE id=? AND (status IN ('lobby','running','paused') OR (status='terminated' AND end_reason='manager'))`,
+          ).bind(now, id),
+          this.env.DB.prepare(
+            `INSERT OR IGNORE INTO admin_actions (id,occurred_at,action,target_id,details) SELECT ?,?,'sessionTerminated',?,'{}' FROM game_sessions WHERE id=? AND end_reason='adminTerminated'`,
+          ).bind(`${id}:adminTerminated`, now, id, id),
+        ]);
+      }
       this.data.closed = true;
       await this.save();
       const reason =

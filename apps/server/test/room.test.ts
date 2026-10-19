@@ -112,7 +112,7 @@ async function lobby(mode = 'league', unlimited = false) {
     .bind(await digest(credential), id, now, now + 86_400_000)
     .run();
   await env.DB.prepare(
-    "INSERT INTO prompts (id,owner_type,text,normalized_text,created_at,updated_at) VALUES (?,'platform','Komik bir an','komik bir an',?,?)",
+    "INSERT INTO prompts (id,owner_type,text,normalized_text,created_at,updated_at) VALUES (?,'platform','Komik bir an','komik bir an',?,?) ON CONFLICT DO UPDATE SET admin_blocked=0,status='active'",
   )
     .bind(crypto.randomUUID(), now, now)
     .run();
@@ -173,12 +173,81 @@ afterEach(async () => {
 });
 
 describe('room WebSockets', () => {
+  it.each([false, true])(
+    'distinguishes actual credit debits for refunds (unlimited: %s)',
+    async (unlimited) => {
+      const business = await lobby('league', unlimited);
+      const manager = await connect(undefined, true);
+      await manager.view();
+      await join('Birinci');
+      await join('İkinci');
+      expect((await manager.command({ type: 'start' })).ok).toBe(true);
+      const row = await env.DB.prepare(
+        'SELECT credit_consumed,credit_charged FROM game_sessions WHERE id=?',
+      )
+        .bind(sessionId)
+        .first();
+      expect(row).toMatchObject({ credit_consumed: 1, credit_charged: unlimited ? 0 : 1 });
+      await env.DB.prepare(
+        "INSERT INTO auth_sessions (id,role,owner_id,created_at,expires_at) VALUES (?,'admin','1',?,?)",
+      )
+        .bind(await digest(`refund-admin-${unlimited}`), now, now + 100000)
+        .run();
+      const response = await api(
+        `/api/admin/sessions/${sessionId}/refund`,
+        {},
+        { cookie: `mol_admin_session=refund-admin-${unlimited}` },
+      );
+      expect(response.status).toBe(unlimited ? 409 : 200);
+      expect(
+        (await env.DB.prepare('SELECT credits FROM businesses WHERE id=?')
+          .bind(business)
+          .first<{ credits: number }>())!.credits,
+      ).toBe(2);
+    },
+  );
+  it('terminates a paused running session through the admin API and disconnects participants', async () => {
+    await lobby();
+    const manager = await connect(undefined, true);
+    await manager.view();
+    const player = await join('Birinci');
+    await join('İkinci');
+    const connected = await connect(player.token);
+    await connected.view();
+    expect((await manager.command({ type: 'start' })).ok).toBe(true);
+    expect((await manager.command({ type: 'pause' })).ok).toBe(true);
+    await env.DB.prepare(
+      "INSERT INTO auth_sessions (id,role,owner_id,created_at,expires_at) VALUES (?,'admin','1',?,?)",
+    )
+      .bind(await digest('terminate-admin'), now, now + 100000)
+      .run();
+    const response = await api(
+      `/api/admin/sessions/${sessionId}/terminate`,
+      {},
+      { cookie: 'mol_admin_session=terminate-admin' },
+    );
+    expect(response.status).toBe(200);
+    expect(await connected.wait((m) => m.type === 'closed')).toEqual({
+      type: 'closed',
+      reason: 'sessionEnded',
+    });
+    expect((await snapshot()).engine.status).toBe('terminated');
+    const row = await env.DB.prepare(
+      'SELECT status,end_reason,admin_intervention FROM game_sessions WHERE id=?',
+    )
+      .bind(sessionId)
+      .first();
+    expect(row).toMatchObject({
+      status: 'terminated',
+      end_reason: 'adminTerminated',
+      admin_intervention: 1,
+    });
+  });
+
   it('serves the active system meme library for room participants', async () => {
     await lobby();
     const categoryId = crypto.randomUUID();
-    await env.DB.prepare(
-      'INSERT INTO categories (id,name,sort_order,archived) VALUES (?,?,0,0)',
-    )
+    await env.DB.prepare('INSERT INTO categories (id,name,sort_order,archived) VALUES (?,?,0,0)')
       .bind(categoryId, 'İş')
       .run();
     await env.DB.batch([
@@ -201,7 +270,9 @@ describe('room WebSockets', () => {
     ]);
     const r = await api(`/api/rooms/${code}/library`);
     expect(r.status).toBe(200);
-    const data = await r.json<{ memes: { id: string; title: string; category: string | null; mediaType: string }[] }>();
+    const data = await r.json<{
+      memes: { id: string; title: string; category: string | null; mediaType: string }[];
+    }>();
     expect(data.memes.map((m) => [m.title, m.category, m.mediaType])).toEqual([
       ['Pazartesi yüzü', 'İş', 'image'],
       ['Kategorisiz', null, 'image'],

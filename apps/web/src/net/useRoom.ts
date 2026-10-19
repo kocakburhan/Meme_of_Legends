@@ -129,6 +129,9 @@ export function useParticipantSocket(
 }
 
 export interface LibraryEntry {
+  mediaUrl?: string;
+  coverUrl?: string;
+  durationMs?: number | null;
   id: string;
   title: string;
   category: string | null;
@@ -152,7 +155,11 @@ export interface ManagerSocket {
  * `code` ile yönetici WebSocket'i: kimlik iş oturum çerezinden gelir (protokol
  * v0.2 §3); token gönderilmez. `enabled` false iken bağlanmaz.
  */
-export function useManagerSocket(code: string, enabled: boolean, nowIntervalMs = 250): ManagerSocket {
+export function useManagerSocket(
+  code: string,
+  enabled: boolean,
+  nowIntervalMs = 250,
+): ManagerSocket {
   const [snapshot, setSnapshot] = useState<{
     enabled: boolean;
     value: {
@@ -162,7 +169,10 @@ export function useManagerSocket(code: string, enabled: boolean, nowIntervalMs =
       shell: ManagerShellInfo | null;
       seq: number;
     };
-  }>({ enabled: false, value: { state: 'connecting', reason: null, view: null, shell: null, seq: -1 } });
+  }>({
+    enabled: false,
+    value: { state: 'connecting', reason: null, view: null, shell: null, seq: -1 },
+  });
   const [now, setNow] = useState(() => Date.now());
   const socketRef = useRef<RoomSocket | null>(null);
 

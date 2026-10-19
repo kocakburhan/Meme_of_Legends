@@ -20,7 +20,12 @@ function nicknameOf(view: View, id: string): string {
 }
 
 function systemMedia(meme: LibraryMeme): MediaRef {
-  return { source: 'system', memeId: meme.memeId, mediaType: meme.mediaType };
+  return {
+    source: 'system',
+    memeId: meme.memeId,
+    mediaType: meme.mediaType,
+    ...(meme.durationMs ? { durationMs: meme.durationMs } : {}),
+  };
 }
 
 /**
@@ -56,12 +61,10 @@ export function SelectionScreen({
   const total = phase.kind === 'selection' ? view.config.selectionSeconds : 1;
   const urgent = selection <= 10;
 
-  const rival =
-    view.matches.find((m) => m.includes(me.id))?.find((id) => id !== me.id) ?? null;
+  const rival = view.matches.find((m) => m.includes(me.id))?.find((id) => id !== me.id) ?? null;
 
   const own = view.ownSubmission ?? null;
-  const selectedMemeId =
-    own?.media && own.media.source === 'system' ? own.media.memeId : null;
+  const selectedMemeId = own?.media && own.media.source === 'system' ? own.media.memeId : null;
 
   const filtered = useMemo(() => {
     const q = query.trim().toLocaleLowerCase('tr');
@@ -93,7 +96,11 @@ export function SelectionScreen({
       </div>
 
       {/* Sekmeler */}
-      <div role="tablist" aria-label="İçerik kaynağı" className="flex gap-1 rounded-md bg-surface p-1">
+      <div
+        role="tablist"
+        aria-label="İçerik kaynağı"
+        className="flex gap-1 rounded-md bg-surface p-1"
+      >
         {TABS.map((t) => (
           <button
             key={t.id}
@@ -132,7 +139,9 @@ export function SelectionScreen({
               onClick={() => setCategory(null)}
               className={cn(
                 'min-h-11 shrink-0 rounded-md border px-3 text-sm font-bold transition-colors',
-                category === null ? 'border-accent bg-accent text-accent-ink' : 'border-line bg-surface',
+                category === null
+                  ? 'border-accent bg-accent text-accent-ink'
+                  : 'border-line bg-surface',
               )}
             >
               Tümü
@@ -145,7 +154,9 @@ export function SelectionScreen({
                 onClick={() => setCategory(category === c ? null : c)}
                 className={cn(
                   'min-h-11 shrink-0 rounded-md border px-3 text-sm font-bold transition-colors',
-                  category === c ? 'border-accent bg-accent text-accent-ink' : 'border-line bg-surface',
+                  category === c
+                    ? 'border-accent bg-accent text-accent-ink'
+                    : 'border-line bg-surface',
                 )}
               >
                 {c}
@@ -166,7 +177,9 @@ export function SelectionScreen({
                       onClick={() => onSelect(systemMedia(meme))}
                       className={cn(
                         'flex w-full flex-col gap-1 rounded-[var(--radius-card)] border p-1.5 text-left transition-colors',
-                        selected ? 'border-accent bg-accent/10' : 'border-line bg-surface hover:border-accent',
+                        selected
+                          ? 'border-accent bg-accent/10'
+                          : 'border-line bg-surface hover:border-accent',
                       )}
                     >
                       <MemeFrame
@@ -191,9 +204,7 @@ export function SelectionScreen({
       ) : tab === 'upload' ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-[var(--radius-card)] border border-dashed border-line bg-surface p-6 text-center">
           <p className="font-display text-xl uppercase">Yakında</p>
-          <Note>
-            Resim/GIF yükleme M6'da geliyor. JPG, PNG, WebP, GIF; en fazla 10 MB olacak.
-          </Note>
+          <Note>Resim/GIF yükleme M6'da geliyor. JPG, PNG, WebP, GIF; en fazla 10 MB olacak.</Note>
         </div>
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-[var(--radius-card)] border border-dashed border-line bg-surface p-6 text-center">
@@ -206,11 +217,7 @@ export function SelectionScreen({
       <div className="sticky bottom-0 -mx-4 mt-2 bg-background/95 px-4 pb-2 pt-3 backdrop-blur">
         <LiveStatus
           message={
-            own
-              ? own.confirmed
-                ? 'Seçimin onaylandı.'
-                : 'Seçim yapıldı; onay bekleniyor.'
-              : null
+            own ? (own.confirmed ? 'Seçimin onaylandı.' : 'Seçim yapıldı; onay bekleniyor.') : null
           }
         />
         <div className="flex items-center gap-3">

@@ -3,19 +3,15 @@ import { createContext, useContext, type ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 
 /**
- * Sistem meme'lerinin medya çözümü (M3b): `memeId → src` eşlemesi. Gerçek
- * dosyalar R2'de (M5/M6'da sunulur); şimdilik boş — yer tutucu çizilir.
+ * Sistem meme'leri için kütüphanedeki medya ve kapak adresleri.
  */
 export interface LibraryMedia {
   memeId: string;
   src?: string;
+  coverUrl?: string;
 }
 
 export const LibraryMediaContext = createContext<LibraryMedia[]>([]);
-
-function srcMap(entries: LibraryMedia[]): Map<string, string | undefined> {
-  return new Map(entries.map((e) => [e.memeId, e.src]));
-}
 
 function hashSeed(seed: string): number {
   let h = 0;
@@ -57,7 +53,11 @@ function PlaceholderDrawing({ seed }: { seed: string }) {
       {/* Konuşma balonu: comic çerçeve hissi */}
       <g transform={flip ? 'translate(120 0) scale(-1 1)' : undefined}>
         <path
-          d={variant === 2 ? 'M28 22h44a6 6 0 0 1 6 6v14a6 6 0 0 1-6 6H50l-10 10v-10h-12a6 6 0 0 1-6-6V28a6 6 0 0 1 6-6z' : 'M40 18h46a6 6 0 0 1 6 6v16a6 6 0 0 1-6 6H56l-12 12V46H40a6 6 0 0 1-6-6V24a6 6 0 0 1 6-6z'}
+          d={
+            variant === 2
+              ? 'M28 22h44a6 6 0 0 1 6 6v14a6 6 0 0 1-6 6H50l-10 10v-10h-12a6 6 0 0 1-6-6V28a6 6 0 0 1 6-6z'
+              : 'M40 18h46a6 6 0 0 1 6 6v16a6 6 0 0 1-6 6H56l-12 12V46H40a6 6 0 0 1-6-6V24a6 6 0 0 1 6-6z'
+          }
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
@@ -66,7 +66,15 @@ function PlaceholderDrawing({ seed }: { seed: string }) {
         <circle cx={variant === 2 ? 50 : 63} cy="32" r="2.5" fill="currentColor" />
         <circle cx={variant === 2 ? 59 : 73} cy="32" r="2.5" fill="currentColor" />
       </g>
-      <line x1="16" y1="62" x2="46" y2="62" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <line
+        x1="16"
+        y1="62"
+        x2="46"
+        y2="62"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
@@ -88,12 +96,9 @@ export function MemeFrame({
   className?: string;
 }) {
   const entries = useContext(LibraryMediaContext);
-  const map = srcMap(entries);
-  const resolved =
-    src ??
-    (media?.source === 'system' && media.mediaType !== 'video'
-      ? map.get(media.memeId)
-      : undefined);
+  const entry =
+    media?.source === 'system' ? entries.find((e) => e.memeId === media.memeId) : undefined;
+  const resolved = src ?? entry?.src;
   const badge = media ? badgeFor(media) : undefined;
   const seed = media ? (media.source === 'system' ? media.memeId : media.source) : 'none';
   return (
@@ -104,12 +109,24 @@ export function MemeFrame({
       )}
     >
       {resolved && media ? (
-        <img
-          src={resolved}
-          alt={title ?? 'Meme'}
-          className="h-full w-full object-contain"
-          loading="lazy"
-        />
+        'mediaType' in media && media.mediaType === 'video' ? (
+          <video
+            src={resolved}
+            poster={entry?.coverUrl}
+            autoPlay
+            muted
+            playsInline
+            controls
+            className="h-full w-full object-contain"
+          />
+        ) : (
+          <img
+            src={resolved}
+            alt={title ?? 'Meme'}
+            className="h-full w-full object-contain"
+            loading="lazy"
+          />
+        )
       ) : (
         <div
           aria-hidden="true"

@@ -19,6 +19,7 @@ export default defineConfig({
   // kaynak kökeni denetimi için Origin başlığı hedef kökene yazılır.
   server: {
     proxy: {
+      '/media': { target: 'http://localhost:8787', changeOrigin: true },
       '/api': {
         target: 'http://localhost:8787',
         changeOrigin: true,

@@ -1,0 +1,1 @@
+ALTER TABLE `game_sessions` ADD `credit_charged` integer;

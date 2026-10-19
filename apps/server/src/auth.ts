@@ -39,7 +39,7 @@ export async function body<T>(request: Request, schema: z.ZodType<T>): Promise<T
 function cookieName(role: Role) {
   return `mol_${role}_session`;
 }
-function cookie(request: Request, role: Role, token: string, maxAge: number) {
+export function cookie(request: Request, role: Role, token: string, maxAge: number) {
   const secure = new URL(request.url).protocol === 'https:' ? '; Secure' : '';
   return `${cookieName(role)}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${secure}`;
 }

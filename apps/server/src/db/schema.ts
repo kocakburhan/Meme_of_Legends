@@ -66,6 +66,8 @@ export const gameSessions = sqliteTable(
     endedAt: integer('ended_at'),
     endReason: text('end_reason'),
     creditConsumed: integer('credit_consumed', { mode: 'boolean' }).notNull().default(false),
+    // Null preserves pre-M5 start-marker semantics when the actual debit is unknown.
+    creditCharged: integer('credit_charged', { mode: 'boolean' }),
     creditRefunded: integer('credit_refunded', { mode: 'boolean' }).notNull().default(false),
     adminIntervention: integer('admin_intervention', { mode: 'boolean' }).notNull().default(false),
   },
@@ -101,20 +103,24 @@ export const categories = sqliteTable('categories', {
   sortOrder: integer('sort_order').notNull().default(0),
   archived: integer('archived', { mode: 'boolean' }).notNull().default(false),
 });
-export const memes = sqliteTable('memes', {
-  id: id(),
-  categoryId: text('category_id').references(() => categories.id),
-  description: text('description').notNull(),
-  mediaType: text('media_type', { enum: ['image', 'gif', 'video'] }).notNull(),
-  r2Key: text('r2_key').notNull(),
-  coverKey: text('cover_key'),
-  durationMs: integer('duration_ms'),
-  sourceUrl: text('source_url'),
-  status: text('status', { enum: ['untagged', 'active', 'archived'] })
-    .notNull()
-    .default('untagged'),
-  createdAt: createdAt(),
-});
+export const memes = sqliteTable(
+  'memes',
+  {
+    id: id(),
+    categoryId: text('category_id').references(() => categories.id),
+    description: text('description').notNull(),
+    mediaType: text('media_type', { enum: ['image', 'gif', 'video'] }).notNull(),
+    r2Key: text('r2_key').notNull(),
+    coverKey: text('cover_key'),
+    durationMs: integer('duration_ms'),
+    sourceUrl: text('source_url'),
+    status: text('status', { enum: ['untagged', 'active', 'archived'] })
+      .notNull()
+      .default('untagged'),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex('meme_source_unique').on(t.sourceUrl)],
+);
 export const mediaJobs = sqliteTable('media_jobs', {
   id: id(),
   type: text('type', { enum: ['link', 'bulk'] }).notNull(),
@@ -141,6 +147,9 @@ export const prompts = sqliteTable(
   },
   (t) => [
     uniqueIndex('business_prompt_unique').on(t.businessId, t.normalizedText),
+    uniqueIndex('platform_prompt_unique')
+      .on(t.normalizedText)
+      .where(sql`${t.ownerType} = 'platform'`),
     check(
       'prompt_owner',
       sql`(${t.ownerType} = 'platform' AND ${t.businessId} IS NULL) OR (${t.ownerType} = 'business' AND ${t.businessId} IS NOT NULL)`,

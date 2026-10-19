@@ -3,7 +3,8 @@ import type { View } from '@mol/engine';
 import type { SocketReason } from '@/net/socket';
 import { pairDisplay } from '@/net/http';
 import { forgetDisplay, loadDisplay, saveDisplay, type StoredDisplay } from '@/net/tokens';
-import { useParticipantSocket } from '@/net/useRoom';
+import { LibraryMediaProvider } from '@/components/MemeFrame';
+import { useLibrary, useParticipantSocket } from '@/net/useRoom';
 import { Card, GhostButton, Note, PrimaryButton, Screen, TopBar } from '@/components/ui';
 import { remainingSeconds } from '@/lib/format';
 import {
@@ -40,6 +41,8 @@ export default function EkranPage() {
     stored?.roomCode ?? '',
     stored?.token ?? null,
   );
+
+  const { library } = useLibrary(stored?.roomCode ?? '', !!stored);
 
   // Token geçersizse (görünüm hiç gelmediyse) eşleştirmeye dön. Sıfırlama
   // mikro göreve kaydırılır; etkide senkron setState basamaklı render yaratır.
@@ -141,7 +144,11 @@ export default function EkranPage() {
 
   return (
     <div ref={stageRef}>
-      <Stage>{sceneFor(view, now, room, recoveryResumesAt)}</Stage>
+      <LibraryMediaProvider
+        entries={library.map((m) => ({ memeId: m.id, src: m.mediaUrl, coverUrl: m.coverUrl }))}
+      >
+        <Stage>{sceneFor(view, now, room, recoveryResumesAt)}</Stage>
+      </LibraryMediaProvider>
     </div>
   );
 }
@@ -154,9 +161,7 @@ function sceneFor(view: View, now: number, room: StageRoom, recoveryResumesAt: n
       </div>
     );
   if (recoveryResumesAt !== null && recoveryResumesAt > now)
-    return (
-      <ResumeCountdownOverlay secondsLeft={remainingSeconds(recoveryResumesAt, now)} />
-    );
+    return <ResumeCountdownOverlay secondsLeft={remainingSeconds(recoveryResumesAt, now)} />;
   switch (view.phase.kind) {
     case 'lobby':
       return <DisplayLobbyScene view={view} room={room} />;
