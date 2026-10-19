@@ -1,6 +1,6 @@
 # Görev: M5c — Admin paneli (web)
 
-Worker: OpenCode (glm-5.3-flash, max) · Dal: `m5c-admin`
+Worker: OpenCode (M5c-1/2: glm-5.3-flash max; M5c-3: deepseek-v4.1-flash max) · Dal: `m5c-admin`
 
 ## Oku
 AGENTS.md · **docs/contracts/admin-api.md** · `packages/shared/src/admin.ts` (şemalar) · docs/PRODUCT_SPEC.md Bölüm 2.1, 3, 6.1–6.2, 12.3, 15, 16A · docs/PROJECT_LOG.md Bölüm 3.4 (admin paneli; "Linkten ekle"/panelden yükleme maddeleri **geçersiz**: M5 kararıyla meme ekleme yerel araçtadır, bkz. log sonu) · M4c'nin işletme paneli (`apps/web/src/panel/`, `pages/Business*`, `net/http.ts`) — aynı kalıpları kullan.
