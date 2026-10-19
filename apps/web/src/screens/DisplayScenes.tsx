@@ -4,7 +4,7 @@ import { MemeFrame } from '@/components/MemeFrame';
 import { QrCode } from '@/components/QrCode';
 import { Card, Note } from '@/components/ui';
 import { cn } from '@/lib/cn';
-import { formatClock, formatScore, isFinalRoundResults, MODE_LABELS, remainingSeconds } from '@/lib/format';
+import { formatClock, formatScore, MODE_LABELS, remainingSeconds } from '@/lib/format';
 import type { ReactNode } from 'react';
 
 function nicknameOf(view: View, id: string): string {
@@ -390,7 +390,7 @@ export function DisplayResultsScene({
       ) : null}
       {phase.kind === 'results' ? (
         <p className="text-center text-sm text-muted">
-          {isFinalRoundResults(view)
+          {view.isFinalRound === true
             ? 'Final sonuçları geliyor.'
             : `Sonraki tur ${secondsLeft} saniye içinde başlıyor.`}
         </p>

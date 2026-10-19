@@ -1,4 +1,10 @@
-import { serverMessageSchema, type ClientCommand, type ServerMessage } from '@mol/shared';
+import {
+  serverMessageSchema,
+  shellActionSchema,
+  type ClientCommand,
+  type ServerMessage,
+  type ShellAction,
+} from '@mol/shared';
 
 /**
  * WebSocket istemcisi (protokol v0.2 §3–4): tek bir odaya bağlanır, mesajları
@@ -29,14 +35,15 @@ export interface SocketHandlers {
 export interface SocketOptions {
   /** 6 karakterlik oda kodu. */
   code: string;
-  /** Katılımcı ya da ekran token'ı. */
-  token: string;
+  /** Katılımcı ya da ekran token'ı; yoksa (yönetici) çerezle bağlanılır. */
+  token?: string;
   handlers?: SocketHandlers;
 }
 
-export function roomSocketUrl(code: string, token: string): string {
+export function roomSocketUrl(code: string, token?: string): string {
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  return `${protocol}//${location.host}/api/rooms/${code}/ws?token=${encodeURIComponent(token)}`;
+  const query = token ? `?token=${encodeURIComponent(token)}` : '';
+  return `${protocol}//${location.host}/api/rooms/${code}/ws${query}`;
 }
 
 const PING_INTERVAL_MS = 20_000;
@@ -195,14 +202,35 @@ export class RoomSocket {
   /** Motor komutu; bağlantı yoksa sıraya girer, ack gelince çözülür. */
   sendCommand(cmd: ClientCommand, clientMsgId: string = crypto.randomUUID()): Promise<AckResult> {
     if (this.terminated || this.stopped) return Promise.reject(new Error('SOCKET_CLOSED'));
-    const payload = JSON.stringify({ type: 'cmd', clientMsgId, cmd });
+    return this.sendValidated(clientMsgId, (id) =>
+      JSON.stringify({ type: 'cmd', clientMsgId: id, cmd }),
+    );
+  }
+
+  /** Kabuk işlemi (protokol v0.2 §3); yalnız yönetici bağlantısında geçerlidir. */
+  sendShell(action: ShellAction, clientMsgId: string = crypto.randomUUID()): Promise<AckResult> {
+    if (this.terminated || this.stopped) return Promise.reject(new Error('SOCKET_CLOSED'));
+    shellActionSchema.parse(action);
+    return this.sendValidated(clientMsgId, (id) =>
+      JSON.stringify({ type: 'shell', clientMsgId: id, action }),
+    );
+  }
+
+  private sendValidated(
+    clientMsgId: string,
+    payload: (id: string) => string,
+  ): Promise<AckResult> {
     return new Promise<AckResult>((resolve, reject) => {
+      if (!clientMsgId || clientMsgId.length > 200) {
+        reject(new Error('INVALID_MSG_ID'));
+        return;
+      }
       const timeout = window.setTimeout(() => {
         this.pending.delete(clientMsgId);
         reject(new Error('ACK_TIMEOUT'));
       }, ACK_TIMEOUT_MS);
-      this.pending.set(clientMsgId, { payload, resolve, reject, timeout });
-      this.rawSend(payload);
+      this.pending.set(clientMsgId, { payload: payload(clientMsgId), resolve, reject, timeout });
+      this.rawSend(payload(clientMsgId));
     });
   }
 

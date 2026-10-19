@@ -94,16 +94,18 @@ export function GhostButton({
   disabled,
   className,
   ariaLabel,
+  type = 'button',
 }: {
   children: ReactNode;
   onClick?: () => void;
   disabled?: boolean;
   className?: string;
   ariaLabel?: string;
+  type?: 'button' | 'submit';
 }) {
   return (
     <button
-      type="button"
+      type={type}
       onClick={onClick}
       disabled={disabled}
       aria-label={ariaLabel}

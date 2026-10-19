@@ -2,7 +2,7 @@ import type { View } from '@mol/engine';
 import type { RoundOutcome } from '@/lib/contracts';
 import { Countdown } from '@/components/Countdown';
 import { Card, Note, Screen } from '@/components/ui';
-import { formatScore, isFinalRoundResults, remainingSeconds } from '@/lib/format';
+import { formatScore, remainingSeconds } from '@/lib/format';
 
 function nicknameOf(view: View, id: string): string {
   return view.participants.find((p) => p.id === id)?.nickname ?? '?';
@@ -151,7 +151,7 @@ export function RoundResultScreen({
 
           {phase.kind === 'results' ? (
             <Note className="text-center">
-              {isFinalRoundResults(view)
+              {view.isFinalRound === true
                 ? 'Final sonuçları geliyor.'
                 : `Sonraki tur ${secondsLeft} saniye içinde başlıyor; yeni durum geliyor.`}
             </Note>

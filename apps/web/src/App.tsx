@@ -1,13 +1,10 @@
-import { createBrowserRouter, RouterProvider, type RouteObject } from 'react-router';
+import { createBrowserRouter, Navigate, RouterProvider, type RouteObject } from 'react-router';
 import JoinPage from '@/pages/JoinPage';
+import BusinessHomePage from '@/pages/BusinessHomePage';
+import BusinessLoginPage from '@/pages/BusinessLoginPage';
+import ConsolePage from '@/pages/ConsolePage';
 import { Placeholder } from '@/pages/Placeholder';
 
-function ConsolePlaceholder() {
-  return <Placeholder title="Yönetici konsolu" note="Konsol M4'te gelecek." />;
-}
-function BusinessPlaceholder() {
-  return <Placeholder title="İşletme paneli" note="İşletme paneli M4'te gelecek." />;
-}
 function AdminPlaceholder() {
   return <Placeholder title="Admin paneli" note="Admin paneli M5'te gelecek." />;
 }
@@ -20,8 +17,11 @@ function buildRouter() {
     { path: '/', Component: JoinPage },
     { path: '/oda/:code', lazy: () => import('./pages/OdaPage').then((m) => ({ Component: m.OdaPage })) },
     { path: '/ekran', lazy: () => import('./pages/EkranPage').then((m) => ({ Component: m.default })) },
-    { path: '/konsol', Component: ConsolePlaceholder },
-    { path: '/isletme', Component: BusinessPlaceholder },
+    // Yönetici konsolu /isletme altındadır (M4b); eski /konsol yolu panele yönlenir.
+    { path: '/konsol', element: <Navigate to="/isletme" replace /> },
+    { path: '/isletme/giris', Component: BusinessLoginPage },
+    { path: '/isletme', Component: BusinessHomePage },
+    { path: '/isletme/oyun/:code', Component: ConsolePage },
     { path: '/admin', Component: AdminPlaceholder },
     { path: '*', Component: NotFoundPage },
   ];

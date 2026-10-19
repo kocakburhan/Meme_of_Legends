@@ -5,6 +5,7 @@ import {
   joinResponseSchema,
   roomCodeSchema,
   roomInfoSchema,
+  sessionConfigSchema,
   takeoverRequestSchema,
   takeoverResponseSchema,
   type DisplayPairResponse,
@@ -12,6 +13,7 @@ import {
   type RoomInfo,
   type TakeoverResponse,
 } from '@mol/shared';
+import type { SessionConfig } from '@mol/engine';
 import { z } from 'zod';
 
 /**
@@ -115,4 +117,72 @@ const librarySchema = z.strictObject({ memes: z.array(memeSchema) });
 /** Sistem meme kütüphanesi; seçim ekranının listesi. */
 export function getLibrary(code: string): Promise<z.infer<typeof librarySchema>> {
   return request(`/api/rooms/${safeCode(code)}/library`, librarySchema);
+}
+
+/* ------------------------- İşletme API'si (M4) ------------------------- */
+
+/**
+ * İşletme oturumu ve oturum işlemleri (docs/contracts/business-api.md):
+ * kimlik HttpOnly çerezle taşınır; şemalar M4a'da `@mol/shared`'a taşınana
+ * dek burada tanımlıdır.
+ */
+export interface BusinessAccount {
+  id: string;
+  name: string;
+  username: string;
+  credits: number;
+  unlimitedCredits: boolean;
+  concurrentSessionLimit: number;
+  lobbyLifetimeHours: number;
+  active: boolean;
+}
+
+const businessAccountSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  username: z.string().min(1),
+  credits: z.number().int().nonnegative(),
+  unlimitedCredits: z.boolean(),
+  concurrentSessionLimit: z.number().int().positive(),
+  lobbyLifetimeHours: z.number().int().positive(),
+  active: z.boolean(),
+});
+
+export function loginBusiness(input: { username: string; password: string }): Promise<{ ok: true }> {
+  return request('/api/auth/business/login', z.strictObject({ ok: z.literal(true) }), {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function logoutBusiness(): Promise<{ ok: true }> {
+  return request('/api/auth/business/logout', z.strictObject({ ok: z.literal(true) }), {
+    method: 'POST',
+  });
+}
+
+export function getBusinessMe(): Promise<{ business: BusinessAccount }> {
+  return request('/api/business/me', z.strictObject({ business: businessAccountSchema }));
+}
+
+const createdSessionSchema = z.object({
+  id: z.string().min(1),
+  roomCode: roomCodeSchema,
+  status: z.enum(['lobby', 'running', 'paused', 'finished', 'cancelled', 'terminated']),
+});
+export type BusinessSession = z.infer<typeof createdSessionSchema>;
+
+/** Lobi açar (hak tüketmez); dönen oturumda oda kodu ve kimlik bulunur. */
+export function createBusinessSession(settings?: Partial<SessionConfig>): Promise<BusinessSession> {
+  sessionConfigSchema.partial().parse(settings ?? {});
+  return request('/api/business/sessions', z.strictObject({ session: createdSessionSchema }), {
+    method: 'POST',
+    body: JSON.stringify(settings ? { settings } : {}),
+  }).then((d) => d.session);
+}
+
+export function cancelBusinessSession(sessionId: string): Promise<{ ok: true }> {
+  return request(`/api/business/sessions/${encodeURIComponent(sessionId)}/cancel`, z.strictObject({ ok: z.literal(true) }), {
+    method: 'POST',
+  });
 }
