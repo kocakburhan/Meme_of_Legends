@@ -262,7 +262,11 @@ export const viewSchema = z.strictObject({
   config: sessionConfigSchema,
   // M3b (onaylı): presentation position and the participant's own submission id.
   presentation: z
-    .strictObject({ index: z.number().int().nonnegative(), total: z.number().int().positive() })
+    .strictObject({
+      index: z.number().int().nonnegative(),
+      total: z.number().int().positive(),
+      submissionId: id,
+    })
     .optional(),
   ownSubmissionId: id.nullable().optional(),
   participants: z.array(

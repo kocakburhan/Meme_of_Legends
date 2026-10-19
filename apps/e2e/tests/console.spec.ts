@@ -33,7 +33,7 @@ test('konsol: giriş → ayar → eşleştirme → başlat → Hemen gizle → b
   const lobby = await createBusinessAndLobby(LOBBY_SETTINGS);
   const contexts: Awaited<ReturnType<Browser['newContext']>>[] = [];
   try {
-    // Arayüzden işletme girişi; panel yer tutucusu hesabı gösterir.
+    // Arayüzden işletme girişi; panel ana sayfası hesabı gösterir.
     const manager = await browser.newContext();
     contexts.push(manager);
     const page = await manager.newPage();
@@ -45,9 +45,8 @@ test('konsol: giriş → ayar → eşleştirme → başlat → Hemen gizle → b
     await expect(page).toHaveURL(/\/isletme$/);
     await expect(page.getByRole('heading', { name: 'Anka Kafe' })).toBeVisible();
 
-    // "Aktif oturuma dön" kutusuyla konsola geç.
-    await page.getByLabel('Oda kodu').fill(lobby.code);
-    await page.getByRole('button', { name: 'Konsola git' }).click();
+    // "Aktif oturumlar" listesinden konsola dön (M4c paneli: "Oyuna dön").
+    await page.getByRole('button', { name: 'Oyuna dön' }).click();
     await expect(page).toHaveURL(new RegExp(`/isletme/oyun/${lobby.code}$`));
     const gameTab = page.locator('#console-game');
     const participantsTab = page.locator('#console-participants');
@@ -137,7 +136,7 @@ test('konsol: giriş → ayar → eşleştirme → başlat → Hemen gizle → b
     await expect(gameTab.getByLabel('Seçim süresi', { exact: true })).toHaveValue('35');
     await expect(gameTab.getByRole('radio', { name: 'Eleme' })).toBeChecked();
 
-    // Hak başlatınca düştü: 5 → 4; panel yer tutucusu gösterir.
+    // Hak başlatınca düştü: 5 → 4; panel ana sayfası gösterir.
     await page.goto(`${WEB}/isletme`);
     await expect(page.getByText('Oyun hakkı')).toBeVisible();
     await expect(page.getByText('4', { exact: true })).toBeVisible();

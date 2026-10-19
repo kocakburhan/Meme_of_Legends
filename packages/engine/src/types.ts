@@ -249,7 +249,7 @@ export interface View {
   table: Ranking[];
   completedRounds: { no: number; submissions: SubmissionView[] }[];
   /** Presentation position while the phase runs: submission index and total count. */
-  presentation?: { index: number; total: number };
+  presentation?: { index: number; total: number; submissionId: string };
   /** Participant's own submission in the current round; sender identity stays hidden. */
   ownSubmissionId?: string | null;
 }

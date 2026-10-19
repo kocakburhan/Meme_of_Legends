@@ -1,13 +1,12 @@
 import { useRef, useState } from 'react';
 import type { MediaRef, View } from '@mol/engine';
 import type { ManagerCommand, ShellAction } from '@mol/shared';
-import { cancelBusinessSession, type BusinessAccount } from '@/net/http';
+import { cancelBusinessSession, listBusinessSessions, type BusinessAccount } from '@/net/http';
 import type { AckResult } from '@/net/socket';
 import { Card, Note, PrimaryButton, GhostButton } from '@/components/ui';
 import { QrCode } from '@/components/QrCode';
 import { Badge, ConfirmButton, HoldButton, Section, Segmented } from '@/console/bits';
 import { SettingsEditor } from '@/console/SettingsEditor';
-import { storedSessionFor } from '@/console/session';
 import {
   MODE_DESCRIPTIONS,
   ackReasonNote,
@@ -113,14 +112,16 @@ function LobbyCard({ view, code, account, send, onAckNote }: GameTabProps) {
   }
 
   async function handleCancel() {
-    // Oturum kimliği panelde lobi açılırken saklanır; iptal anında okunur.
-    const sessionId = storedSessionFor(code);
-    if (!sessionId) {
-      onAckNote('Bu lobinin oturum kimliği bulunamadı; panelde açılan lobilerde iptal kullanılabilir.');
-      return;
-    }
+    // Oturum kimliği sunucudaki aktif oturum listesinden bulunur (M4c-1);
+    // localStorage'a bağlı değil, rövanş ve başka cihazdan açılan lobilerde de çalışır.
     try {
-      await cancelBusinessSession(sessionId);
+      const { sessions } = await listBusinessSessions('active');
+      const session = sessions.find((s) => s.roomCode === code);
+      if (!session) {
+        onAckNote('Bu lobinin oturum kaydı bulunamadı; sayfayı yenileyip tekrar dene.');
+        return;
+      }
+      await cancelBusinessSession(session.id);
     } catch (error) {
       onAckNote(
         error instanceof Error && 'status' in error
@@ -300,7 +301,11 @@ function SelectionCard({ view, now, send, onAckNote }: GameTabProps) {
 function PresentationCard({ view, now, send, onAckNote }: GameTabProps) {
   if (view.phase.kind !== 'presentation') return null;
   const phase = view.phase;
-  const live = view.submissions.filter((s) => !s.hidden && s.media);
+  // Ekrandaki gönderi motordan kimlikle gelir (sözleşme v0.2); kart yalnız onu gösterir.
+  const presentation = view.presentation;
+  const onScreen = presentation
+    ? view.submissions.find((s) => s.id === presentation.submissionId) ?? null
+    : null;
   const hidden = view.submissions.filter((s) => s.hidden);
 
   async function run(cmd: Parameters<GameTabProps['send']>[0]) {
@@ -316,29 +321,28 @@ function PresentationCard({ view, now, send, onAckNote }: GameTabProps) {
     <div className="flex flex-col gap-4">
       <Section
         title="Şu an ekranda"
-        aside={view.presentation ? <Badge>{`Gönderi ${view.presentation.index + 1} / ${view.presentation.total}`}</Badge> : null}
+        aside={presentation ? <Badge>{`Gönderi ${presentation.index + 1} / ${presentation.total}`}</Badge> : null}
       >
         {view.prompt ? <p className="font-display text-xl leading-snug">{view.prompt.text}</p> : null}
-        {live.length > 0 ? (
-          <ul className="flex flex-col gap-2">
-            {live.map((s) => (
-              <li key={s.id} className="flex items-center justify-between gap-2 rounded-md border border-line bg-background px-3 py-2">
-                <span className="min-w-0">
-                  <span className="block truncate text-sm font-bold">
-                    {s.playerId ? nicknameOf(view, s.playerId) : 'Anonim'}
-                  </span>
-                  <span className="text-xs text-muted">
-                    {s.media ? mediaLabel(s.media) : ''} · {s.ratingProgress ? `${s.ratingProgress.received}/${s.ratingProgress.eligible} puan verdi` : '—'}
-                  </span>
-                </span>
-                <Badge>{formatClock(remainingSeconds(phase.endsAt, now))}</Badge>
-              </li>
-            ))}
-          </ul>
+        {onScreen && !onScreen.hidden ? (
+          <div className="flex items-center justify-between gap-2 rounded-md border border-line bg-background px-3 py-2">
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-bold">
+                {onScreen.playerId ? nicknameOf(view, onScreen.playerId) : 'Anonim'}
+              </span>
+              <span className="text-xs text-muted">
+                {onScreen.media ? mediaLabel(onScreen.media) : ''} · {onScreen.ratingProgress ? `${onScreen.ratingProgress.received}/${onScreen.ratingProgress.eligible} puan verdi` : '—'}
+              </span>
+            </span>
+            <Badge>{formatClock(remainingSeconds(phase.endsAt, now))}</Badge>
+          </div>
+        ) : onScreen ? (
+          <Note>Bu gönderi gizlendi; tüm ekranlardan kaldırıldı.</Note>
         ) : (
           <Note>Gönderi bekleniyor…</Note>
         )}
         <HoldButton
+          disabled={!onScreen || onScreen.hidden}
           onComplete={() => void run({ type: 'hideCurrent' })}
           hint="Tüm ekranlardan anında kaldırılır; kazara basmaya karşı 1 sn."
         >

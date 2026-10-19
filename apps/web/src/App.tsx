@@ -2,6 +2,10 @@ import { createBrowserRouter, Navigate, RouterProvider, type RouteObject } from 
 import JoinPage from '@/pages/JoinPage';
 import BusinessHomePage from '@/pages/BusinessHomePage';
 import BusinessLoginPage from '@/pages/BusinessLoginPage';
+import BusinessAccountPage from '@/pages/BusinessAccountPage';
+import BusinessPromptsPage from '@/pages/BusinessPromptsPage';
+import BusinessHistoryPage from '@/pages/BusinessHistoryPage';
+import BusinessHistoryDetailPage from '@/pages/BusinessHistoryDetailPage';
 import ConsolePage from '@/pages/ConsolePage';
 import { Placeholder } from '@/pages/Placeholder';
 
@@ -21,6 +25,10 @@ function buildRouter() {
     { path: '/konsol', element: <Navigate to="/isletme" replace /> },
     { path: '/isletme/giris', Component: BusinessLoginPage },
     { path: '/isletme', Component: BusinessHomePage },
+    { path: '/isletme/durumlar', Component: BusinessPromptsPage },
+    { path: '/isletme/gecmis', Component: BusinessHistoryPage },
+    { path: '/isletme/gecmis/:id', Component: BusinessHistoryDetailPage },
+    { path: '/isletme/hesap', Component: BusinessAccountPage },
     { path: '/isletme/oyun/:code', Component: ConsolePage },
     { path: '/admin', Component: AdminPlaceholder },
     { path: '*', Component: NotFoundPage },
