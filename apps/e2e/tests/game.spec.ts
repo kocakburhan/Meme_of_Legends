@@ -21,6 +21,7 @@ async function joinParticipant(
   code: string,
   nickname: string,
   role: 'player' | 'voter',
+  { awaitReady = true }: { awaitReady?: boolean } = {},
 ): Promise<{ context: Awaited<ReturnType<Browser['newContext']>>; page: Page }> {
   const context = await browser.newContext();
   const page = await context.newPage();
@@ -33,12 +34,22 @@ async function joinParticipant(
       console.log(`[${nickname}] WS OPEN`, ws.url());
       ws.on('framereceived', (frame) => {
         try {
-          const m = JSON.parse(String(frame.payload));
-          if (m.type === 'view')
+          const m = JSON.parse(String(frame.payload)) as {
+            type: string;
+            seq?: number;
+            view?: {
+              phase: { kind: string };
+              ownSubmission?: { confirmed?: boolean } | null;
+              participants: Array<{ id: string }>;
+              ownSubmissionId?: string | null;
+            };
+          };
+          if (m.type === 'view' && m.view) {
+            const v = m.view;
             console.log(
-              `[${nickname}] view seq=${m.seq} phase=${m.view.phase.kind} own=${m.view.ownSubmission ? m.view.ownSubmission.confirmed ? 'confirmed' : 'selected' : 'null'} me=${m.view.participants.some((p) => p.id === m.view.ownSubmissionId)}`,
+              `[${nickname}] view seq=${m.seq} phase=${v.phase.kind} own=${v.ownSubmission ? v.ownSubmission.confirmed ? 'confirmed' : 'selected' : 'null'} me=${v.participants.some((p) => p.id === v.ownSubmissionId)}`,
             );
-          else console.log(`[${nickname}]`, m.type, JSON.stringify(m).slice(0, 120));
+          } else console.log(`[${nickname}]`, m.type, JSON.stringify(m).slice(0, 120));
         } catch {
           /* ignore */
         }
@@ -50,7 +61,10 @@ async function joinParticipant(
   await page.getByLabel('Takma adın').fill(nickname);
   if (role === 'voter') await page.getByText('Seyirci', { exact: true }).click();
   await page.getByRole('button', { name: 'Odaya gir' }).click();
-  await expect(page.getByRole('heading', { name: `Hazırsın, ${nickname}` })).toBeVisible();
+  // Lobi ekranı yalnız lobby aşamasında görünür; oyun sürerken katılan
+  // doğrudan canlı sahneye düşer (awaitReady: false ile atlanır).
+  if (awaitReady)
+    await expect(page.getByRole('heading', { name: `Hazırsın, ${nickname}` })).toBeVisible();
   return { context, page };
 }
 
@@ -62,22 +76,21 @@ async function currentSlotIndex(page: Page): Promise<number> {
   return Number.parseInt(label?.match(/Gönderi (\d+)/)?.[1] ?? '1', 10);
 }
 
-/** Gönderi gösterimi boyunca slota göre puan verir; gözden geçirmeye geçince döner. */
+/** Gönderi gösterimi boyunca slota göre bir kez puan verir; gözden geçirmeye geçince döner. */
 async function rateUntilReview(page: Page, timeoutMs = 140_000): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     if (await page.getByText('Final gözden geçirme').count()) return;
-    const radio = page.locator('button[role="radio"]:not([disabled])').first();
-    if (await radio.count()) {
-      if ((await radio.getAttribute('aria-checked')) !== 'true') {
-        const score = SLOT_SCORES[(await currentSlotIndex(page)) - 1] ?? 3;
-        await page
-          .getByRole('radio', { name: String(score) })
-          .click()
-          .catch(() => {
-            /* Slot geçişi tıklamayı düşürebilir; yeniden denenir. */
-          });
-      }
+    try {
+      const score = SLOT_SCORES[(await currentSlotIndex(page)) - 1] ?? 3;
+      const target = page.getByRole('radio', { name: String(score), exact: true });
+      // Gösterimde tek puan skalası vardır; birden çok eşleşme (gözden geçirme
+      // listesi) puanlama değil bekleme demektir. Kontrol hedef radyodadır;
+      // sayfadaki ilk radyoya bakılırsa işaretli puanı sürekli yeniden tıklar.
+      if ((await target.count()) === 1 && (await target.getAttribute('aria-checked')) !== 'true')
+        await target.click();
+    } catch {
+      /* Slot geçişi tıklamayı düşürebilir; yeniden denenir. */
     }
     await page.waitForTimeout(350);
   }
@@ -210,14 +223,21 @@ test('geç katılan seyirci o turu puanlayamaz (SPEC 5.6)', async ({ browser }) 
     contexts.push(kral.context);
     await lobby.manager.command({ type: 'start' });
 
-    // Gönderi gösterimi başlayana kadar bekle (seçim erken bitebilir ya da süresi dolar).
-    await duman.page.getByText('Gönderi 1 / 2').or(duman.page.getByText(/Son karar!/)).or(
-      duman.page.locator('button[role="radio"]:not([disabled])'),
-    ).first().waitFor({ timeout: 60_000 });
+    // Kimse seçmezse gösterilecek gönderi yoktur ve tur doğrudan gözden
+    // geçirmeye geçer; gösterimi garanti etmek için oyuncular seçip onaylar.
+    // Son onay seçimi erken bitirir (SPEC 5.4).
+    for (const page of [duman.page, kral.page]) {
+      await expect(page.getByText('Kütüphane yükleniyor…')).toBeHidden();
+      await page.getByRole('button', { name: /Maaş yattı ama kira da yattı/ }).click();
+      await page.getByRole('button', { name: 'Seçimimi onayla' }).click();
+    }
+
+    // Gönderi gösterimi başladı.
+    await duman.page.getByText('Gönderi 1 / 2').waitFor({ timeout: 30_000 });
     expect(duman.page.url()).toContain('/oda/');
 
-    // Gösterim sürerken seyirci katılır.
-    const gec = await joinParticipant(browser, code, 'Geç', 'voter');
+    // Gösterim sürerken seyirci katılır; oyun sürdüğü için lobi ekranı yoktur.
+    const gec = await joinParticipant(browser, code, 'Geç', 'voter', { awaitReady: false });
     contexts.push(gec.context);
     await expect(gec.page.getByText('Bu gönderiyi puanlayamazsın.')).toBeVisible({
       timeout: 30_000,
@@ -255,7 +275,7 @@ test('cihaz devri: aynı ad, yönetici onayı, eski cihaz düşer (SPEC 5.5)', a
     await second.getByLabel('Takma adın').fill('Ali');
     await second.getByRole('button', { name: 'Odaya gir' }).click();
     await expect(second.getByText('Bu ad sen misin?')).toBeVisible();
-    await second.getByRole('button', { name: 'Devam için yöneticiden onay iste' }).click();
+    await second.getByRole('button', { name: 'Cihaz devri için onay iste' }).click();
     await expect(second.getByText('Devam onayı bekleniyor')).toBeVisible();
 
     // Yönetici onaylar.
