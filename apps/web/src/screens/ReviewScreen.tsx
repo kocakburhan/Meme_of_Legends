@@ -4,6 +4,7 @@ import { Countdown, LiveStatus } from '@/components/Countdown';
 import { MemeFrame } from '@/components/MemeFrame';
 import { ScoreScale } from '@/components/ScoreScale';
 import { Note, PrimaryButton, Screen } from '@/components/ui';
+import { remainingSeconds } from '@/lib/format';
 
 /**
  * Final gözden geçirme (SPEC 7.3): tüm gönderiler listelenir; eksik puanlar
@@ -30,7 +31,7 @@ export function ReviewScreen({
   className?: string;
 }) {
   const phase = view.phase;
-  const secondsLeft = phase.kind === 'review' ? Math.max(0, Math.ceil((phase.endsAt - now) / 1000)) : 0;
+  const secondsLeft = phase.kind === 'review' ? remainingSeconds(phase.endsAt, now) : 0;
 
   return (
     <Screen className={className}>

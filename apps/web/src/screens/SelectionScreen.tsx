@@ -5,6 +5,7 @@ import { cn } from '@/lib/cn';
 import { Countdown, LiveStatus } from '@/components/Countdown';
 import { MemeFrame } from '@/components/MemeFrame';
 import { Note, PrimaryButton, Screen } from '@/components/ui';
+import { remainingSeconds } from '@/lib/format';
 
 const TABS = [
   { id: 'library', label: 'Kütüphane' },
@@ -51,10 +52,7 @@ export function SelectionScreen({
   const [category, setCategory] = useState<string | null>(null);
 
   const phase = view.phase;
-  const selection =
-    phase.kind === 'selection'
-      ? Math.max(0, Math.ceil((phase.endsAt - now) / 1000))
-      : 0;
+  const selection = phase.kind === 'selection' ? remainingSeconds(phase.endsAt, now) : 0;
   const total = phase.kind === 'selection' ? view.config.selectionSeconds : 1;
   const urgent = selection <= 10;
 

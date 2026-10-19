@@ -4,7 +4,7 @@ import { MemeFrame } from '@/components/MemeFrame';
 import { QrCode } from '@/components/QrCode';
 import { Card, Note } from '@/components/ui';
 import { cn } from '@/lib/cn';
-import { formatClock, formatScore, MODE_LABELS } from '@/lib/format';
+import { formatClock, formatScore, isFinalRoundResults, MODE_LABELS, remainingSeconds } from '@/lib/format';
 import type { ReactNode } from 'react';
 
 function nicknameOf(view: View, id: string): string {
@@ -278,7 +278,7 @@ export function DisplayResultsScene({
   drawCandidates: string[];
 }) {
   const phase = view.phase;
-  const secondsLeft = 'endsAt' in phase ? Math.max(0, (phase.endsAt - now) / 1000) : 0;
+  const secondsLeft = 'endsAt' in phase ? remainingSeconds(phase.endsAt, now) : 0;
   const revealed = view.submissions.filter((s) => s.playerId !== undefined);
   const scoreOf = (id: string) => revealed.find((s) => s.playerId === id)?.score;
   if (phase.kind === 'draw')
@@ -383,7 +383,9 @@ export function DisplayResultsScene({
       ) : null}
       {phase.kind === 'results' ? (
         <p className="text-center text-sm text-muted">
-          Sonraki tur {secondsLeft} saniye içinde başlıyor.
+          {isFinalRoundResults(view)
+            ? 'Final sonuçları geliyor.'
+            : `Sonraki tur ${secondsLeft} saniye içinde başlıyor.`}
         </p>
       ) : null}
       <CornerHud view={view} room={room} />

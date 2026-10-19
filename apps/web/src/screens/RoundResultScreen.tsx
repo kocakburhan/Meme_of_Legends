@@ -2,7 +2,7 @@ import type { View } from '@mol/engine';
 import type { RoundOutcome } from '@/lib/contracts';
 import { Countdown } from '@/components/Countdown';
 import { Card, Note, Screen } from '@/components/ui';
-import { formatScore } from '@/lib/format';
+import { formatScore, isFinalRoundResults, remainingSeconds } from '@/lib/format';
 
 function nicknameOf(view: View, id: string): string {
   return view.participants.find((p) => p.id === id)?.nickname ?? '?';
@@ -44,7 +44,7 @@ export function RoundResultScreen({
   const roundNo = 'roundNo' in phase ? phase.roundNo : 0;
   const showTable = view.table.length > 0;
 
-  const secondsLeft = 'endsAt' in phase ? Math.max(0, Math.ceil((phase.endsAt - now) / 1000)) : 0;
+  const secondsLeft = 'endsAt' in phase ? remainingSeconds(phase.endsAt, now) : 0;
   const revealedSubs = view.submissions.filter((s) => s.playerId !== undefined);
   const scoreOf = (id: string) => revealedSubs.find((s) => s.playerId === id)?.score;
 
@@ -151,7 +151,9 @@ export function RoundResultScreen({
 
           {phase.kind === 'results' ? (
             <Note className="text-center">
-              Sonraki tur {secondsLeft} saniye içinde başlıyor; yeni durum geliyor.
+              {isFinalRoundResults(view)
+                ? 'Final sonuçları geliyor.'
+                : `Sonraki tur ${secondsLeft} saniye içinde başlıyor; yeni durum geliyor.`}
             </Note>
           ) : null}
         </div>
