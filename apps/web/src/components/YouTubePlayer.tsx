@@ -26,6 +26,8 @@ interface YTPlayerInstance {
   seekTo: (seconds: number, allowSeekAhead: boolean) => void;
   playVideo: () => void;
   pauseVideo: () => void;
+  mute: () => void;
+  unMute: () => void;
   destroy: () => void;
   getIframe?: () => HTMLIFrameElement;
 }

@@ -1,10 +1,11 @@
 import {
   customUploadResponseSchema,
+  mediaErrorRequestSchema,
   roomCodeSchema,
   youtubeRequestSchema,
   youtubeResponseSchema,
 } from '@mol/shared';
-import type { z } from 'zod';
+import { z } from 'zod';
 
 import { HttpError, request } from '@/net/http';
 
@@ -81,4 +82,26 @@ export function verifyYoutubeLink(
     body: JSON.stringify({ url }),
     headers: { authorization: `Bearer ${token}` },
   });
+}
+
+/**
+ * Yüklenemeyen özel medyayı bir kez sunucuya bildirir (custom-content.md):
+ * `{ submissionId }`; dosya adresi ve hata metni gönderilmez. Ortak ekran
+ * Bearer kullanır; katılımcı ve konsol çerezle de çalışır.
+ */
+export function reportMediaError(
+  code: string,
+  submissionId: string,
+  token?: string,
+): Promise<{ ok: true }> {
+  mediaErrorRequestSchema.parse({ submissionId });
+  return request(
+    `/api/rooms/${safeCode(code)}/custom/errors`,
+    z.strictObject({ ok: z.literal(true) }),
+    {
+      method: 'POST',
+      body: JSON.stringify({ submissionId }),
+      ...(token ? { headers: { authorization: `Bearer ${token}` } } : {}),
+    },
+  );
 }

@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router';
 import type { ManagerCommand, ManagerShellInfo } from '@mol/shared';
 import { HttpError, getBusinessMe, getRoom, type BusinessAccount } from '@/net/http';
+import { reportMediaError } from '@/net/custom';
 import { useManagerSocket } from '@/net/useRoom';
 import { cn } from '@/lib/cn';
 import { Card, GhostButton, Note } from '@/components/ui';
+import { CustomMediaProvider } from '@/components/CustomMedia';
 import { StatusBar } from '@/console/StatusBar';
 import { GameTab } from '@/console/GameTab';
 import { ParticipantsTab } from '@/console/ParticipantsTab';
@@ -71,6 +73,24 @@ export default function ConsolePage() {
   }, [roomCode, invalidCode]);
 
   const conn = useManagerSocket(roomCode, authState === 'ready' && roomState === 'ready');
+
+  // Konsol önizlemelerinde yüklenemeyen özel medya bir kez bildirilir
+  // (SPEC 12.3); yönetici kimliği işletme çerezinden gelir.
+  const handledMediaErrorsRef = useRef(new Set<string>());
+  const handleMediaError = useCallback(
+    (submissionId: string) => {
+      if (handledMediaErrorsRef.current.has(submissionId)) return;
+      handledMediaErrorsRef.current.add(submissionId);
+      void reportMediaError(roomCode, submissionId).catch(() => {
+        handledMediaErrorsRef.current.delete(submissionId);
+      });
+    },
+    [roomCode],
+  );
+  const customMediaSettings = useMemo(
+    () => ({ code: roomCode, muted: true, onMediaError: handleMediaError }),
+    [roomCode, handleMediaError],
+  );
 
   // Rematch sonrası hak düştüğü için lobide hesap yeniden okunur.
   const inLobby = conn.view?.status === 'lobby';
@@ -200,30 +220,32 @@ export default function ConsolePage() {
       </nav>
 
       <div className="mx-auto flex w-full max-w-[1360px] flex-1 flex-col lg:grid lg:grid-cols-3 lg:items-start lg:gap-4 lg:px-4">
-        <TabPanel id="game" active={tab === 'game'} label="Oyun">
-          <GameTab
-            view={view}
-            code={roomCode}
-            now={conn.now}
-            account={account}
-            send={(cmd) => run(cmd)}
-            sendShell={(action) => runShell(action)}
-            onAckNote={setAckNote}
-          />
-        </TabPanel>
-        <TabPanel id="participants" active={tab === 'participants'} label="Katılımcılar">
-          <ParticipantsTab
-            view={view}
-            now={conn.now}
-            shell={shell}
-            send={(cmd) => run(cmd)}
-            sendShell={(action) => runShell(action)}
-            onAckNote={setAckNote}
-          />
-        </TabPanel>
-        <TabPanel id="settings" active={tab === 'settings'} label="Ayarlar">
-          <SettingsTab view={view} send={(cmd) => run(cmd)} onAckNote={setAckNote} />
-        </TabPanel>
+        <CustomMediaProvider settings={customMediaSettings}>
+          <TabPanel id="game" active={tab === 'game'} label="Oyun">
+            <GameTab
+              view={view}
+              code={roomCode}
+              now={conn.now}
+              account={account}
+              send={(cmd) => run(cmd)}
+              sendShell={(action) => runShell(action)}
+              onAckNote={setAckNote}
+            />
+          </TabPanel>
+          <TabPanel id="participants" active={tab === 'participants'} label="Katılımcılar">
+            <ParticipantsTab
+              view={view}
+              now={conn.now}
+              shell={shell}
+              send={(cmd) => run(cmd)}
+              sendShell={(action) => runShell(action)}
+              onAckNote={setAckNote}
+            />
+          </TabPanel>
+          <TabPanel id="settings" active={tab === 'settings'} label="Ayarlar">
+            <SettingsTab view={view} send={(cmd) => run(cmd)} onAckNote={setAckNote} />
+          </TabPanel>
+        </CustomMediaProvider>
       </div>
 
       {ackNote ? (

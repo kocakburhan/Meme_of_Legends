@@ -74,6 +74,9 @@ export function SelectionScreen({
 
   const own = view.ownSubmission ?? null;
   const selectedMemeId = own?.media && own.media.source === 'system' ? own.media.memeId : null;
+  // Yönetici özel içeriği reddettiyse oyuncuya net bildirim (SPEC 7.1);
+  // süre sürerken yeni bir seçim yapabilir.
+  const rejectedCustom = own !== null && own.invalid && own.customType !== null;
 
   const filtered = useMemo(() => {
     const q = query.trim().toLocaleLowerCase('tr');
@@ -240,6 +243,14 @@ export function SelectionScreen({
 
       {/* Alt onay çubuğu */}
       <div className="sticky bottom-0 -mx-4 mt-2 bg-background/95 px-4 pb-2 pt-3 backdrop-blur">
+        {rejectedCustom ? (
+          <p
+            role="alert"
+            className="mb-2 rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger"
+          >
+            Bu içerik kabul edilmedi. Süre varsa yeni bir seçim yap; yoksa bu tur 0 alırsın.
+          </p>
+        ) : null}
         <LiveStatus
           message={
             own ? (own.confirmed ? 'Seçimin onaylandı.' : 'Seçim yapıldı; onay bekleniyor.') : null

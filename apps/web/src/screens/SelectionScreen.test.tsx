@@ -99,4 +99,20 @@ describe('SelectionScreen özel içerik sekmeleri', () => {
 
     expect(onConfirm).toHaveBeenCalledOnce();
   });
+
+  it('reddedilen özel içerikte "Bu içerik kabul edilmedi" bildirir (madde 5)', () => {
+    const own: Submission = {
+      id: 's1',
+      playerId: 'p1',
+      media: null,
+      confirmed: false,
+      invalid: true,
+      hidden: false,
+      compensation: false,
+      customType: 'image',
+    };
+    renderScreen({ ownSubmission: own });
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Bu içerik kabul edilmedi');
+  });
 });
