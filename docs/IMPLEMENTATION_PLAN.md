@@ -58,7 +58,7 @@
 - **Bitti:** özel içerikli tam oyun uçtan uca test edilir; oturum sonunda dosyalar silinir.
 
 ### M7 — Sertleştirme ve yayın
-- 300 sanal katılımcılı yük testi ve aşama senkron ölçümü.
+- 100 sanal katılımcılı yük testi ve aşama senkron ölçümü (MVP hedefi; gerçek Cloudflare üzerinde).
 - Erişilebilirlik denetimi (otomatik + klavye + azaltılmış hareket).
 - Veri saklama işleri: takma ad anonimleştirme (7 gün), lobi ve terk edilmiş oyun kapanışları.
 - Raporlar, hata kaydı, canlı ortam yapılandırması.

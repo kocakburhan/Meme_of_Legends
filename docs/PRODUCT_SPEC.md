@@ -531,7 +531,7 @@ Oyuncu kendi isteğiyle de menüden **"Oyunu bırak, seyirci ol"** seçebilir; s
 
 ## 17. Kapasite, Performans ve Tarayıcılar
 
-- **Kapasite doğrulama hedefi:** Oturum başına toplam 300 eşzamanlı katılımcı (oyuncu + seyirci, herhangi bir dağılım) + yönetici cihazları + 1 ortak ekran.
+- **Kapasite doğrulama hedefi (MVP):** Oturum başına toplam 100 eşzamanlı katılımcı (oyuncu + seyirci, herhangi bir dağılım) + yönetici cihazları + 1 ortak ekran. Ürün katılımcı sayısını bu hedefle sınırlamaz; 300 katılımcıyla da yerelde tamamlandığı ölçüldü (M7b), daha büyük gruplar MVP sonrası hedeftir.
 - Normal koşullarda seçim/oy onayı kullanıcıya 1 sn içinde görünür.
 - Bağlı istemciler arasında aşama farkı en fazla 1 sn.
 - Tekrarlanan ve geç gelen komutlar idempotent işlenir veya reddedilir.
@@ -564,7 +564,7 @@ Oyuncu kendi isteğiyle de menüden **"Oyunu bırak, seyirci ol"** seçebilir; s
 - **Gerçek zamanlı ve kurtarma:** yenileme ve yeniden bağlanma; yönetici onaylı cihaz devri; çoklu yönetici cihazı; ortak ekran kopması ve eşleştirme kodu; tekrarlı/geç komutlar; geç katılım kuralı; sunucu yeniden başlatma ve otomatik devam; senkron gönderi sırası; oy kilitleme ve gönderen açıklama; duraklatma.
 - **Medya:** sistem resim/GIF/video; özel resim/GIF yükleme ve EXIF temizleme; YouTube doğrulama, kırpma, 25 sn sınırı, gömülemeyen video reddi; video dosyası reddi; yükleme hatası; cihaz bazlı yükleme hatası; gizleme; oturum sonunda silme; toplu içe aktarma ve dönüştürme.
 - **İçerik:** işletme durumu doğrulama ve tekrar normalizasyonu, arşiv, admin engeli, canlı havuz çekimi, havuz bitince tekrar, durum değiştirme ve önizleme.
-- **Yük, erişilebilirlik ve arayüz:** 300 katılımcı yükü; oyuncu, seyirci, yönetici, admin ve ortak ekran yolculukları; klavye; ekran okuyucu duyuruları; otomatik erişilebilirlik kontrolleri; azaltılmış hareket; duyarlı düzenler; yükleniyor/boş/hata/çevrimdışı/kurtarma durumları.
+- **Yük, erişilebilirlik ve arayüz:** 100 katılımcı yükü; oyuncu, seyirci, yönetici, admin ve ortak ekran yolculukları; klavye; ekran okuyucu duyuruları; otomatik erişilebilirlik kontrolleri; azaltılmış hareket; duyarlı düzenler; yükleniyor/boş/hata/çevrimdışı/kurtarma durumları.
 
 ---
 
