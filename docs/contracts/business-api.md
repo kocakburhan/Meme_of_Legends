@@ -1,6 +1,6 @@
 # Sözleşme: İşletme API'si ve yönetici görünümü eklemeleri (M4)
 
-- **Sürüm:** v0.1 (orchestrator, 2026-10-19)
+- **Sürüm:** v0.2 (orchestrator, 2026-10-19; v0.2: `presentation.submissionId`)
 - **İlgili:** `docs/contracts/protocol.md`, `docs/PRODUCT_SPEC.md` Bölüm 3, 4, 6.2, 14
 - Tüm uçlar işletme oturum çerezi ister (`authenticate(..., 'business')`); başka işletmenin kaydı her zaman `404 NOT_FOUND`. Hata gövdesi mevcut biçimde: `{ error: { code } }`. İstek/yanıt şemaları `packages/shared` içinde tanımlanır; web aynı şemalarla doğrular.
 
@@ -51,6 +51,7 @@ Yalnız ekleme; mevcut alanlar değişmez.
 // View
 review?: { finished: number; eligible: number };  // final gözden geçirme sırasında; manager ve display görür
 isFinalRound?: boolean;                            // mevcut tur oyunun son turuysa (sonuç ekranında "Final sonuçları geliyor" için)
+presentation?: { index; total; submissionId };     // v0.2: o an ekrandaki gönderinin kimliği (yöneticinin `submissions` dizisi gösterim sırasında değildir)
 ```
 - `isFinalRound`, motorun bildiği kesin bilgiden üretilir (lig son turu, eleme finali, hibrit final serisinin son maçı); beraberlik nedeniyle uzatma turu gelecekse `false`.
 - Yönetici görünümü seçim sırasında gelen özel içerikleri (gönderen dahil) zaten görmelidir; görmüyorsa eklenir (SPEC 7.1, 14.2).
