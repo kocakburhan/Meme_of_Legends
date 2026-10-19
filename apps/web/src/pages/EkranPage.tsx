@@ -3,7 +3,7 @@ import type { View } from '@mol/engine';
 import type { SocketReason } from '@/net/socket';
 import { pairDisplay } from '@/net/http';
 import { forgetDisplay, loadDisplay, saveDisplay, type StoredDisplay } from '@/net/tokens';
-import { useParticipantSocket, useSyncedNow } from '@/net/useRoom';
+import { useParticipantSocket } from '@/net/useRoom';
 import { Card, GhostButton, Note, PrimaryButton, Screen, TopBar } from '@/components/ui';
 import {
   DisplayFinishedScene,
@@ -33,21 +33,26 @@ export default function EkranPage() {
   const [pairing, setPairing] = useState(false);
   const [started, setStarted] = useState(false);
   const stageRef = useRef<HTMLDivElement | null>(null);
-  const mountedAt = useRef(Date.now()).current;
-
-  const { socket, state, reason, view, seq, recoveryResumesAt } = useParticipantSocket(
+  const [mountedAt] = useState(() => Date.now());
+  const { state, reason, view, recoveryResumesAt, now } = useParticipantSocket(
     stored?.roomCode ?? '',
     stored?.token ?? null,
   );
-  const now = useSyncedNow(socket, seq);
 
-  // Token geçersizse (görünüm hiç gelmediyse) eşleştirmeye dön.
+  // Token geçersizse (görünüm hiç gelmediyse) eşleştirmeye dön. Sıfırlama
+  // mikro göreve kaydırılır; etkide senkron setState basamaklı render yaratır.
   useEffect(() => {
-    if (state === 'reconnecting' && !view && Date.now() - mountedAt > 8000) {
+    if (state !== 'reconnecting' || view || Date.now() - mountedAt <= 8000) return;
+    let alive = true;
+    queueMicrotask(() => {
+      if (!alive) return;
       forgetDisplay();
       setStored(null);
       setStarted(false);
-    }
+    });
+    return () => {
+      alive = false;
+    };
   }, [state, view, mountedAt]);
 
   async function handlePair(event: FormEvent<HTMLFormElement>) {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useParams } from 'react-router';
 import type { MediaRef, View } from '@mol/engine';
 import { getRoom, joinRoom, requestTakeover, HttpError, type RoomInfo } from '@/net/http';
@@ -10,7 +10,7 @@ import {
   saveSoundOn,
   type StoredParticipant,
 } from '@/net/tokens';
-import { useLibrary, useParticipantSocket, useSyncedNow, type LibraryEntry } from '@/net/useRoom';
+import { useLibrary, useParticipantSocket, type LibraryEntry } from '@/net/useRoom';
 import type { SocketReason } from '@/net/socket';
 import { LibraryMediaProvider, MemeFrame } from '@/components/MemeFrame';
 import type { RateScore, RoundOutcome } from '@/lib/contracts';
@@ -67,6 +67,11 @@ function votingFromRoundFor(view: View): number {
   if (p.kind === 'selection') return p.roundNo;
   if ('roundNo' in p) return p.roundNo + 1;
   return 1;
+}
+
+/** "Bitirdim" işaretinin bağlandığı faz anahtarı; değişince işaret düşer. */
+function reviewKeyOf(phase: View['phase']): string {
+  return `${phase.kind}:${'roundNo' in phase ? phase.roundNo : ''}`;
 }
 
 /** Uzatma turu algısı: eşit puanlı düello oyuncuları yeni eşleşmedeyse (SPEC 10.2). */
@@ -129,8 +134,12 @@ export function OdaPage() {
   const roomCode = code.toUpperCase();
 
   const [stored, setStored] = useState<StoredParticipant | null>(() => loadParticipant(roomCode));
-  const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
-  const [infoState, setInfoState] = useState<'loading' | 'ready' | 'missing'>('loading');
+  // Oda bilgisi kendi koduyla damgalanır; yüklenebilirlik damga eşleşmesinden türetilir.
+  const [roomInfo, setRoomInfo] = useState<{
+    code: string;
+    info: RoomInfo | null;
+    missing: boolean;
+  } | null>(null);
   const [joinError, setJoinError] = useState<string | null>(null);
   const [takeoverOffer, setTakeoverOffer] = useState(false);
   const [takeover, setTakeover] = useState<
@@ -141,17 +150,17 @@ export function OdaPage() {
   const [shareHint, setShareHint] = useState<string | null>(null);
   const [soundOn, setSoundOn] = useState(() => loadSoundOn());
   const [browsing, setBrowsing] = useState(false);
-  const [reviewDone, setReviewDone] = useState(false);
+  const [reviewDoneAt, setReviewDoneAt] = useState<string | null>(null);
   const [byeDismissedRound, setByeDismissedRound] = useState(0);
   const [transition, setTransition] = useState<ScreenTransition | null>(null);
   const selfLeftRef = useRef(false);
-  const awaitingFirstViewRef = useRef(false);
+  const [awaitingFirstViewFor, setAwaitingFirstViewFor] = useState<string | null>(null);
   const dismissedRef = useRef<{ eliminated?: number; overtime?: number }>({});
-  const mountedAt = useRef(Date.now()).current;
+  const [mountedAt] = useState(() => Date.now());
   const prevRoleRef = useRef<'player' | 'voter' | null>(null);
 
   const connection = useParticipantSocket(roomCode, stored?.token ?? null);
-  const now = useSyncedNow(connection.socket, connection.seq);
+  const now = connection.now;
   const { library, categories, loading: libraryLoading } = useLibrary(
     roomCode,
     connection.view !== null,
@@ -160,42 +169,54 @@ export function OdaPage() {
   // Oda bilgisi: işletme adı ve oyuncu kartının durumu (SPEC 5.2).
   useEffect(() => {
     let alive = true;
-    setInfoState('loading');
     getRoom(roomCode)
       .then((info) => {
-        if (!alive) return;
-        setRoomInfo(info);
-        setInfoState('ready');
+        if (alive) setRoomInfo({ code: roomCode, info, missing: false });
       })
       .catch(() => {
-        if (alive) setInfoState('missing');
+        if (alive) setRoomInfo({ code: roomCode, info: null, missing: true });
       });
     return () => {
       alive = false;
     };
   }, [roomCode]);
 
+  const roomInfoFresh = roomInfo !== null && roomInfo.code === roomCode;
+  const infoState: 'loading' | 'ready' | 'missing' = !roomInfoFresh
+    ? 'loading'
+    : roomInfo.missing
+      ? 'missing'
+      : 'ready';
+  const info = roomInfoFresh ? roomInfo.info : null;
+
   // Katılımcı token'ı geçersizse (bağlanıyor ama görünüm gelmiyor) formu göster.
+  // Sıfırlama mikro göreve kaydırılır; etkide senkron setState basamaklı render yaratır.
   useEffect(() => {
     if (!stored || connection.view) return;
-    if (connection.state === 'reconnecting' && Date.now() - mountedAt > 8000) {
+    if (connection.state !== 'reconnecting' || Date.now() - mountedAt <= 8000) return;
+    let alive = true;
+    queueMicrotask(() => {
+      if (!alive) return;
       forgetParticipant(roomCode);
       setStored(null);
       setInvalidToken(true);
-    }
+    });
+    return () => {
+      alive = false;
+    };
   }, [stored, connection.state, connection.view, mountedAt, roomCode]);
 
-  // İlk görünüm geldiğinde seyircinin puanlama turunu kesinleştir.
-  useEffect(() => {
-    if (!awaitingFirstViewRef.current || !connection.view || !stored) return;
-    awaitingFirstViewRef.current = false;
+  // İlk görünüm geldiğinde seyircinin puanlama turunu kesinleştir (SPEC 5.6).
+  // "Render sırasında durum ayarlama" deseni: koşullu tek seferlik güncelleme.
+  if (awaitingFirstViewFor === roomCode && connection.view && stored) {
+    setAwaitingFirstViewFor(null);
     const votingFromRound = votingFromRoundFor(connection.view);
     if (votingFromRound !== stored.votingFromRound) {
       const next = { ...stored, votingFromRound };
       saveParticipant(roomCode, next);
       setStored(next);
     }
-  }, [connection.view, stored, roomCode]);
+  }
 
   // Elenme ve uzatma geçişleri (SPEC 9.1, 10.2).
   useEffect(() => {
@@ -235,17 +256,17 @@ export function OdaPage() {
         participantId: res.participantId,
         nickname: input.nickname,
         role: input.role,
-        votingFromRound: roomInfo?.started ? 2 : 1,
+        votingFromRound: info?.started ? 2 : 1,
         token: res.token,
       };
       saveParticipant(roomCode, next);
       selfLeftRef.current = false;
       prevRoleRef.current = input.role;
-      awaitingFirstViewRef.current = true;
+      setAwaitingFirstViewFor(roomCode);
       setStored(next);
     } catch (error) {
       if (error instanceof HttpError) {
-        if (error.code === 'ROOM_NOT_FOUND') setInfoState('missing');
+        if (error.code === 'ROOM_NOT_FOUND') setRoomInfo({ code: roomCode, info: null, missing: true });
         else if (error.code === 'invalidNickname') {
           setJoinError(nicknameInUseNote());
           setTakeoverOffer(true);
@@ -271,21 +292,24 @@ export function OdaPage() {
     }
   }
 
-  function applyApprovedTakeover(participantId: string, token: string, nickname: string) {
-    const next: StoredParticipant = {
-      participantId,
-      nickname,
-      role: 'player',
-      votingFromRound: roomInfo?.started ? 2 : 1,
-      token,
-    };
-    saveParticipant(roomCode, next);
-    setTakeover(null);
-    selfLeftRef.current = false;
-    prevRoleRef.current = null;
-    awaitingFirstViewRef.current = true;
-    setStored(next);
-  }
+  const applyApprovedTakeover = useCallback(
+    (participantId: string, token: string, nickname: string) => {
+      const next: StoredParticipant = {
+        participantId,
+        nickname,
+        role: 'player',
+        votingFromRound: info?.started ? 2 : 1,
+        token,
+      };
+      saveParticipant(roomCode, next);
+      setTakeover(null);
+      selfLeftRef.current = false;
+      prevRoleRef.current = null;
+      setAwaitingFirstViewFor(roomCode);
+      setStored(next);
+    },
+    [roomCode, info],
+  );
 
   // Cihaz devri sonucunu kısa aralıklı yoklama (protokol §2).
   useEffect(() => {
@@ -310,7 +334,7 @@ export function OdaPage() {
       alive = false;
       window.clearInterval(timer);
     };
-  }, [takeover, roomCode]);
+  }, [takeover, roomCode, applyApprovedTakeover]);
 
   async function sendParticipant(cmd: Parameters<typeof connection.send>[0]) {
     try {
@@ -323,10 +347,7 @@ export function OdaPage() {
     }
   }
 
-  // "Bitirdim" durumu: kendi ack ile işaretlenir; aşama değişince sıfırlanır.
-  useEffect(() => {
-    if (connection.view?.phase.kind !== 'review') setReviewDone(false);
-  }, [connection.view?.phase.kind]);
+  // "Bitirdim" durumu: kendi ack ile işaretlenir; faz anahtarı değişince türetilerek sıfırlanır.
 
   useEffect(() => {
     if (!ackNote) return;
@@ -385,13 +406,13 @@ export function OdaPage() {
         </PageFrame>
       );
     }
-    if (infoState === 'ready' && roomInfo)
+    if (infoState === 'ready' && info)
       return (
         <PageFrame>
           <JoinScreen
             code={roomCode}
-            businessName={roomInfo.businessName}
-            allowPlayer={!roomInfo.started}
+            businessName={info.businessName}
+            allowPlayer={!info.started}
             serverError={invalidToken ? 'Oturumun geçersizleşti; yeniden katıl.' : joinError}
             takeoverAvailable={takeoverOffer}
             onRequestTakeover={(nickname) => void handleTakeover(nickname)}
@@ -465,6 +486,7 @@ export function OdaPage() {
 
   const phase = view.phase;
   const overtime = phase.kind === 'selection' ? overtimeState(view, me.id) : null;
+  const reviewDone = reviewDoneAt !== null && reviewDoneAt === reviewKeyOf(phase);
   // Bay geçen oyuncuya bay geçişi göster (SPEC 9.1); "Puanlamaya geç" ile kapanır.
   const showBye =
     phase.kind === 'selection' && view.byes.includes(me.id) && byeDismissedRound !== phase.roundNo;
@@ -503,7 +525,7 @@ export function OdaPage() {
           onLeave={handleLeaveToVoter}
           onReviewFinish={async () => {
             const ack = await sendParticipant({ type: 'finishReview' });
-            if (ack.ok) setReviewDone(true);
+            if (ack.ok) setReviewDoneAt(reviewKeyOf(view.phase));
           }}
           onSelect={(media: MediaRef) => void sendParticipant({ type: 'select', media })}
           onConfirm={() => void sendParticipant({ type: 'confirm' })}
@@ -511,7 +533,7 @@ export function OdaPage() {
           soundOn={soundOn}
           onToggleSound={toggleSound}
           overtime={overtime}
-          roomInfo={roomInfo}
+          roomInfo={info}
           roomCode={roomCode}
           onShare={() => void handleShare()}
           shareHint={shareHint}

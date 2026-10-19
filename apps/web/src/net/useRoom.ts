@@ -27,74 +27,97 @@ const INITIAL: SocketSnapshot = {
 };
 
 export interface ParticipantSocket {
-  socket: RoomSocket | null;
   state: SocketState;
   reason: SocketReason;
   view: View | null;
   seq: number;
   recoveryResumesAt: number | null;
   cue: (PublicCue & { receivedAt: number }) | null;
+  /** Sunucu saatine hizalı akım zamanı (ms); geri sayımlar bununla hesaplanır. */
+  now: number;
   send: (cmd: ClientCommand) => Promise<AckResult>;
 }
 
-/** `code` + `token` ile tek bir oda bağlantısı kurar ve `view`'ı tutar. */
-export function useParticipantSocket(code: string, token: string | null): ParticipantSocket {
-  const [snapshot, setSnapshot] = useState<SocketSnapshot>(INITIAL);
+/** `code` + `token` ile tek bir oda bağlantısı kurar; view, durum ve hizalı saati tutar. */
+export function useParticipantSocket(
+  code: string,
+  token: string | null,
+  nowIntervalMs = 250,
+): ParticipantSocket {
+  // Anlık görüntü üreten token'la damgalanır; token değişince (cihaz devri,
+  // yeniden katılım) eski görüntü yerine INITIAL türetilir — etkide senkron
+  // setState'e gerek kalmaz.
+  const [snapshot, setSnapshot] = useState<{ token: string | null; value: SocketSnapshot }>({
+    token: null,
+    value: INITIAL,
+  });
+  const [now, setNow] = useState(() => Date.now());
   const socketRef = useRef<RoomSocket | null>(null);
 
   useEffect(() => {
     if (!token) {
       socketRef.current = null;
-      setSnapshot(INITIAL);
       return;
     }
     const socket = new RoomSocket({
       code,
       token,
       handlers: {
-        onState: (state, reason) => setSnapshot((s) => ({ ...s, state, reason })),
+        onState: (state, reason) =>
+          setSnapshot((s) => ({ token, value: { ...s.value, state, reason } })),
         onMessage: (message: ServerMessage) => {
           if (message.type === 'view')
             // Tam görünüm; eski seq yok sayılır (protokol §3).
             setSnapshot((s) =>
-              message.seq <= s.seq
-                ? s
-                : { ...s, state: 'open', reason: null, view: message.view, seq: message.seq },
+              message.seq <= s.value.seq
+                ? { token, value: { ...s.value, state: 'open', reason: null } }
+                : {
+                    token,
+                    value: {
+                      ...s.value,
+                      state: 'open',
+                      reason: null,
+                      view: message.view,
+                      seq: message.seq,
+                    },
+                  },
             );
           else if (message.type === 'cue')
-            setSnapshot((s) => ({ ...s, cue: { ...message.cue, receivedAt: Date.now() } }));
+            setSnapshot((s) => ({
+              token,
+              value: { ...s.value, cue: { ...message.cue, receivedAt: Date.now() } },
+            }));
           else if (message.type === 'recovery')
-            setSnapshot((s) => ({ ...s, recoveryResumesAt: message.resumesAt }));
+            setSnapshot((s) => ({
+              token,
+              value: { ...s.value, recoveryResumesAt: message.resumesAt },
+            }));
         },
       },
     });
     socketRef.current = socket;
     socket.connect();
-    return () => socket.close();
-  }, [code, token]);
+    const timer = window.setInterval(() => {
+      const current = socketRef.current;
+      if (current) setNow(current.serverNow());
+    }, nowIntervalMs);
+    return () => {
+      window.clearInterval(timer);
+      socket.close();
+    };
+  }, [code, token, nowIntervalMs]);
 
+  const value = snapshot.token === token ? snapshot.value : INITIAL;
   return {
-    socket: socketRef.current,
-    state: snapshot.state,
-    reason: snapshot.reason,
-    view: snapshot.view,
-    seq: snapshot.seq,
-    recoveryResumesAt: snapshot.recoveryResumesAt,
-    cue: snapshot.cue,
+    state: value.state,
+    reason: value.reason,
+    view: value.view,
+    seq: value.seq,
+    recoveryResumesAt: value.recoveryResumesAt,
+    cue: value.cue,
+    now,
     send: (cmd) => socketRef.current?.sendCommand(cmd) ?? Promise.reject(new Error('NO_SOCKET')),
   };
-}
-
-/** Sunucu saatine hizalı akım zamanı; geri sayımlar bununla hesaplanır. */
-export function useSyncedNow(socket: RoomSocket | null, seq: number, intervalMs = 250): number {
-  const [now, setNow] = useState(() => socket?.serverNow() ?? Date.now());
-  useEffect(() => {
-    if (!socket) return;
-    setNow(socket.serverNow());
-    const timer = window.setInterval(() => setNow(socket.serverNow()), intervalMs);
-    return () => window.clearInterval(timer);
-  }, [socket, seq, intervalMs]);
-  return now;
 }
 
 export interface LibraryEntry {
@@ -114,30 +137,37 @@ export function useLibrary(
   loading: boolean;
   failed: boolean;
 } {
-  const [entries, setEntries] = useState<LibraryEntry[]>([]);
-  const [failed, setFailed] = useState(false);
-  const [loading, setLoading] = useState(enabled);
+  // Sonuç isteğin koduyla damgalanır; yüklenebilirlik damga eşleşmesinden
+  // türetilir — etkide senkron setState yerine.
+  const [result, setResult] = useState<{
+    code: string | null;
+    entries: LibraryEntry[];
+    failed: boolean;
+  }>({ code: null, entries: [], failed: false });
+
   useEffect(() => {
     if (!enabled) return;
     let alive = true;
-    setLoading(true);
     getLibrary(code)
       .then((data) => {
-        if (alive) {
-          setEntries(data.memes);
-          setFailed(false);
-        }
+        if (alive) setResult({ code, entries: data.memes, failed: false });
       })
       .catch(() => {
-        if (alive) setFailed(true);
-      })
-      .finally(() => {
-        if (alive) setLoading(false);
+        // Başarısızlıkta önceki listeyi koru; yalnız bayrak set et.
+        if (alive) setResult((r) => ({ code, entries: r.entries, failed: true }));
       });
     return () => {
       alive = false;
     };
   }, [code, enabled]);
-  const categories = [...new Set(entries.map((m) => m.category).filter((c): c is string => !!c))];
-  return { library: entries, categories, loading, failed };
+
+  const fresh = enabled && result.code === code;
+  return {
+    library: fresh ? result.entries : [],
+    categories: fresh
+      ? [...new Set(result.entries.map((m) => m.category).filter((c): c is string => !!c))]
+      : [],
+    loading: enabled && !fresh,
+    failed: fresh ? result.failed : false,
+  };
 }
