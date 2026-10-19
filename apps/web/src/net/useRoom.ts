@@ -1,4 +1,12 @@
-import { type ClientCommand, type PublicCue, type ServerMessage, type View } from '@mol/shared';
+import {
+  type ClientCommand,
+  type ManagerCommand,
+  type ManagerShellInfo,
+  type PublicCue,
+  type ServerMessage,
+  type ShellAction,
+  type View,
+} from '@mol/shared';
 import { getLibrary } from '@/net/http';
 import { RoomSocket, type AckResult, type SocketReason, type SocketState } from '@/net/socket';
 import { useEffect, useRef, useState } from 'react';
@@ -125,6 +133,98 @@ export interface LibraryEntry {
   title: string;
   category: string | null;
   mediaType: 'image' | 'gif' | 'video';
+}
+
+/** Yönetici bağlantısı: `view` + `shell` (devri onayları, ekran eşleştirme). */
+export interface ManagerSocket {
+  state: SocketState;
+  reason: SocketReason;
+  view: View | null;
+  shell: ManagerShellInfo | null;
+  seq: number;
+  /** Sunucu saatine hizalı akım zamanı (ms). */
+  now: number;
+  send: (cmd: ManagerCommand) => Promise<AckResult>;
+  sendShell: (action: ShellAction) => Promise<AckResult>;
+}
+
+/**
+ * `code` ile yönetici WebSocket'i: kimlik iş oturum çerezinden gelir (protokol
+ * v0.2 §3); token gönderilmez. `enabled` false iken bağlanmaz.
+ */
+export function useManagerSocket(code: string, enabled: boolean, nowIntervalMs = 250): ManagerSocket {
+  const [snapshot, setSnapshot] = useState<{
+    enabled: boolean;
+    value: {
+      state: SocketState;
+      reason: SocketReason;
+      view: View | null;
+      shell: ManagerShellInfo | null;
+      seq: number;
+    };
+  }>({ enabled: false, value: { state: 'connecting', reason: null, view: null, shell: null, seq: -1 } });
+  const [now, setNow] = useState(() => Date.now());
+  const socketRef = useRef<RoomSocket | null>(null);
+
+  useEffect(() => {
+    if (!enabled) {
+      socketRef.current = null;
+      return;
+    }
+    const socket = new RoomSocket({
+      code,
+      handlers: {
+        onState: (state, reason) =>
+          setSnapshot((s) => ({ enabled, value: { ...s.value, state, reason } })),
+        onMessage: (message: ServerMessage) => {
+          if (message.type !== 'view') return;
+          // Tam görünüm; eski seq yok sayılır (protokol §3). Shell bilgisi her
+          // yönetici görünümüyle taze gelir.
+          setSnapshot((s) =>
+            message.seq <= s.value.seq
+              ? { enabled, value: { ...s.value, state: 'open', reason: null } }
+              : {
+                  enabled,
+                  value: {
+                    ...s.value,
+                    state: 'open',
+                    reason: null,
+                    view: message.view,
+                    shell: message.shell ?? null,
+                    seq: message.seq,
+                  },
+                },
+          );
+        },
+      },
+    });
+    socketRef.current = socket;
+    socket.connect();
+    const timer = window.setInterval(() => {
+      const current = socketRef.current;
+      if (current) setNow(current.serverNow());
+    }, nowIntervalMs);
+    return () => {
+      window.clearInterval(timer);
+      socket.close();
+    };
+  }, [code, enabled, nowIntervalMs]);
+
+  const fresh =
+    snapshot.enabled === enabled
+      ? snapshot.value
+      : { state: 'connecting' as SocketState, reason: null, view: null, shell: null, seq: -1 };
+  return {
+    state: fresh.state,
+    reason: fresh.reason,
+    view: fresh.view,
+    shell: fresh.shell,
+    seq: fresh.seq,
+    now,
+    send: (cmd) => socketRef.current?.sendCommand(cmd) ?? Promise.reject(new Error('NO_SOCKET')),
+    sendShell: (action) =>
+      socketRef.current?.sendShell(action) ?? Promise.reject(new Error('NO_SOCKET')),
+  };
 }
 
 /** Oda kütüphanesi: sunucudaki aktif sistem meme'leri. */
