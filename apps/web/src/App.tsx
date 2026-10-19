@@ -17,8 +17,11 @@ import AdminCategoriesPage from '@/pages/AdminCategoriesPage';
 import AdminPromptsPage from '@/pages/AdminPromptsPage';
 import AdminBusinessPromptsPage from '@/pages/AdminBusinessPromptsPage';
 import AdminTaggingPage from '@/pages/AdminTaggingPage';
+import AdminSessionsPage from '@/pages/AdminSessionsPage';
+import AdminSessionDetailPage from '@/pages/AdminSessionDetailPage';
+import AdminUsagePage from '@/pages/AdminUsagePage';
+import AdminSystemPage from '@/pages/AdminSystemPage';
 import { AdminLayout } from '@/admin/AdminLayout';
-import { AdminStubPage } from '@/admin/AdminStubPage';
 import { Placeholder } from '@/pages/Placeholder';
 
 function NotFoundPage() {
@@ -48,18 +51,16 @@ function buildRouter() {
     { path: '/admin/giris', Component: AdminLoginPage },
     {
       // Admin paneli (M5c-1): düzen + oturum denetimi ortaktır; bölüm sayfaları
-      // alt rotalardadır. İçerik bölümleri M5c-2'de, Oturumlar/Sistem M5c-3'te.
+      // alt rotalardadır. Oturum/Sistem bölümleri M5c-3'te tamamlanmıştır.
       path: '/admin',
       Component: AdminLayout,
       children: [
         { index: true, Component: AdminOverviewPage },
         { path: 'isletmeler', Component: AdminBusinessesPage },
         { path: 'isletmeler/:id', Component: AdminBusinessDetailPage },
-        { path: 'oturumlar', element: <AdminStubPage title="Oturumlar" /> },
-        {
-          path: 'oturumlar/:id',
-          element: <AdminStubPage title="Oturum detayı" />,
-        },
+        { path: 'oturumlar', Component: AdminSessionsPage },
+        { path: 'oturumlar/kullanim', Component: AdminUsagePage },
+        { path: 'oturumlar/:id', Component: AdminSessionDetailPage },
         { path: 'icerik', Component: AdminContentPage },
         { path: 'icerik/kutuphane', Component: AdminMemesPage },
         { path: 'icerik/kategoriler', Component: AdminCategoriesPage },
@@ -69,7 +70,7 @@ function buildRouter() {
           path: 'icerik/isletme-durumlari',
           Component: AdminBusinessPromptsPage,
         },
-        { path: 'sistem', element: <AdminStubPage title="Sistem" /> },
+        { path: 'sistem', Component: AdminSystemPage },
       ],
     },
     { path: '*', Component: NotFoundPage },

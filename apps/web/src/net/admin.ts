@@ -1,4 +1,5 @@
 import {
+  adminActionsResponseSchema,
   adminBusinessCreatedResponseSchema,
   adminBusinessesResponseSchema,
   adminBusinessResponseSchema,
@@ -15,7 +16,9 @@ import {
   adminPromptResponseSchema,
   adminPromptSchema,
   adminPromptsResponseSchema,
+  adminSessionResponseSchema,
   adminSessionsResponseSchema,
+  adminUsageResponseSchema,
 } from '@mol/shared';
 import type { AdminBusiness, AdminSession, AdminUsage } from '@mol/shared';
 import { z } from 'zod';
@@ -46,6 +49,15 @@ export type AdminSessionStatusFilter =
 export type AdminPromptStatusFilter = 'active' | 'archived' | 'all';
 export type AdminPromptBlockFilter = 'true' | 'false' | 'all';
 export type AdminMemeStatusFilter = 'all' | 'untagged' | 'active' | 'archived';
+
+/** Oturum detayı (rapor, denetim ve müdahale kayıtlarıyla). */
+export type AdminSessionDetail = z.infer<typeof adminSessionResponseSchema>;
+/** İşletme bazında kullanım satırı (M5c-3). */
+export type AdminUsageRow = z.infer<typeof adminUsageResponseSchema>['businesses'][number];
+/** Sistem hata kaydı satırı. */
+export type AdminError = z.infer<typeof adminErrorsResponseSchema>['errors'][number];
+/** Admin işlem kaydı satırı. */
+export type AdminAction = z.infer<typeof adminActionsResponseSchema>['actions'][number];
 
 /** Kategori kaydı (@mol/shared şemasından). */
 export type AdminCategory = z.infer<typeof adminCategorySchema>;
@@ -127,20 +139,72 @@ export function impersonateAdminBusiness(
   );
 }
 
-/** Oturum listesi (imleçli); detay sayfası M5c-3'te gelir. */
+/** Oturum listesi (imleçli); tarih sınırları oluşturulma zamanıdır (epoch ms). */
 export function listAdminSessions(
   opts: {
     businessId?: string;
     status?: AdminSessionStatusFilter;
+    from?: number;
+    to?: number;
     cursor?: string;
     limit?: number;
   } = {},
 ): Promise<z.infer<typeof adminSessionsResponseSchema>> {
   const params = new URLSearchParams({ status: opts.status ?? 'all' });
   if (opts.businessId) params.set('businessId', opts.businessId);
+  if (opts.from !== undefined) params.set('from', String(opts.from));
+  if (opts.to !== undefined) params.set('to', String(opts.to));
   if (opts.cursor) params.set('cursor', opts.cursor);
   if (opts.limit) params.set('limit', String(opts.limit));
   return request(`/api/admin/sessions?${params.toString()}`, adminSessionsResponseSchema);
+}
+
+/** Tek oturum: rapor, denetim kaydı, admin müdahaleleri ve hatalar. */
+export function getAdminSession(id: string): Promise<AdminSessionDetail> {
+  return request(
+    `/api/admin/sessions/${encodeURIComponent(id)}`,
+    adminSessionResponseSchema,
+  );
+}
+
+/** Aktif oturumu DO üzerinden sonlandırır (motorun mevcut endGame komutu). */
+export function terminateAdminSession(id: string): Promise<{ ok: true }> {
+  return request(
+    `/api/admin/sessions/${encodeURIComponent(id)}/terminate`,
+    adminOkResponseSchema,
+    { method: 'POST' },
+  );
+}
+
+/** Oturumun gerçekten harcanmış hakkını bir kez iade eder. */
+export function refundAdminSession(id: string): Promise<{ ok: true }> {
+  return request(
+    `/api/admin/sessions/${encodeURIComponent(id)}/refund`,
+    adminOkResponseSchema,
+    { method: 'POST' },
+  );
+}
+
+/** İşletme bazında kullanım özetleri (tüm işletmeler). */
+export function getAdminUsage(): Promise<z.infer<typeof adminUsageResponseSchema>> {
+  return request('/api/admin/usage', adminUsageResponseSchema);
+}
+
+/** Admin işlem kaydı (imleçli; hedef ve işlem adıyla filtrelenebilir). */
+export function listAdminActions(
+  opts: {
+    targetId?: string;
+    action?: string;
+    cursor?: string;
+    limit?: number;
+  } = {},
+): Promise<z.infer<typeof adminActionsResponseSchema>> {
+  const params = new URLSearchParams();
+  if (opts.targetId) params.set('targetId', opts.targetId);
+  if (opts.action) params.set('action', opts.action);
+  if (opts.cursor) params.set('cursor', opts.cursor);
+  if (opts.limit) params.set('limit', String(opts.limit));
+  return request(`/api/admin/actions?${params.toString()}`, adminActionsResponseSchema);
 }
 
 /** Aktif platform durumu sayısı + azlık eşiği (genel bakış uyarısı). */
@@ -283,11 +347,20 @@ export function listUntaggedMemes(): Promise<z.infer<typeof adminMemesResponseSc
   return listAdminMemes({ status: 'untagged', order: 'oldest', limit: 100 });
 }
 
-/** Son sistem hataları (genel bakışta kısa liste; tam sayfa M5c-3'te). */
+/** Sistem hata kayıtları (imleçli; oturum/kaynak/kod ile filtrelenebilir). */
 export function listAdminErrors(
-  opts: { limit?: number; cursor?: string } = {},
+  opts: {
+    sessionId?: string;
+    source?: string;
+    code?: string;
+    limit?: number;
+    cursor?: string;
+  } = {},
 ): Promise<z.infer<typeof adminErrorsResponseSchema>> {
   const params = new URLSearchParams();
+  if (opts.sessionId) params.set('sessionId', opts.sessionId);
+  if (opts.source) params.set('source', opts.source);
+  if (opts.code) params.set('code', opts.code);
   if (opts.limit) params.set('limit', String(opts.limit));
   if (opts.cursor) params.set('cursor', opts.cursor);
   return request(`/api/admin/errors?${params.toString()}`, adminErrorsResponseSchema);
