@@ -2,6 +2,7 @@ import type { View } from '@mol/engine';
 import type { Me } from '@/lib/contracts';
 import { Countdown, LiveStatus } from '@/components/Countdown';
 import { Card, Note, ProgressBar, Screen } from '@/components/ui';
+import { remainingSeconds } from '@/lib/format';
 
 /**
  * Seçim ekranı (seyirci / gönderi yapmayan oyuncu): durum, eşleşmeler ve canlı
@@ -21,7 +22,7 @@ export function SpectatorSelectionScreen({
   className?: string;
 }) {
   const phase = view.phase;
-  const secondsLeft = phase.kind === 'selection' ? Math.max(0, Math.ceil((phase.endsAt - now) / 1000)) : 0;
+  const secondsLeft = phase.kind === 'selection' ? remainingSeconds(phase.endsAt, now) : 0;
   const total = phase.kind === 'selection' ? view.config.selectionSeconds : 1;
 
   const players = view.participants.filter((p) => p.role === 'player');
@@ -60,50 +61,56 @@ export function SpectatorSelectionScreen({
 
       <ProgressBar value={readyCount} max={players.length} label="oyuncu seçti" />
 
-      <section aria-label="Eşleşmeler" className="flex flex-col gap-2">
-        <p className="text-xs font-bold uppercase tracking-wider text-muted">Eşleşmeler</p>
-        {view.matches.map((match, index) => {
-          const names = match.map(
-            (id) => view.participants.find((p) => p.id === id)?.nickname ?? '?',
-          );
-          const marks = match.map(
-            (id) => view.participants.find((p) => p.id === id)?.ready ?? false,
-          );
-          return (
-            <div
-              key={index}
-              className="flex items-center justify-between rounded-[var(--radius-card)] border border-line bg-surface px-4 py-3"
-            >
-              <span className="font-display text-lg uppercase">
-                {names[0]} <span className="text-muted">–</span> {names[1]}
-              </span>
-              <span className="flex items-center gap-1" aria-label={`Hazır durumu: ${marks.filter(Boolean).length}/2`}>
-                {marks.map((ready, i) => (
-                  <span
-                    key={i}
-                    aria-hidden="true"
-                    className={
-                      ready
-                        ? 'flex h-6 w-6 items-center justify-center rounded-full bg-success/20 text-xs font-bold text-success'
-                        : 'flex h-6 w-6 items-center justify-center rounded-full bg-surface-raised text-xs text-muted'
-                    }
-                  >
-                    {ready ? '✓' : '·'}
-                  </span>
-                ))}
-              </span>
-            </div>
-          );
-        })}
-        {view.byes.length > 0 ? (
-          <p className="text-sm text-muted">
-            {view.byes
-              .map((id) => view.participants.find((p) => p.id === id)?.nickname ?? '?')
-              .join(', ')}{' '}
-            bay geçti.
-          </p>
-        ) : null}
-      </section>
+      {/* Eşleşme yoksa (ör. lig modu) boş başlık gösterme. */}
+      {view.matches.length > 0 ? (
+        <section aria-label="Eşleşmeler" className="flex flex-col gap-2">
+          <p className="text-xs font-bold uppercase tracking-wider text-muted">Eşleşmeler</p>
+          {view.matches.map((match, index) => {
+            const names = match.map(
+              (id) => view.participants.find((p) => p.id === id)?.nickname ?? '?',
+            );
+            const marks = match.map(
+              (id) => view.participants.find((p) => p.id === id)?.ready ?? false,
+            );
+            return (
+              <div
+                key={index}
+                className="flex items-center justify-between rounded-[var(--radius-card)] border border-line bg-surface px-4 py-3"
+              >
+                <span className="font-display text-lg uppercase">
+                  {names[0]} <span className="text-muted">–</span> {names[1]}
+                </span>
+                <span
+                  className="flex items-center gap-1"
+                  aria-label={`Hazır durumu: ${marks.filter(Boolean).length}/2`}
+                >
+                  {marks.map((ready, i) => (
+                    <span
+                      key={i}
+                      aria-hidden="true"
+                      className={
+                        ready
+                          ? 'flex h-6 w-6 items-center justify-center rounded-full bg-success/20 text-xs font-bold text-success'
+                          : 'flex h-6 w-6 items-center justify-center rounded-full bg-surface-raised text-xs text-muted'
+                      }
+                    >
+                      {ready ? '✓' : '·'}
+                    </span>
+                  ))}
+                </span>
+              </div>
+            );
+          })}
+        </section>
+      ) : null}
+      {view.byes.length > 0 ? (
+        <p className="text-sm text-muted">
+          {view.byes
+            .map((id) => view.participants.find((p) => p.id === id)?.nickname ?? '?')
+            .join(', ')}{' '}
+          bay geçti.
+        </p>
+      ) : null}
 
       <div className="mt-auto">
         <LiveStatus message={`${readyCount} / ${players.length} oyuncu seçimini tamamladı.`} />
