@@ -1,3 +1,4 @@
+import { serveMedia } from './media';
 import { pairDisplay } from './display-pairing';
 import { RoomDurableObject } from './room';
 import { ApiFailure, authRoute, json } from './auth';
@@ -17,6 +18,7 @@ export default {
           throw new ApiFailure(403, 'INVALID_ORIGIN');
       }
       const path = url.pathname;
+      if (path.startsWith('/media/')) return await serveMedia(request, env, path);
       if (path === '/health') {
         if (request.method !== 'GET') throw new ApiFailure(405, 'METHOD_NOT_ALLOWED');
         return json({ ok: true });

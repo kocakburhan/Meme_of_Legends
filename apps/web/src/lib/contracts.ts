@@ -38,6 +38,7 @@ export interface LibraryMeme {
   title: string;
   category: string;
   mediaType: 'image' | 'gif' | 'video';
+  durationMs?: number;
   /** Sahte veride boş: çerçeve, yer tutucu desenle çizilir. */
   src?: string;
 }
@@ -68,7 +69,10 @@ export function validateRoomCode(value: string): string | null {
 }
 
 export function normalizeRoomCode(value: string): string {
-  return value.toUpperCase().replaceAll('O', '0').replace(/[^A-Z2-9]/g, '');
+  return value
+    .toUpperCase()
+    .replaceAll('O', '0')
+    .replace(/[^A-Z2-9]/g, '');
 }
 
 export type { MediaRef };

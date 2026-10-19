@@ -1,4 +1,5 @@
 import {
+  libraryResponseSchema,
   businessPromptResponseSchema,
   businessPromptSchema,
   businessPromptsResponseSchema,
@@ -117,17 +118,9 @@ export function pairDisplay(code: string): Promise<DisplayPairResponse> {
   });
 }
 
-const memeSchema = z.strictObject({
-  id: z.string().min(1),
-  title: z.string(),
-  category: z.string().nullable(),
-  mediaType: z.enum(['image', 'gif', 'video']),
-});
-const librarySchema = z.strictObject({ memes: z.array(memeSchema) });
-
 /** Sistem meme kütüphanesi; seçim ekranının listesi. */
-export function getLibrary(code: string): Promise<z.infer<typeof librarySchema>> {
-  return request(`/api/rooms/${safeCode(code)}/library`, librarySchema);
+export function getLibrary(code: string): Promise<z.infer<typeof libraryResponseSchema>> {
+  return request(`/api/rooms/${safeCode(code)}/library`, libraryResponseSchema);
 }
 
 /* ------------------------- İşletme API'si (M4) ------------------------- */
@@ -159,7 +152,10 @@ const businessAccountSchema = z.object({
   active: z.boolean(),
 });
 
-export function loginBusiness(input: { username: string; password: string }): Promise<{ ok: true }> {
+export function loginBusiness(input: {
+  username: string;
+  password: string;
+}): Promise<{ ok: true }> {
   return request('/api/auth/business/login', z.strictObject({ ok: z.literal(true) }), {
     method: 'POST',
     body: JSON.stringify(input),
@@ -193,9 +189,13 @@ export function createBusinessSession(settings?: Partial<SessionConfig>): Promis
 }
 
 export function cancelBusinessSession(sessionId: string): Promise<{ ok: true }> {
-  return request(`/api/business/sessions/${encodeURIComponent(sessionId)}/cancel`, z.strictObject({ ok: z.literal(true) }), {
-    method: 'POST',
-  });
+  return request(
+    `/api/business/sessions/${encodeURIComponent(sessionId)}/cancel`,
+    z.strictObject({ ok: z.literal(true) }),
+    {
+      method: 'POST',
+    },
+  );
 }
 
 export type BusinessSessionList = z.infer<typeof businessSessionsResponseSchema>;

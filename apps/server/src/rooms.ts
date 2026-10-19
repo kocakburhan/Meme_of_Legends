@@ -1,3 +1,4 @@
+import { mediaUrl } from './media';
 import { businessDataRoute } from './business';
 import { DEFAULT_CONFIG } from '@mol/engine';
 import { joinRequestSchema, roomCodeSchema, sessionConfigSchema } from '@mol/shared';
@@ -162,17 +163,28 @@ export async function libraryRoute(
     .get();
   if (!room) throw new ApiFailure(404, 'ROOM_NOT_FOUND');
   const rows = await env.DB.prepare(
-    `SELECT m.id, m.description, m.media_type, c.name AS category FROM memes m
+    `SELECT m.id, m.description, m.media_type, m.r2_key, m.cover_key, m.duration_ms, c.name AS category FROM memes m
     LEFT JOIN categories c ON c.id = m.category_id
     WHERE m.status = 'active' AND (c.id IS NULL OR c.archived = 0)
     ORDER BY m.created_at, m.id`,
-  ).all<{ id: string; description: string; media_type: string; category: string | null }>();
+  ).all<{
+    id: string;
+    description: string;
+    media_type: string;
+    r2_key: string;
+    cover_key: string | null;
+    duration_ms: number | null;
+    category: string | null;
+  }>();
   return json({
     memes: rows.results.map((m) => ({
       id: m.id,
       title: m.description,
       category: m.category,
       mediaType: m.media_type,
+      mediaUrl: mediaUrl(m.r2_key),
+      ...(m.cover_key ? { coverUrl: mediaUrl(m.cover_key) } : {}),
+      durationMs: m.duration_ms,
     })),
   });
 }

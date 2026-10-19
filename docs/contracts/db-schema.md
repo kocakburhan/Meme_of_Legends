@@ -9,7 +9,7 @@
 | `admin_account` | Tek admin hesabı (kullanıcı adı, PBKDF2 şifre özeti). Komutla oluşturulur. |
 | `businesses` | İşletme: ad, benzersiz kullanıcı adı, şifre özeti, durum (aktif/pasif), hak sayısı, sınırsız hak bayrağı, eşzamanlı oturum sınırı, lobi ömrü (saat), oluşturulma. |
 | `auth_sessions` | Giriş oturumları (admin / işletme): kimlik, sahip, oluşturulma, son kullanma, iptal. Şifre değişiminde/sıfırlamada toplu iptal. |
-| `game_sessions` | Oyun oturumu: işletme, oda kodu, durum (lobi/oyun/bitti/iptal/sonlandırıldı), mod ve ayarlar, oluşturulma/başlama/bitiş, bitiş nedeni, hak düştü mü, hak iade edildi mi, admin müdahale bayrakları. |
+| `game_sessions` | Oyun oturumu: işletme, oda kodu, durum (lobi/oyun/bitti/iptal/sonlandırıldı), mod ve ayarlar, oluşturulma/başlama/bitiş, bitiş nedeni, başlatma/hak işareti (`credit_consumed`), gerçek bakiye düşümü (`credit_charged`, M5 öncesinde bilinmiyorsa null), hak iade edildi mi, admin müdahale bayrakları. |
 | `session_reports` | Oyun bitince yazılan rapor özeti (JSON): turlar, oynanan durum metinleri, kullanılan sistem meme'leri, özel içerik türleri, oy sayıları ve ortalamalar, sonuçlar, sıralama, çıkarmalar, gizlemeler, duraklatmalar, hatalar. Takma adlar 7 gün sonra anonimleştirilir. |
 | `session_audit` | Oturum denetim kaydı (zaman, tür, yük). |
 | `categories` | Meme kategorileri (ad, sıra, arşiv). |

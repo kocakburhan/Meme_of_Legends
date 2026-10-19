@@ -1,15 +1,15 @@
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/d1';
-import { z } from 'zod';
+import * as S from '@mol/shared';
+import { adminContentRoute } from './admin-content';
+import { adminReportsRoute, usage } from './admin-reports';
+import { audit, query } from './admin-common';
 import { adminActions, authSessions, businesses, gameSessions } from './db/schema';
-import { ApiFailure, authenticate, body, json, passwordSchema, usernameSchema } from './auth';
+import { ApiFailure, authenticate, body, json } from './auth';
 import { hashPassword, randomSecret } from './security';
 export function publicBusiness(account: typeof businesses.$inferSelect) {
   const { passwordHash: _passwordHash, ...value } = account;
   return value;
-}
-function audit(action: string, targetId: string, details: unknown) {
-  return { id: crypto.randomUUID(), occurredAt: Date.now(), action, targetId, details };
 }
 export async function adminRoute(
   request: Request,
@@ -18,19 +18,36 @@ export async function adminRoute(
 ): Promise<Response> {
   await authenticate(request, env, 'admin');
   const db = drizzle(env.DB);
+  const response =
+    (await adminContentRoute(request, env, path)) ?? (await adminReportsRoute(request, env, path));
+  if (response) return response;
   if (path === '/api/admin/businesses') {
-    if (request.method === 'GET')
-      return json({ businesses: (await db.select().from(businesses)).map(publicBusiness) });
+    if (request.method === 'GET') {
+      const input = query(request, S.adminBusinessesQuerySchema);
+      return json({
+        businesses: (
+          await db
+            .select()
+            .from(businesses)
+            .where(
+              and(
+                input.active === 'all' ? undefined : eq(businesses.active, input.active === 'true'),
+              ),
+            )
+            .orderBy(businesses.createdAt, businesses.id)
+        )
+          .filter(
+            (b) =>
+              !input.q ||
+              S.normalizePromptText(b.name + ' ' + b.username).includes(
+                S.normalizePromptText(input.q),
+              ),
+          )
+          .map(publicBusiness),
+      });
+    }
     if (request.method !== 'POST') throw new ApiFailure(405, 'METHOD_NOT_ALLOWED');
-    const input = await body(
-      request,
-      z.strictObject({
-        name: z.string().trim().min(1).max(200),
-        username: usernameSchema,
-        credits: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
-        password: passwordSchema.optional(),
-      }),
-    );
+    const input = await body(request, S.adminCreateBusinessSchema);
     const password = input.password ?? randomSecret(18);
     const id = crypto.randomUUID();
     const values = {
@@ -57,7 +74,7 @@ export async function adminRoute(
         throw new ApiFailure(409, 'USERNAME_TAKEN');
       throw error;
     }
-    const loginUrl = new URL('/business/login', request.url).href;
+    const loginUrl = new URL('/isletme/giris', request.url).href;
     return json(
       {
         business: publicBusiness(
@@ -90,7 +107,7 @@ export async function adminRoute(
     );
   if (match[2]) {
     if (request.method !== 'POST') throw new ApiFailure(405, 'METHOD_NOT_ALLOWED');
-    const input = await body(request, z.strictObject({ password: passwordSchema.optional() }));
+    const input = await body(request, S.adminPasswordSchema);
     const password = input.password ?? randomSecret(18);
     await db.batch([
       db
@@ -102,30 +119,10 @@ export async function adminRoute(
     ]);
     return json({ temporaryPassword: password });
   }
-  if (request.method === 'GET') return json({ business: publicBusiness(account) });
+  if (request.method === 'GET')
+    return json({ business: publicBusiness(account), usage: await usage(env, id) });
   if (request.method !== 'PATCH') throw new ApiFailure(405, 'METHOD_NOT_ALLOWED');
-  const input = await body(
-    request,
-    z
-      .strictObject({
-        creditsDelta: z
-          .number()
-          .int()
-          .min(-Number.MAX_SAFE_INTEGER)
-          .max(Number.MAX_SAFE_INTEGER)
-          .optional(),
-        unlimitedCredits: z.boolean().optional(),
-        active: z.boolean().optional(),
-        concurrentSessionLimit: z.number().int().positive().max(Number.MAX_SAFE_INTEGER).optional(),
-        lobbyLifetimeHours: z
-          .number()
-          .int()
-          .positive()
-          .max(Math.floor((Number.MAX_SAFE_INTEGER - Date.now()) / 3_600_000))
-          .optional(),
-      })
-      .refine((v) => Object.keys(v).length > 0),
-  );
+  const input = await body(request, S.adminUpdateBusinessSchema);
   const { creditsDelta, ...patch } = input;
   // A constraint violation rolls back the whole batch, including the audit record.
   try {

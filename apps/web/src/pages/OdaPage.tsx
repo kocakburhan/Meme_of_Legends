@@ -47,8 +47,7 @@ import {
  */
 
 type ScreenTransition =
-  | { kind: 'eliminated'; roundNo: number }
-  | { kind: 'overtime'; inTie: boolean };
+  { kind: 'eliminated'; roundNo: number } | { kind: 'overtime'; inTie: boolean };
 
 interface Me {
   id: string;
@@ -144,9 +143,11 @@ export function OdaPage() {
   } | null>(null);
   const [joinError, setJoinError] = useState<string | null>(null);
   const [takeoverOffer, setTakeoverOffer] = useState(false);
-  const [takeover, setTakeover] = useState<
-    { requestId: string; receipt: string; nickname: string } | null
-  >(null);
+  const [takeover, setTakeover] = useState<{
+    requestId: string;
+    receipt: string;
+    nickname: string;
+  } | null>(null);
   const [invalidToken, setInvalidToken] = useState(false);
   const [ackNote, setAckNote] = useState<string | null>(null);
   const [shareHint, setShareHint] = useState<string | null>(null);
@@ -163,10 +164,11 @@ export function OdaPage() {
 
   const connection = useParticipantSocket(roomCode, stored?.token ?? null);
   const now = connection.now;
-  const { library, categories, loading: libraryLoading } = useLibrary(
-    roomCode,
-    connection.view !== null,
-  );
+  const {
+    library,
+    categories,
+    loading: libraryLoading,
+  } = useLibrary(roomCode, connection.view !== null);
 
   // Oda bilgisi: işletme adı ve oyuncu kartının durumu (SPEC 5.2).
   useEffect(() => {
@@ -268,7 +270,8 @@ export function OdaPage() {
       setStored(next);
     } catch (error) {
       if (error instanceof HttpError) {
-        if (error.code === 'ROOM_NOT_FOUND') setRoomInfo({ code: roomCode, info: null, missing: true });
+        if (error.code === 'ROOM_NOT_FOUND')
+          setRoomInfo({ code: roomCode, info: null, missing: true });
         else if (error.code === 'invalidNickname') {
           setJoinError(nicknameInUseNote());
           setTakeoverOffer(true);
@@ -386,8 +389,7 @@ export function OdaPage() {
 
   /* ------------------------------ Ekranlar ------------------------------- */
 
-  if (infoState === 'missing')
-    return <RoomNotFoundScreen onBack={() => (location.href = '/')} />;
+  if (infoState === 'missing') return <RoomNotFoundScreen onBack={() => (location.href = '/')} />;
 
   if (connection.reason !== null && connection.state === 'closed')
     return <ClosedScreens reason={connection.reason} />;
@@ -438,7 +440,12 @@ export function OdaPage() {
   const rosterEntry = me ? view.participants.find((p) => p.id === me.id) : undefined;
 
   // Onay kuyruğu: kimlik görünümde henüz yok (SPEC 5.2).
-  if (me && !rosterEntry) return <PageFrame><PendingApprovalScreen className="flex-1" /></PageFrame>;
+  if (me && !rosterEntry)
+    return (
+      <PageFrame>
+        <PendingApprovalScreen className="flex-1" />
+      </PageFrame>
+    );
 
   if (me && rosterEntry?.needsNickname)
     return (
@@ -455,10 +462,7 @@ export function OdaPage() {
   if (browsing)
     return (
       <PageFrame>
-        <LibraryBrowseScreen
-          library={library}
-          onClose={() => setBrowsing(false)}
-        />
+        <LibraryBrowseScreen library={library} onClose={() => setBrowsing(false)} />
       </PageFrame>
     );
 
@@ -507,7 +511,9 @@ export function OdaPage() {
 
   return (
     <PageFrame>
-      <LibraryMediaProvider entries={library.map((m) => ({ memeId: m.id }))}>
+      <LibraryMediaProvider
+        entries={library.map((m) => ({ memeId: m.id, src: m.mediaUrl, coverUrl: m.coverUrl }))}
+      >
         {connection.state !== 'open' ? (
           <div className="fixed inset-0 z-40 bg-background/95">
             {connection.state === 'connecting' ? (
@@ -626,8 +632,7 @@ function Scene(props: SceneProps) {
         />
       );
     case 'selection': {
-      if (libraryLoading)
-        return <WaitScreen note="Kütüphane yükleniyor…" />;
+      if (libraryLoading) return <WaitScreen note="Kütüphane yükleniyor…" />;
       if (me.role === 'player' && !view.byes.includes(me.id) && !props.overtime)
         return (
           <SelectionScreen
@@ -654,7 +659,11 @@ function Scene(props: SceneProps) {
       const rivalPlayer =
         view.matches.find((m) => m.includes(me.id))?.find((x) => x !== me.id) ?? null;
       const rivalSubmissionId =
-        rivalPlayer && sub && sub.id !== view.ownSubmissionId && sub.canRate === false && !sub.hidden
+        rivalPlayer &&
+        sub &&
+        sub.id !== view.ownSubmissionId &&
+        sub.canRate === false &&
+        !sub.hidden
           ? sub.id
           : null;
       return (
@@ -705,6 +714,7 @@ export function libraryEntries(library: LibraryEntry[]) {
     title: m.title,
     category: m.category ?? 'Diğer',
     mediaType: m.mediaType,
+    ...(m.durationMs ? { durationMs: m.durationMs } : {}),
   }));
 }
 
@@ -743,6 +753,7 @@ function LibraryBrowseScreen({
             <MemeFrame
               media={{ source: 'system', memeId: meme.id, mediaType: meme.mediaType }}
               title={meme.title}
+              src={meme.mediaUrl}
               className="aspect-square min-h-0 flex-none"
             />
           </li>
@@ -755,7 +766,10 @@ function LibraryBrowseScreen({
 function WaitScreen({ note }: { note: string }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
-      <p aria-hidden="true" className="font-display text-3xl uppercase text-accent motion-safe:animate-pulse-slow">
+      <p
+        aria-hidden="true"
+        className="font-display text-3xl uppercase text-accent motion-safe:animate-pulse-slow"
+      >
         ⋯
       </p>
       <p className="text-sm text-muted">{note}</p>
