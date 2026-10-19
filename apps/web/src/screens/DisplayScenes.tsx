@@ -79,13 +79,14 @@ export function DisplayLobbyScene({ view, room }: { view: View; room: StageRoom 
 /** Seçim sahnesi: büyük durum + geri sayım + hazır işaretleri. */
 export function DisplaySelectionScene({ view, now, room }: { view: View; now: number; room: StageRoom }) {
   const phase = view.phase;
-  const secondsLeft = phase.kind === 'selection' ? Math.max(0, (phase.endsAt - now) / 1000) : 0;
+  const secondsLeft = phase.kind === 'selection' ? remainingSeconds(phase.endsAt, now) : 0;
   const players = view.participants.filter((p) => p.role === 'player');
   const readyCount = players.filter((p) => p.ready).length;
   const pct = players.length > 0 ? Math.round((readyCount / players.length) * 100) : 0;
   return (
     <div className="flex flex-1 flex-col gap-8 p-12">
-      <div className="flex items-start justify-between gap-10">
+      {/* pr-56: sağ üst köşedeki QR kartına girmesin (M3b görsel düzeltme). */}
+      <div className="flex items-start justify-between gap-10 pr-56">
         <div className="min-w-0">
           <p className="text-xs font-bold uppercase tracking-widest text-muted">Durum</p>
           <p className="font-display text-6xl uppercase leading-tight text-accent">
@@ -191,10 +192,10 @@ export function DisplayPresentationScene({
         ) : null}
       </div>
       <div className="flex min-h-0 flex-1 items-center justify-center">
-        <MemeFrame
-          media={submission.media}
-          className="mx-auto aspect-video w-full max-w-[860px] flex-none"
-        />
+        {/* Medya kalan yüksekliğe sığar (16:9); 1280×720'de alttaki satırlar taşmaz. */}
+        <div className="flex aspect-video h-full max-w-full flex-none items-center justify-center">
+          <MemeFrame media={submission.media} className="h-full flex-1" />
+        </div>
       </div>
       <div className="flex items-center gap-6">
         <div aria-hidden="true" className="h-2 flex-1 overflow-hidden rounded-full bg-surface-raised">
@@ -218,14 +219,16 @@ export function DisplayPresentationScene({
           </p>
         ) : null}
       </div>
-      {lastCall ? (
-        <p
-          aria-hidden="true"
-          className="text-center font-display text-2xl uppercase text-accent motion-safe:animate-pulse-slow"
-        >
-          Son karar — puanlar hâlâ değişebilir
-        </p>
-      ) : null}
+      {/* Yerini hep tutar; yalnız son kararda görünür — düzen zıplamaz. */}
+      <p
+        aria-hidden="true"
+        className={cn(
+          'text-center font-display text-2xl uppercase text-accent motion-safe:animate-pulse-slow',
+          !lastCall && 'invisible',
+        )}
+      >
+        Son karar — puanlar hâlâ değişebilir
+      </p>
       <CornerHud view={view} room={room} />
     </div>
   );
@@ -234,31 +237,35 @@ export function DisplayPresentationScene({
 /** Final gözden geçirme sahnesi: küçük resimler + bekleme (SPEC 13.1). */
 export function DisplayReviewScene({ view, now, room }: { view: View; now: number; room: StageRoom }) {
   const phase = view.phase;
-  const secondsLeft = phase.kind === 'review' ? Math.max(0, (phase.endsAt - now) / 1000) : 0;
+  const secondsLeft = phase.kind === 'review' ? remainingSeconds(phase.endsAt, now) : 0;
+  const players = view.participants.filter((p) => p.role === 'player');
+  const submitted = players.filter((p) => p.ready);
   return (
     <div className="flex flex-1 flex-col gap-6 p-12">
-      <div className="flex items-baseline justify-between">
-        <div className="min-w-0">
+      <div className="flex items-start justify-between gap-10 pr-56">
+        <div className="flex min-w-0 flex-col gap-2">
           <p className="text-xs font-bold uppercase tracking-widest text-muted">
             Final gözden geçirme
           </p>
-          <p className="font-display text-5xl uppercase text-accent">{view.prompt?.text ?? '—'}</p>
+          <p className="font-display text-5xl uppercase leading-tight text-accent">
+            {view.prompt?.text ?? '—'}
+          </p>
         </div>
         <p className="font-display text-5xl tabular-nums">{formatClock(secondsLeft)}</p>
       </div>
-      <ul className="grid grid-cols-4 gap-4 overflow-hidden">
-        {view.submissions.map((submission) => (
-          <li key={submission.id}>
-            <MemeFrame
-              media={submission.media}
-              className="aspect-square w-full flex-none"
-              title={submission.hidden ? 'Gizlendi' : undefined}
-            />
-          </li>
-        ))}
-      </ul>
+      {submitted.length > 0 ? (
+        // Görünüm bu fazda gönderi içeriğini taşımaz; yer tutucu çerçeveler sıralamayı gösterir.
+        <ul aria-label="Gönderiler" className="grid grid-cols-4 gap-4 overflow-hidden">
+          {submitted.map((p) => (
+            <li key={p.id}>
+              <MemeFrame media={null} className="aspect-square w-full flex-none" />
+            </li>
+          ))}
+        </ul>
+      ) : null}
       <Note className="text-center text-lg">
-        Telefonlarda son puanlar veriliyor; bitirenler bekleniyor.
+        {submitted.length}/{players.length} gönderi onaylandı; telefonlarda son puanlar veriliyor,
+        bitirenler bekleniyor.
       </Note>
       <CornerHud view={view} room={room} />
     </div>
@@ -294,7 +301,7 @@ export function DisplayResultsScene({
     );
   return (
     <div className="flex flex-1 flex-col gap-5 p-12">
-      <div className="flex items-baseline justify-between">
+      <div className="flex items-start justify-between gap-10 pr-56">
         <p className="font-display text-5xl uppercase">
           {'roundNo' in phase ? phase.roundNo : 0}. tur sonuçları
         </p>
