@@ -3,7 +3,6 @@ import { Link, Navigate, useParams } from 'react-router';
 import type { SessionReport, SessionSummary } from '@mol/shared';
 import { HttpError, getBusinessSession } from '@/net/http';
 import { Note, TopBar } from '@/components/ui';
-import { cn } from '@/lib/cn';
 import { PanelLayout } from '@/panel/PanelLayout';
 import { SessionStatusBadge } from '@/panel/SessionStatusBadge';
 import { useBusinessAccount } from '@/panel/useBusinessAccount';
@@ -103,7 +102,7 @@ export default function BusinessHistoryDetailPage() {
         <>
           <section
             aria-label="Oyun özeti"
-            className={cn(CARD_CLASS, 'gap-3')}
+            className="flex flex-col gap-3 rounded-[var(--radius-card)] border border-line bg-surface p-4"
           >
             <div className="flex items-center justify-between gap-2">
               <p className="font-display text-xl uppercase">Oda {session.roomCode}</p>
