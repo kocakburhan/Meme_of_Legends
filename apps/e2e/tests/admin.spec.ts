@@ -64,10 +64,12 @@ test('admin: giriş → genel bakış → işletme aç → kopyala → hak ekle 
     // Etiketlenmemiş kuyruk boş (tohum meme'leri etiketli).
     await expect(page.getByText('Etiketlenmemiş meme yok.')).toBeVisible();
 
-    // Oturum satırı detaya gider (detay M5c-3'te; yer tutucu bilgi verir).
+    // Oturum satırı detaya gider (M5c-3): rapor/denetim sayfası açılır.
     await sessionRow.getByRole('link').click();
     await expect(page).toHaveURL(new RegExp(`/admin/oturumlar/${lobby.sessionId}$`));
-    await expect(page.getByText('Bu bölüm M5c-3 oturumunda eklenecek.')).toBeVisible();
+    await expect(page.getByRole('heading', { name: `Oda ${lobby.code}` })).toBeVisible();
+    await expect(page.getByText('Lobi', { exact: true })).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Oturum özeti' })).toBeVisible();
 
     // Telefon menüsü: üst çubuktan açılır, seçince kapanır.
     await page.getByRole('button', { name: 'Menü' }).click();
@@ -154,7 +156,9 @@ test('admin: giriş → genel bakış → işletme aç → kopyala → hak ekle 
     await expect(page.getByRole('button', { name: 'Menü' })).toBeHidden();
     await menu.getByRole('link', { name: 'Sistem' }).click();
     await expect(page).toHaveURL(/\/admin\/sistem$/);
-    await expect(page.getByText('Bu bölüm M5c-3 oturumunda eklenecek.')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Sistem' })).toBeVisible();
+    await expect(page.getByText('Hata kayıtları', { exact: true })).toBeVisible();
+    await expect(page.getByText('Admin işlem kaydı', { exact: true })).toBeVisible();
   } finally {
     await context.close().catch(() => undefined);
   }
