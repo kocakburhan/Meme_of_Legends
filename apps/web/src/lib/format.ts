@@ -58,6 +58,7 @@ export const END_REASON_LABELS: Record<string, string> = {
   managerCancelled: 'Lobi iptal edildi',
   lobbyExpired: 'Lobi süresi doldu',
   businessInactive: 'İşletme hesabı devre dışı bırakıldı',
+  adminTerminated: 'Admin oturumu sonlandırdı',
 };
 
 export function formatEndReason(reason: string | null): string {

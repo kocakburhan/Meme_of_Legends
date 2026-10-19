@@ -1,5 +1,5 @@
 import type { MediaRef } from '@mol/engine';
-import { createContext, useContext, type ReactNode } from 'react';
+import { createContext, useContext, useState, type ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 
 /**
@@ -81,7 +81,10 @@ function PlaceholderDrawing({ seed }: { seed: string }) {
 
 /**
  * Meme'ler koyu çerçeve içinde (SPEC 16A.1). `src` varsa gerçek medya,
- * yoksa nötr yer tutucu çizimi gösterilir; ağ erişimi yapılmaz.
+ * yoksa nötr yer tutucu çizimi gösterilir; ağ erişimi yapılmaz. Medya
+ * yüklenmezse kırık resim simgesi yerine SPEC 12.3 uygulanır: bir kez
+ * yeniden denenir, olmazsa sade "Bu cihazda yüklenemedi" yer tutucusu
+ * gösterilir (katılımcı, ortak ekran, konsol, admin hepsinde).
  */
 export function MemeFrame({
   media,
@@ -99,8 +102,19 @@ export function MemeFrame({
   const entry =
     media?.source === 'system' ? entries.find((e) => e.memeId === media.memeId) : undefined;
   const resolved = src ?? entry?.src;
+  const cover = entry?.coverUrl;
   const badge = media ? badgeFor(media) : undefined;
   const seed = media ? (media.source === 'system' ? media.memeId : media.source) : 'none';
+  // SPEC 12.3: hata bir kez yeniden denenir, olmazsa yer tutucu. Deneme sayısı
+  // medya anahtarına bağlı tutulur; medya değişince doğal olarak sıfırlanır.
+  const [errors, setErrors] = useState<Record<string, number>>({});
+  const mediaKey = `${resolved ?? 'none'}#${cover ?? 'none'}`;
+  const attempt = errors[mediaKey] ?? 0;
+  const failed = attempt >= 2;
+  function handleError() {
+    setErrors((prev) => ({ ...prev, [mediaKey]: Math.min((prev[mediaKey] ?? 0) + 1, 2) }));
+  }
+  const retryKey = `${mediaKey}#${attempt}`;
   return (
     <figure
       className={cn(
@@ -108,21 +122,25 @@ export function MemeFrame({
         className,
       )}
     >
-      {resolved && media ? (
+      {resolved && media && !failed ? (
         'mediaType' in media && media.mediaType === 'video' ? (
           <video
+            key={retryKey}
             src={resolved}
-            poster={entry?.coverUrl}
+            poster={cover}
             autoPlay
             muted
             playsInline
             controls
+            onError={handleError}
             className="h-full w-full object-contain"
           />
         ) : (
           <img
+            key={retryKey}
             src={resolved}
             alt={title ?? 'Meme'}
+            onError={handleError}
             className="h-full w-full object-contain"
             loading="lazy"
           />
@@ -133,7 +151,7 @@ export function MemeFrame({
           className="flex flex-1 flex-col items-center justify-center gap-2 self-stretch bg-surface px-4 py-6 text-center"
         >
           <PlaceholderDrawing seed={seed} />
-          {title ? <span className="text-sm text-muted">{title}</span> : null}
+          <span className="text-sm text-muted">{failed ? 'Bu cihazda yüklenemedi' : title}</span>
         </div>
       )}
       {badge ? (

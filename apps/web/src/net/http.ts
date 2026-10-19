@@ -43,7 +43,16 @@ export class HttpError extends Error {
 
 export type { RoomInfo };
 
-async function request<T>(path: string, schema: z.ZodType<T>, init?: RequestInit): Promise<T> {
+/**
+ * Ortak JSON isteği: yanıtı şemayla doğrular; hata gövdesindeki
+ * `{ error: { code, existingId } }` yapısını `HttpError`'a çevirir. Admin API
+ * istemcisi (net/admin.ts) de aynı katmanı kullanır.
+ */
+export async function request<T>(
+  path: string,
+  schema: z.ZodType<T>,
+  init?: RequestInit,
+): Promise<T> {
   let response: Response;
   try {
     response = await fetch(path, {
