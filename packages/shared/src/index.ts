@@ -296,6 +296,13 @@ export const viewSchema = z.strictObject({
     .nullable()
     .optional(),
   promptPreview: promptSchema.nullable().optional(),
+  review: z
+    .strictObject({
+      finished: z.number().int().nonnegative(),
+      eligible: z.number().int().nonnegative(),
+    })
+    .optional(),
+  isFinalRound: z.boolean().optional(),
   result: z
     .strictObject({
       champion: id.nullable(),
@@ -341,3 +348,5 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
     reason: z.enum(['kicked', 'superseded', 'sessionEnded', 'roomExpired']),
   }),
 ]) satisfies z.ZodType<ServerMessage>;
+
+export * from './business.js';

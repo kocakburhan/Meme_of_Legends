@@ -45,7 +45,8 @@ export default {
       if (room) return await roomRoute(request, env, room[1]!, Boolean(room[2]));
       throw new ApiFailure(404, 'NOT_FOUND');
     } catch (error) {
-      if (error instanceof ApiFailure) return json({ error: { code: error.code } }, error.status);
+      if (error instanceof ApiFailure)
+        return json({ error: { code: error.code, ...error.details } }, error.status);
       console.error('Unhandled server error', error);
       return json({ error: { code: 'INTERNAL_ERROR' } }, 500);
     }

@@ -1,3 +1,4 @@
+import { reviewParticipants } from './competition.js';
 export * from './types.js';
 export { project } from './projection.js';
 import { DEFAULT_CONFIG } from './types.js';
@@ -220,15 +221,7 @@ function beginPresentation(s: EngineState, ctx: Ctx, events: EngineEvent[]): voi
 function maybeCloseReview(s: EngineState, ctx: Ctx, events: EngineEvent[]): void {
   if (s.phase.kind !== 'review') return;
   const r = currentRound(s)!;
-  const required = Object.keys(s.participants).filter(
-    (id) =>
-      s.participants[id]!.connected &&
-      eligibleParticipant(s, id, r) &&
-      Object.entries(r.eligibility).some(
-        ([subId, ids]) =>
-          ids.includes(id) && !r.submissions[subId]!.invalid && !r.submissions[subId]!.hidden,
-      ),
-  );
+  const required = reviewParticipants(s, r);
   if (required.every((id) => r.reviewFinished.includes(id))) lockRound(s, ctx, events);
 }
 function lockRound(s: EngineState, ctx: Ctx, events: EngineEvent[]): void {

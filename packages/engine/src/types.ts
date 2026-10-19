@@ -222,6 +222,8 @@ export interface SubmissionView {
   ratingProgress?: { received: number; eligible: number };
 }
 export interface View {
+  review?: { finished: number; eligible: number };
+  isFinalRound?: boolean;
   status: EngineState['status'];
   phase: Phase;
   config: SessionConfig;

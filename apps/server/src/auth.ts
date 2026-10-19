@@ -16,6 +16,7 @@ export class ApiFailure extends Error {
   constructor(
     public status: number,
     public code: string,
+    public details?: { existingId: string },
   ) {
     super(code);
   }
