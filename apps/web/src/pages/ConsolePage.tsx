@@ -60,7 +60,8 @@ export default function ConsolePage() {
   }, []);
 
   useEffect(() => {
-    if (!validateRoomCode(roomCode)) {
+    // validateRoomCode geçersizken hata metni, geçerliyken null döner.
+    if (validateRoomCode(roomCode) !== null) {
       setRoomState('missing');
       return;
     }
