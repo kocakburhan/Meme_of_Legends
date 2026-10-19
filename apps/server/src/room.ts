@@ -852,6 +852,9 @@ export class RoomDurableObject {
   }
   private async checkYoutube(participantId: string, videoId: string) {
     if (!/^[A-Za-z0-9_-]{11}$/.test(videoId)) throw new ApiFailure(422, 'YOUTUBE_INVALID_URL');
+    // E2E (playwright.config.ts): tarayıcı doğrulama ucu sahtelenir; sunucu
+    // ağa çıkmaz. Üretimde bu değişken tanımlı değildir.
+    if (this.env.MOL_YOUTUBE_STUB === '1') return;
     const key = `customYoutube:${this.data!.session.id}:${videoId}`;
     if (((await this.state.storage.get<number>(key)) ?? 0) > this.now()) return;
     await this.customRate(participantId, 'youtube', 10);
