@@ -55,7 +55,7 @@ export const mediaRefSchema = z.discriminatedUnion('source', [
   z
     .strictObject({
       source: z.literal('youtube'),
-      videoId: id,
+      videoId: z.string().regex(/^[A-Za-z0-9_-]{11}$/),
       startMs: z.number().int().nonnegative(),
       endMs: z.number().int().positive(),
     })
@@ -355,3 +355,15 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
 
 export * from './business.js';
 export * from './admin.js';
+
+export const customUploadResponseSchema = z.strictObject({
+  uploadId: id,
+  mediaType: z.enum(['image', 'gif']),
+  previewUrl: z.string().min(1),
+});
+export const youtubeRequestSchema = z.strictObject({ url: z.string().min(1).max(2048) });
+export const youtubeResponseSchema = z.strictObject({
+  videoId: z.string().regex(/^[A-Za-z0-9_-]{11}$/),
+  durationMs: z.number().int().positive().nullable(),
+});
+export const mediaErrorRequestSchema = z.strictObject({ submissionId: id });

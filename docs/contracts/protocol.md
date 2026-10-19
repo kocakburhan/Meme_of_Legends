@@ -74,3 +74,7 @@ type ServerMessage =
 ## 4. Yeniden bağlanma
 - İstemci bağlantı koparsa üstel bekleme ile yeniden bağlanır; bağlanınca ilk mesaj güncel `view`'dur.
 - Aynı katılımcı için yeni bir bağlantı açılırsa eskisi `superseded` ile kapatılır.
+
+## 5. Özel içerik (M6a)
+
+Oda kimliğiyle yükleme, YouTube doğrulama, özel dosya sunumu ve medya hata bildirimi uçları; hata kodları, görünürlük ve saklama kuralları [custom-content.md](custom-content.md) sözleşmesindedir. Yanıt/istek şemaları `customUploadResponseSchema`, `youtubeRequestSchema`, `youtubeResponseSchema`, `mediaErrorRequestSchema` olarak `packages/shared` içinden dışa aktarılır. YouTube `mediaRefSchema.videoId` 11 karakterlik video kimliğidir; kırpma uzunluğu 1–25.000 ms'dir. WebSocket mesaj şekli ve motor API'si değişmez.

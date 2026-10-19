@@ -80,7 +80,7 @@ export function PresentationScreen({
 
       {/* Meme alanı 1–5 düğmeleri kaydırmadan görünür olacak yükseklikte kalır. */}
       <div className="flex min-h-0 flex-1 flex-col gap-2">
-        <MemeFrame media={submission.media} className="flex-1" />
+        <MemeFrame media={submission.media} submissionId={submission.id} className="flex-1" />
         {hasSound ? (
           <button
             type="button"

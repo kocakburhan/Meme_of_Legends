@@ -3,8 +3,11 @@ import type { MediaRef, View } from '@mol/engine';
 import type { LibraryMeme, Me } from '@/lib/contracts';
 import { cn } from '@/lib/cn';
 import { Countdown, LiveStatus } from '@/components/Countdown';
+import { CustomUploadPanel } from '@/components/CustomUploadPanel';
 import { MemeFrame } from '@/components/MemeFrame';
+import { YouTubePanel } from '@/components/YouTubePanel';
 import { Note, PrimaryButton, Screen } from '@/components/ui';
+import type { CustomUpload, YoutubeVerification } from '@/net/custom';
 import { remainingSeconds } from '@/lib/format';
 
 const TABS = [
@@ -31,7 +34,7 @@ function systemMedia(meme: LibraryMeme): MediaRef {
 /**
  * Seçim ekranı (oyuncu): durum + süre + rakip üstte; Kütüphane/Yükle/YouTube
  * sekmeleri; arama + kategori + iki sütun ızgara; altta seçim ve onay.
- * Yükle ve YouTube yalnız görsel iskelettir (işlev M6'da).
+ * Yükle ve YouTube sekmeleri özel içerik açıksa kullanılabilir (SPEC 7.1).
  */
 export function SelectionScreen({
   view,
@@ -41,6 +44,8 @@ export function SelectionScreen({
   categories,
   onSelect,
   onConfirm,
+  onUploadCustom,
+  onVerifyYoutube,
   className,
 }: {
   view: View;
@@ -50,6 +55,8 @@ export function SelectionScreen({
   categories: string[];
   onSelect: (media: MediaRef) => void;
   onConfirm: () => void;
+  onUploadCustom: (file: File, onProgress: (percent: number) => void) => Promise<CustomUpload>;
+  onVerifyYoutube: (url: string) => Promise<YoutubeVerification>;
   className?: string;
 }) {
   const [tab, setTab] = useState<TabId>('library');
@@ -60,11 +67,16 @@ export function SelectionScreen({
   const selection = phase.kind === 'selection' ? remainingSeconds(phase.endsAt, now) : 0;
   const total = phase.kind === 'selection' ? view.config.selectionSeconds : 1;
   const urgent = selection <= 10;
+  const customEnabled = view.config.customContent;
+  const activeTab: TabId = !customEnabled && tab !== 'library' ? 'library' : tab;
 
   const rival = view.matches.find((m) => m.includes(me.id))?.find((id) => id !== me.id) ?? null;
 
   const own = view.ownSubmission ?? null;
   const selectedMemeId = own?.media && own.media.source === 'system' ? own.media.memeId : null;
+  // Yönetici özel içeriği reddettiyse oyuncuya net bildirim (SPEC 7.1);
+  // süre sürerken yeni bir seçim yapabilir.
+  const rejectedCustom = own !== null && own.invalid && own.customType !== null;
 
   const filtered = useMemo(() => {
     const q = query.trim().toLocaleLowerCase('tr');
@@ -82,17 +94,18 @@ export function SelectionScreen({
     youtube: null,
   });
 
-  /** Sekmelerde ok/Home/End; yalnız etkin sekme Tab sırasındadır (WAI-ARIA). */
+  /** Sekmelerde ok/Home/End; yalnız etkin, etkinleştirilmiş sekme Tab sırasındadır (WAI-ARIA). */
   function handleTabKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    const index = TABS.findIndex((t) => t.id === tab);
+    const enabled = TABS.filter((t) => t.id === 'library' || customEnabled);
+    const index = enabled.findIndex((t) => t.id === activeTab);
     let next: number | null = null;
-    if (event.key === 'ArrowRight') next = (index + 1) % TABS.length;
-    else if (event.key === 'ArrowLeft') next = (index - 1 + TABS.length) % TABS.length;
+    if (event.key === 'ArrowRight') next = (index + 1) % enabled.length;
+    else if (event.key === 'ArrowLeft') next = (index - 1 + enabled.length) % enabled.length;
     else if (event.key === 'Home') next = 0;
-    else if (event.key === 'End') next = TABS.length - 1;
+    else if (event.key === 'End') next = enabled.length - 1;
     if (next === null) return;
     event.preventDefault();
-    const nextTab = TABS[next]!;
+    const nextTab = enabled[next]!;
     setTab(nextTab.id);
     tabRefs.current[nextTab.id]?.focus();
   }
@@ -122,37 +135,50 @@ export function SelectionScreen({
         onKeyDown={handleTabKeyDown}
         className="flex gap-1 overflow-x-auto rounded-md bg-surface p-1"
       >
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            ref={(element) => {
-              tabRefs.current[t.id] = element;
-            }}
-            id={`${panelId}-tab-${t.id}`}
-            type="button"
-            role="tab"
-            aria-selected={tab === t.id}
-            aria-controls={`${panelId}-panel-${t.id}`}
-            tabIndex={tab === t.id ? 0 : -1}
-            onClick={() => setTab(t.id)}
-            className={cn(
-              'min-h-11 min-w-fit flex-1 whitespace-nowrap rounded-sm px-2 text-sm font-bold transition-colors',
-              tab === t.id ? 'bg-accent text-accent-ink' : 'text-muted hover:text-foreground',
-            )}
-          >
-            {t.label}
-          </button>
-        ))}
+        {TABS.map((t) => {
+          const disabled = t.id !== 'library' && !customEnabled;
+          return (
+            <button
+              key={t.id}
+              ref={(element) => {
+                tabRefs.current[t.id] = element;
+              }}
+              id={`${panelId}-tab-${t.id}`}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === t.id}
+              aria-controls={`${panelId}-panel`}
+              aria-describedby={disabled ? `${panelId}-custom-off` : undefined}
+              disabled={disabled}
+              tabIndex={activeTab === t.id ? 0 : -1}
+              onClick={() => setTab(t.id)}
+              className={cn(
+                'min-h-11 min-w-fit flex-1 whitespace-nowrap rounded-sm px-2 text-sm font-bold transition-colors',
+                activeTab === t.id
+                  ? 'bg-accent text-accent-ink'
+                  : 'text-muted hover:text-foreground',
+                disabled && 'cursor-not-allowed opacity-50',
+              )}
+            >
+              {t.label}
+            </button>
+          );
+        })}
       </div>
+      {!customEnabled ? (
+        <p id={`${panelId}-custom-off`} className="text-sm leading-relaxed text-muted">
+          Bu oyunda özel içerik kapalı; yalnız kütüphaneden seçebilirsin.
+        </p>
+      ) : null}
 
       <div
+        id={`${panelId}-panel`}
         role="tabpanel"
-        id={`${panelId}-panel-${tab}`}
-        aria-labelledby={`${panelId}-tab-${tab}`}
+        aria-labelledby={`${panelId}-tab-${activeTab}`}
         className="flex min-h-0 flex-1 flex-col gap-3"
       >
-        {tab === 'library' ? (
-          <>
+        {activeTab === 'library' ? (
+          <div className="flex min-h-0 flex-1 flex-col gap-3">
             <div>
               <label htmlFor={`${panelId}-search`} className="sr-only">
                 Ara
@@ -233,22 +259,24 @@ export function SelectionScreen({
                 })}
               </ul>
             )}
-          </>
-        ) : tab === 'upload' ? (
-          <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-[var(--radius-card)] border border-dashed border-line bg-surface p-6 text-center">
-            <p className="font-display text-xl uppercase">Yakında</p>
-            <Note>Resim/GIF yükleme M6'da geliyor. JPG, PNG, WebP, GIF; en fazla 10 MB olacak.</Note>
           </div>
+        ) : activeTab === 'upload' ? (
+          <CustomUploadPanel onUpload={onUploadCustom} onSelect={onSelect} />
         ) : (
-          <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-[var(--radius-card)] border border-dashed border-line bg-surface p-6 text-center">
-            <p className="font-display text-xl uppercase">Yakında</p>
-            <Note>YouTube kırpma M6'da geliyor; en fazla 25 sn'lik klip seçebileceksin.</Note>
-          </div>
+          <YouTubePanel onVerify={onVerifyYoutube} onSelect={onSelect} />
         )}
       </div>
 
       {/* Alt onay çubuğu */}
       <div className="sticky bottom-0 -mx-4 mt-2 bg-background/95 px-4 pb-2 pt-3 backdrop-blur">
+        {rejectedCustom ? (
+          <p
+            role="alert"
+            className="mb-2 rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger"
+          >
+            Bu içerik kabul edilmedi. Süre varsa yeni bir seçim yap; yoksa bu tur 0 alırsın.
+          </p>
+        ) : null}
         <LiveStatus
           message={
             own ? (own.confirmed ? 'Seçimin onaylandı.' : 'Seçim yapıldı; onay bekleniyor.') : null

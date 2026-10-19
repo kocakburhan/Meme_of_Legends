@@ -202,7 +202,7 @@ export function DisplayPresentationScene({
       <div className="flex min-h-0 flex-1 items-center justify-center">
         {/* Medya kalan yüksekliğe sığar (16:9); 1280×720'de alttaki satırlar taşmaz. */}
         <div className="flex aspect-video h-full max-w-full flex-none items-center justify-center">
-          <MemeFrame media={submission.media} className="h-full flex-1" />
+          <MemeFrame media={submission.media} submissionId={submission.id} className="h-full flex-1" />
         </div>
       </div>
       <div className="flex items-center gap-6">

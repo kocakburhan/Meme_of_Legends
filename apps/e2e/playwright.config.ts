@@ -1,3 +1,6 @@
+import { randomBytes } from 'node:crypto';
+import { existsSync, writeFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from '@playwright/test';
 
 /**
@@ -5,6 +8,12 @@ import { defineConfig } from '@playwright/test';
  * Sunucular test runner tarafından başlatılır ve bitince kapatılır.
  * Paralel worktree'lerde portlar `MOL_SERVER_PORT` / `MOL_WEB_PORT` ile değişir.
  */
+// Playwright web sunucularını globalSetup'tan önce başlatır; sunucu ilk koşuda da
+// TOKEN_SECRET ile açılsın diye .dev.vars burada hazırlanır.
+const devVars = fileURLToPath(new URL('../server/.dev.vars', import.meta.url));
+if (!existsSync(devVars))
+  writeFileSync(devVars, `TOKEN_SECRET=${randomBytes(32).toString('base64url')}\n`);
+
 const server = process.env.MOL_SERVER_PORT ?? '8787';
 const web = process.env.MOL_WEB_PORT ?? '5173';
 
@@ -22,7 +31,9 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: `pnpm --filter @mol/server dev --port ${server} --inspector-port 0`,
+      // `MOL_YOUTUBE_STUB`: e2e'de YouTube doğrulama ucu tarayıcıda sahtelenir;
+      // sunucu oEmbed ağ çağrısı yapmaz (testler ağdan bağımsız kalır).
+      command: `pnpm --filter @mol/server dev --port ${server} --inspector-port 0 --var MOL_YOUTUBE_STUB:1`,
       url: `http://localhost:${server}/health`,
       reuseExistingServer: false,
       timeout: 150_000,
