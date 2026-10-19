@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router';
 import { promptTextSchema } from '@mol/shared';
 import { cn } from '@/lib/cn';
@@ -11,6 +11,7 @@ import {
   type PromptStatusFilter,
 } from '@/net/http';
 import { Card, GhostButton, Note, PrimaryButton, TopBar } from '@/components/ui';
+import { SearchForm } from '@/components/SearchForm';
 import { Badge, Segmented } from '@/console/bits';
 import { PanelLayout } from '@/panel/PanelLayout';
 import { useBusinessAccount } from '@/panel/useBusinessAccount';
@@ -95,7 +96,6 @@ export default function BusinessPromptsPage() {
   const navigate = useNavigate();
   const { status } = useBusinessAccount();
   const [filter, setFilter] = useState<PromptStatusFilter>('active');
-  const [searchInput, setSearchInput] = useState('');
   const [query, setQuery] = useState('');
   const [reloadToken, setReloadToken] = useState(0);
   const [list, setList] = useState<PromptListState>({ state: 'loading' });
@@ -241,12 +241,6 @@ export default function BusinessPromptsPage() {
     }
   }
 
-  function handleSearch(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setQuery(searchInput.trim());
-    resetList();
-  }
-
   function emptyNote(): string {
     if (query) return 'Aramanla eşleşen durum yok.';
     if (filter === 'archived') return 'Arşivde durum yok.';
@@ -306,40 +300,15 @@ export default function BusinessPromptsPage() {
             resetList();
           }}
         />
-        <form
-          onSubmit={handleSearch}
-          role="search"
-          aria-label="Durum ara"
-          className="flex items-end gap-2"
-        >
-          <div className="min-w-0 flex-1">
-            <label htmlFor="prompt-search" className="mb-1 block text-sm font-bold">
-              Ara
-            </label>
-            <input
-              id="prompt-search"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              maxLength={PROMPT_MAX}
-              className="h-12 w-full rounded-md border border-line bg-background px-3 text-base"
-            />
-          </div>
-          <GhostButton type="submit" className="min-h-12 w-auto px-4 text-sm">
-            Ara
-          </GhostButton>
-          {query ? (
-            <GhostButton
-              onClick={() => {
-                setSearchInput('');
-                setQuery('');
-                resetList();
-              }}
-              className="min-h-12 w-auto px-4 text-sm"
-            >
-              Temizle
-            </GhostButton>
-          ) : null}
-        </form>
+        <SearchForm
+          id="prompt-search"
+          ariaLabel="Durum ara"
+          placeholder="Durumlarında ara"
+          onSubmit={(next) => {
+            setQuery(next);
+            resetList();
+          }}
+        />
       </Card>
 
       <section

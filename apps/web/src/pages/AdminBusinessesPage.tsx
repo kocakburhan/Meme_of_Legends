@@ -6,6 +6,7 @@ import type { AdminActiveFilter } from '@/net/admin';
 import { HttpError } from '@/net/http';
 import { Badge, Segmented } from '@/console/bits';
 import { Card, GhostButton, Note, PrimaryButton, TopBar } from '@/components/ui';
+import { SearchForm } from '@/components/SearchForm';
 import { CopyButton } from '@/admin/CopyButton';
 import { adminLoginPath, isAdminAuthError } from '@/admin/auth';
 
@@ -37,7 +38,6 @@ function suggestedPassword(): string {
 export default function AdminBusinessesPage() {
   const navigate = useNavigate();
   const [filter, setFilter] = useState<AdminActiveFilter>('all');
-  const [searchInput, setSearchInput] = useState('');
   const [query, setQuery] = useState('');
   const [reloadToken, setReloadToken] = useState(0);
   const [list, setList] = useState<ListState>({ state: 'loading' });
@@ -64,12 +64,6 @@ export default function AdminBusinessesPage() {
   }, [filter, query, reloadToken, navigate]);
 
   const reload = () => setReloadToken((t) => t + 1);
-
-  function handleSearch(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setQuery(searchInput.trim());
-    setList({ state: 'loading' });
-  }
 
   async function handleCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -132,7 +126,8 @@ export default function AdminBusinessesPage() {
               setFormOpen((o) => !o);
               setCreateError(null);
             }}
-            className="min-h-11 w-auto px-3 text-sm"
+            wide={false}
+            className="min-h-11 px-3 text-sm"
           >
             {formOpen ? 'Formu kapat' : 'İşletme Oluştur'}
           </GhostButton>
@@ -246,40 +241,15 @@ export default function AdminBusinessesPage() {
             setList({ state: 'loading' });
           }}
         />
-        <form
-          onSubmit={handleSearch}
-          role="search"
-          aria-label="İşletme ara"
-          className="flex items-end gap-2"
-        >
-          <div className="min-w-0 flex-1">
-            <label htmlFor="business-search" className="mb-1 block text-sm font-bold">
-              Ara
-            </label>
-            <input
-              id="business-search"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              maxLength={200}
-              className="h-12 w-full rounded-md border border-line bg-background px-3 text-base"
-            />
-          </div>
-          <GhostButton type="submit" className="min-h-12 w-auto px-4 text-sm">
-            Ara
-          </GhostButton>
-          {query ? (
-            <GhostButton
-              onClick={() => {
-                setSearchInput('');
-                setQuery('');
-                setList({ state: 'loading' });
-              }}
-              className="min-h-12 w-auto px-4 text-sm"
-            >
-              Temizle
-            </GhostButton>
-          ) : null}
-        </form>
+        <SearchForm
+          id="business-search"
+          ariaLabel="İşletme ara"
+          placeholder="Ad ya da kullanıcı adı"
+          onSubmit={(next) => {
+            setQuery(next);
+            setList({ state: 'loading' });
+          }}
+        />
       </Card>
 
       <section

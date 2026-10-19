@@ -95,6 +95,7 @@ export function GhostButton({
   className,
   ariaLabel,
   type = 'button',
+  wide = true,
 }: {
   children: ReactNode;
   onClick?: () => void;
@@ -102,6 +103,10 @@ export function GhostButton({
   className?: string;
   ariaLabel?: string;
   type?: 'button' | 'submit';
+  /** Satırda içerik genişliğinde durmak için false; varsayılan tam genişlik.
+   * Tailwind sıralamasında `w-full` örtük `w-auto`yu ezdiği için düğme
+   * genişliği buradan kontrol edilir; çağrıda `w-auto` yazmak yetmez. */
+  wide?: boolean;
 }) {
   return (
     <button
@@ -110,7 +115,8 @@ export function GhostButton({
       disabled={disabled}
       aria-label={ariaLabel}
       className={cn(
-        'flex min-h-12 w-full items-center justify-center rounded-md border border-line bg-surface px-4 font-bold text-foreground transition-colors hover:border-accent disabled:cursor-not-allowed disabled:opacity-50',
+        'flex min-h-12 items-center justify-center rounded-md border border-line bg-surface px-4 font-bold text-foreground transition-colors hover:border-accent disabled:cursor-not-allowed disabled:opacity-50',
+        wide && 'w-full',
         className,
       )}
     >
