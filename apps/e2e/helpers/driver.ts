@@ -193,13 +193,13 @@ async function login(
   return { cookie };
 }
 
-export async function createBusinessAndLobby(
-  settings: Partial<SessionConfig>,
+/** Yalnız API ile işletme hesabı açar ve giriş çerezini döner; panel testleri için. */
+export async function createBusiness(
   business: { username: string; password: string } = {
     username: `anka-${crypto.randomUUID().slice(0, 8)}`,
     password: 'anka-kafe-pass-123',
   },
-): Promise<BusinessLobby> {
+): Promise<{ username: string; password: string; cookie: string }> {
   const admin = await login('/api/auth/admin/login', {
     username: 'e2e-admin',
     password: 'e2e-admin-password-123',
@@ -211,9 +211,20 @@ export async function createBusinessAndLobby(
   });
   if (!created.ok) throw new Error(`business create → ${created.status} ${await created.text()}`);
   const session = await login('/api/auth/business/login', business);
+  return { ...business, cookie: session.cookie };
+}
+
+export async function createBusinessAndLobby(
+  settings: Partial<SessionConfig>,
+  business: { username: string; password: string } = {
+    username: `anka-${crypto.randomUUID().slice(0, 8)}`,
+    password: 'anka-kafe-pass-123',
+  },
+): Promise<BusinessLobby> {
+  const account = await createBusiness(business);
   const res = await fetch(`${SERVER}/api/business/sessions`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', cookie: session.cookie },
+    headers: { 'content-type': 'application/json', cookie: account.cookie },
     body: JSON.stringify({
       settings: {
         mode: 'league',
@@ -233,9 +244,9 @@ export async function createBusinessAndLobby(
   return {
     code: data.session.roomCode,
     sessionId: data.session.id,
-    businessCookie: session.cookie,
-    username: business.username,
-    password: business.password,
+    businessCookie: account.cookie,
+    username: account.username,
+    password: account.password,
   };
 }
 
