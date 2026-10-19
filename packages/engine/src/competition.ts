@@ -14,6 +14,18 @@ export function eligibleParticipant(s: EngineState, id: string, round: Round): b
   const p = s.participants[id];
   return !!p && p.status === 'active' && p.votingFromRound <= round.no;
 }
+/** Connected participants who can still review at least one valid submission. */
+export function reviewParticipants(s: EngineState, r: Round): string[] {
+  return Object.keys(s.participants).filter(
+    (id) =>
+      s.participants[id]!.connected &&
+      eligibleParticipant(s, id, r) &&
+      Object.entries(r.eligibility).some(
+        ([subId, ids]) =>
+          ids.includes(id) && !r.submissions[subId]!.invalid && !r.submissions[subId]!.hidden,
+      ),
+  );
+}
 export function eliminate(s: EngineState, id: string, score: number, events: EngineEvent[]): void {
   const p = s.participants[id]!;
   if (p.withdrawn) return;

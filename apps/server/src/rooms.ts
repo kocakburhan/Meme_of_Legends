@@ -1,3 +1,4 @@
+import { businessDataRoute } from './business';
 import { DEFAULT_CONFIG } from '@mol/engine';
 import { joinRequestSchema, roomCodeSchema, sessionConfigSchema } from '@mol/shared';
 import { and, eq, sql } from 'drizzle-orm';
@@ -110,6 +111,8 @@ export async function businessRoute(
     }
     throw new ApiFailure(503, 'ROOM_CODE_UNAVAILABLE');
   }
+  const data = await businessDataRoute(request, env, path, auth.ownerId);
+  if (data) return data;
   const match = /^\/api\/business\/sessions\/([^/]+)\/cancel$/.exec(path);
   if (match && request.method === 'POST') {
     await expireLobbies(env);
@@ -124,7 +127,15 @@ export async function businessRoute(
         ),
       )
       .returning();
-    if (!result.length) throw new ApiFailure(409, 'LOBBY_NOT_CANCELLABLE');
+    if (!result.length) {
+      const own = await db
+        .select({ id: gameSessions.id })
+        .from(gameSessions)
+        .where(and(eq(gameSessions.id, match[1]!), eq(gameSessions.businessId, auth.ownerId)))
+        .get();
+      if (!own) throw new ApiFailure(404, 'NOT_FOUND');
+      throw new ApiFailure(409, 'LOBBY_NOT_CANCELLABLE');
+    }
     await closeRoom(env, result[0]!.roomCode, result[0]!.id);
     return json({ ok: true });
   }

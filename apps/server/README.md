@@ -133,3 +133,30 @@ coverage exercises takeover approval/rejection and receipt privacy, display role
 permissions and code races/expiry, cross-room credentials, rematch credit handling
 and crash replay, plus recovery from selection/presentation/review/results/paused
 states and hibernation during the countdown.
+
+Business panel endpoints (business session cookie required; foreign records return
+`404 NOT_FOUND`):
+
+| Method | Endpoint                                                  | Purpose                                                                            |
+| ------ | --------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| GET    | `/api/business/sessions?status=active`                    | All lobby/running/paused session summaries                                         |
+| GET    | `/api/business/sessions?status=past&cursor=&limit=20`     | Finished/cancelled/terminated summaries, newest first                              |
+| GET    | `/api/business/sessions/:id`                              | Session summary and report, or `report: null`                                      |
+| GET    | `/api/business/prompts?q=&status=active&cursor=&limit=50` | Turkish case-insensitive literal text search; status `active`, `archived` or `all` |
+| POST   | `/api/business/prompts`                                   | `{ text }`; returns `201 { prompt }`                                               |
+| PATCH  | `/api/business/prompts/:id`                               | `{ text?, status?: 'active' \| 'archived' }`; edit, archive or reactivate          |
+
+Shared request/response validators and `normalizePromptText` are exported from
+`@mol/shared`. Prompt text accepts 3–160 Unicode code points, with no links or HTML.
+Invalid prompt writes return `422 PROMPT_INVALID`; normalized duplicates (including
+archived prompts) return `409 { error: { code: 'PROMPT_DUPLICATE', existingId } }`.
+Business writes cannot change admin blocking. Past sessions and prompts use opaque,
+query-scoped cursors over descending `(createdAt, id)`; `nextCursor: null` ends the
+list. Limits are 1–100; invalid queries/cursors return `400 INVALID_REQUEST`.
+Reports derive counts, standings, awards and hidden-content totals from the stored
+final snapshot. Anonymized reports expose anonymous names in both summary and detail.
+
+Engine projections include manager/display review completion counts. `isFinalRound`
+becomes true only after the locked outcome confirms there is no further round or
+overtime; an unresolved final is false. Manager selection views already include
+private submissions and sender IDs.

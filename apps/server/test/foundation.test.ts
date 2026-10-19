@@ -280,8 +280,8 @@ describe('lobbies and participant tokens', () => {
     const other = await login('business', 'other');
     await error(
       await api(`/api/business/sessions/${session.id}/cancel`, 'POST', {}, other),
-      409,
-      'LOBBY_NOT_CANCELLABLE',
+      404,
+      'NOT_FOUND',
     );
     expect(
       (await api(`/api/business/sessions/${session.id}/cancel`, 'POST', {}, business)).status,
