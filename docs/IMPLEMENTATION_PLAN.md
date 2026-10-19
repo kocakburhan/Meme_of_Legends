@@ -49,8 +49,8 @@
 
 ### M5 — Admin paneli ve içerik hattı
 - Admin paneli: genel bakış, işletmeler (imtiyazlar, adına giriş, pasife alma, şifre sıfırlama), oturumlar (rapor, sonlandırma, hak iadesi), kategoriler, platform durumları, işletme durumu denetimi, hata ve işlem kayıtları.
-- Medya hattı (`tools/media`; çalışma ortamı M5 başında kesinleşir — aday: Cloudflare Containers, Workers Paid ayda 5 $): Linkten ekle, toplu içe aktarma (link listesi / klasör), dönüştürme, kapak görseli, R2'ye yükleme, etiketlenmemiş kuyruğu, hızlı etiketleme ekranı, video kesme.
-- **Bitti:** admin bir X/Instagram/YouTube linkiyle meme ekler ve meme oyunda kullanılabilir; 50 linklik toplu içe aktarma kuyruğa düşer, indirilemeyenler raporlanır.
+- Medya hattı: owner'ın bilgisayarında çalışan yerel komut satırı aracı (`tools/media`; yt-dlp + ffmpeg): linkten/dosyadan/klasörden/link listesinden ekleme, dönüştürme, kapak görseli, video kesme, admin API'si üzerinden yükleme. Sunucu medyayı R2'den sunar. Panelde etiketlenmemiş kuyruğu ve hızlı etiketleme.
+- **Bitti:** admin yerel araçla bir X/Instagram/YouTube linkinden meme ekler ve meme oyunda gerçek medyasıyla görünür; 50 linklik toplu içe aktarma kuyruğa düşer, indirilemeyenler raporlanır; platform durumları panelden eklenir.
 
 ### M6 — Özel içerik
 - Resim/GIF yükleme (boyut/biçim doğrulama, EXIF temizleme), YouTube linki doğrulama ve kırpma, gizlilik modlu oynatıcı.

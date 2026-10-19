@@ -189,11 +189,12 @@ Amaç hileyi imkânsız kılmak değil, zahmetli ve görünür kılmaktır. Arka
 ### 6.1 Sistem meme kütüphanesi
 - Resim, GIF ve video içerir. Tüm dosyalar **kendi depolamamızda** tutulur (hedef: Cloudflare R2). Dış platform bağımlılığı yoktur.
 - Videolar yükleme/içe aktarma sırasında tüm hedef tarayıcılarda oynayan tek biçime dönüştürülür, küçültülür, kapak görseli çıkarılır. En fazla 25 sn'dir; daha uzunsa admin başlangıç/bitiş seçer ve dosya kesilir.
-- **İçerik ekleme yolları:**
-  - **Linkten ekle:** Admin bir X, Instagram veya YouTube linki yapıştırır; sistem içeriği arka planda indirir, dönüştürür ve depolamaya yükler (ilerleme gösterilir). Admin bu sırada kategori seçer ve açıklama yazar; hazır olunca önizler (gerekirse keser) ve ekler. İçerik doğrudan kütüphaneye girer. İndirilemeyen içerik (silinmiş, gizli, giriş gerektiren vb.) için net hata gösterilir.
-  - **Dosya yükleme:** Panelden tekli veya çoklu (sürükle-bırak).
-  - **Toplu içe aktarma:** Link listesi veya dosya klasörü verilir; hepsi işlenir, indirilemeyenler raporlanır.
-- Dosya yükleme ve toplu içe aktarmayla gelenler **etiketlenmemiş kuyruğuna** düşer; kategori ve açıklama girilene kadar oyunda görünmez. Hızlı etiketleme ekranı içerikleri tek tek getirir (büyük önizleme, kategori, açıklama, kaynak link, kesme aracı, "Kaydet ve sıradakine geç", klavye kısayolları).
+- **İçerik ekleme yolları (owner kararı, M5):** Meme ekleme admin panelinden değil, **owner'ın kendi bilgisayarında çalışan yerel bir araçla** (`tools/media`, yt-dlp + ffmpeg) yapılır. Araç işlenmiş dosyayı admin girişiyle sunucuya yükler; ayrı bir bulut medya ortamı yoktur.
+  - **Linkten ekle:** X, Instagram veya YouTube linki verilir; araç indirir, dönüştürür, kapak çıkarır ve yükler. Kategori ve açıklama komutta verilirse içerik doğrudan kütüphaneye girer. İndirilemeyen içerik (silinmiş, gizli, giriş gerektiren vb.) için net hata verir.
+  - **Dosyadan ekle:** Tek dosya veya klasör.
+  - **Toplu içe aktarma:** Link listesi dosyası veya klasör; hepsi işlenir, indirilemeyenler raporlanır.
+  - **Video kesme:** Yerelde yapılır (başlangıç/bitiş verilerek). 25 sn'den uzun video kesim aralığı verilmeden eklenmez; toplu işte rapora "kesim gerekli" olarak düşer.
+- Kategori/açıklama verilmeden gelenler **etiketlenmemiş kuyruğuna** düşer; kategori ve açıklama girilene kadar oyunda görünmez. Admin panelindeki hızlı etiketleme ekranı içerikleri tek tek getirir (büyük önizleme, kategori, açıklama, kaynak link, "Kaydet ve sıradakine geç", klavye kısayolları).
 - **Meta veri:** Her öğenin **kategorisi** ve **açıklaması** vardır; açıklama kartta başlık olarak görünür ve aramada kullanılır. Ayrı etiket alanı yoktur. Orijinal kaynak linki saklanır (mükerrer kontrolü, yeniden indirme).
 - Tüm aktif sistem meme'leri her oturumda kullanılabilir; paket, yaş etiketi veya ortam filtresi yoktur. Kategoriler yalnız gezinmeyi kolaylaştırır.
 - Aynı turda birden fazla oyuncu aynı meme'i seçebilir; bir oyuncu aynı meme'i sonraki turlarda tekrar kullanabilir.
@@ -475,7 +476,8 @@ Oyuncu kendi isteğiyle de menüden **"Oyunu bırak, seyirci ol"** seçebilir; s
 - **İşletme adına giriş:** Admin işletmenin konsolunu onun adına açıp canlı müdahale edebilir. Her giriş kayda geçer.
 
 ### 15.3 İçerik
-- Meme kategorileri; sistem meme'leri: linkten ekle, dosya yükleme, toplu içe aktarma, etiketlenmemiş kuyruğu ve hızlı etiketleme, önizleme, kategori/açıklama düzenleme, video kesme, arşivleme.
+- Meme kategorileri; sistem meme'leri: listeleme/arama, etiketlenmemiş kuyruğu ve hızlı etiketleme, önizleme, kategori/açıklama düzenleme, arşivleme. Ekleme ve video kesme yerel araçtadır (6.1).
+- Platform durumları metin olarak admin panelinden eklenir.
 - Platform durumları: oluşturma, düzenleme, arşivleme; az durum uyarısı.
 - İşletme durumları: listeleme, filtreleme, detay, engelleme / engeli kaldırma.
 
