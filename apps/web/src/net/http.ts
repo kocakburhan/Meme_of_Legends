@@ -1,5 +1,9 @@
 import {
+  businessPromptResponseSchema,
+  businessPromptSchema,
+  businessPromptsResponseSchema,
   businessSessionsResponseSchema,
+  createBusinessPromptRequestSchema,
   displayPairRequestSchema,
   displayPairResponseSchema,
   joinRequestSchema,
@@ -9,6 +13,7 @@ import {
   sessionConfigSchema,
   takeoverRequestSchema,
   takeoverResponseSchema,
+  updateBusinessPromptRequestSchema,
   type DisplayPairResponse,
   type JoinResponse,
   type RoomInfo,
@@ -27,6 +32,8 @@ export class HttpError extends Error {
   constructor(
     readonly status: number,
     readonly code: string,
+    /** 409 PROMPT_DUPLICATE: çakışan kaydın kimliği (business-api.md §2). */
+    readonly existingId?: string,
   ) {
     super(`${status} ${code}`);
   }
@@ -49,13 +56,15 @@ async function request<T>(path: string, schema: z.ZodType<T>, init?: RequestInit
   }
   if (!response.ok) {
     let code = 'HTTP_' + response.status;
+    let existingId: string | undefined;
     try {
-      const data = (await response.json()) as { error?: { code?: string } };
+      const data = (await response.json()) as { error?: { code?: string; existingId?: string } };
       code = data.error?.code ?? code;
+      existingId = data.error?.existingId;
     } catch {
       /* Non-JSON error body. */
     }
-    throw new HttpError(response.status, code);
+    throw new HttpError(response.status, code, existingId);
   }
   try {
     return schema.parse(await response.json());
@@ -212,5 +221,46 @@ export function changeBusinessPassword(input: {
   return request('/api/auth/business/password', z.strictObject({ ok: z.literal(true) }), {
     method: 'POST',
     body: JSON.stringify(input),
+  });
+}
+
+/* --------------------- İşletme durumları (M4c-2, 6.2) --------------------- */
+
+export type BusinessPrompt = z.infer<typeof businessPromptSchema>;
+export type BusinessPromptList = z.infer<typeof businessPromptsResponseSchema>;
+export type PromptStatusFilter = 'active' | 'archived' | 'all';
+
+/**
+ * İşletmenin durum kütüphanesi (docs/contracts/business-api.md §2): arama
+ * metinde, Türkçe büyük/küçük harf duyarsız; imleç yeniden eskiye sayfalar.
+ */
+export function listBusinessPrompts(
+  opts: { q?: string; status?: PromptStatusFilter; cursor?: string; limit?: number } = {},
+): Promise<BusinessPromptList> {
+  const params = new URLSearchParams({ status: opts.status ?? 'active' });
+  if (opts.q) params.set('q', opts.q);
+  if (opts.cursor) params.set('cursor', opts.cursor);
+  if (opts.limit) params.set('limit', String(opts.limit));
+  return request(`/api/business/prompts?${params.toString()}`, businessPromptsResponseSchema);
+}
+
+/** Yeni durum ekler; metin yerinde şemayla doğrulanır (3–160, link/HTML yok). */
+export function createBusinessPrompt(text: string): Promise<{ prompt: BusinessPrompt }> {
+  createBusinessPromptRequestSchema.parse({ text });
+  return request('/api/business/prompts', businessPromptResponseSchema, {
+    method: 'POST',
+    body: JSON.stringify({ text }),
+  });
+}
+
+/** Durumu düzenler veya arşivler / yeniden etkinleştirir. */
+export function updateBusinessPrompt(
+  id: string,
+  patch: { text?: string; status?: 'active' | 'archived' },
+): Promise<{ prompt: BusinessPrompt }> {
+  updateBusinessPromptRequestSchema.parse(patch);
+  return request(`/api/business/prompts/${encodeURIComponent(id)}`, businessPromptResponseSchema, {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
   });
 }
