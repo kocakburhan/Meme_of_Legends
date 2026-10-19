@@ -1054,7 +1054,11 @@ describe('view position and own submission identity (M3b)', () => {
       { kind: 'display' },
     ] as const) {
       const v = project(g.state, viewer, g.ctx);
-      expect(v.presentation).toEqual({ index: p.index, total: 2 });
+      expect(v.presentation).toEqual({
+        index: p.index,
+        total: 2,
+        submissionId: g.round.order[p.index],
+      });
       expect(v.submissions.every((s) => s.playerId === undefined)).toBe(true);
     }
     const p0 = project(g.state, { kind: 'participant', participantId: 'p0' }, g.ctx);

@@ -140,7 +140,11 @@ export function project(state: EngineState, viewer: Viewer, _ctx: Ctx): View {
   }
   if (manager) view.promptPreview = s.promptPreview;
   if (r && admitted && s.phase.kind === 'presentation')
-    view.presentation = { index: s.phase.index, total: r.order.length };
+    view.presentation = {
+      index: s.phase.index,
+      total: r.order.length,
+      submissionId: r.order[s.phase.index]!,
+    };
   if (id && admitted)
     view.ownSubmissionId =
       Object.values(r?.submissions ?? {}).find((x) => x.playerId === id)?.id ?? null;

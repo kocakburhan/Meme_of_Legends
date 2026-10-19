@@ -74,3 +74,14 @@ it.each(['league', 'elimination', 'hybrid'] as const)(
     expect(project(g.state, { kind: 'display' }, g.ctx).isFinalRound).toBe(true);
   },
 );
+it('names the submission on screen during presentation for every admitted viewer', () => {
+  const g = new Game({}, 3, 1).start();
+  g.submitAll();
+  expect(g.state.phase.kind).toBe('presentation');
+  const onScreen = g.round.order[0]!;
+  const manager = project(g.state, { kind: 'manager' }, g.ctx);
+  expect(manager.presentation?.submissionId).toBe(onScreen);
+  expect(manager.submissions.some((sub) => sub.id === onScreen)).toBe(true);
+  const voter = project(g.state, { kind: 'participant', participantId: 'v0' }, g.ctx);
+  expect(voter.presentation?.submissionId).toBe(voter.submissions[0]!.id);
+});
