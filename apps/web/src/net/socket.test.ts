@@ -46,8 +46,6 @@ class FakeWebSocket {
   }
 }
 
-let serverNow = 10_000;
-
 function lastSocket(): FakeWebSocket {
   return FakeWebSocket.instances.at(-1)!;
 }

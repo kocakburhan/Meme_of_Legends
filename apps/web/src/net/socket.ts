@@ -193,7 +193,7 @@ export class RoomSocket {
   }
 
   /** Motor komutu; bağlantı yoksa sıraya girer, ack gelince çözülür. */
-  sendCommand(cmd: ClientCommand, clientMsgId = crypto.randomUUID()): Promise<AckResult> {
+  sendCommand(cmd: ClientCommand, clientMsgId: string = crypto.randomUUID()): Promise<AckResult> {
     if (this.terminated || this.stopped) return Promise.reject(new Error('SOCKET_CLOSED'));
     const payload = JSON.stringify({ type: 'cmd', clientMsgId, cmd });
     return new Promise<AckResult>((resolve, reject) => {
