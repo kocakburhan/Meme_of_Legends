@@ -246,4 +246,8 @@ export interface View {
   stage: { context: Context; round: number; contenders?: string[] };
   table: Ranking[];
   completedRounds: { no: number; submissions: SubmissionView[] }[];
+  /** Presentation position while the phase runs: submission index and total count. */
+  presentation?: { index: number; total: number };
+  /** Participant's own submission in the current round; sender identity stays hidden. */
+  ownSubmissionId?: string | null;
 }

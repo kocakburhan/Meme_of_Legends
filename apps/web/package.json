@@ -13,9 +13,12 @@
     "@fontsource-variable/manrope": "^5.3.0",
     "@fontsource/anton": "^5.3.0",
     "@mol/engine": "workspace:*",
+    "@mol/shared": "workspace:*",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "react-router": "^8.4.0"
+    "react-qr-code": "^2.2.0",
+    "react-router": "^8.4.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",

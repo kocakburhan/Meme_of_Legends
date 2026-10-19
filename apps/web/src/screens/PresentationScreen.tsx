@@ -58,57 +58,55 @@ export function PresentationScreen({
 
   return (
     <Screen className={className}>
-      <div className="sticky top-0 z-10 -mx-4 bg-background/95 px-4 pb-3 pt-1 backdrop-blur">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-xs font-bold uppercase tracking-wider text-muted">
-              {view.prompt?.text ?? '—'}
-            </p>
-            {index !== undefined && total !== undefined ? (
-              <p className="font-display text-2xl uppercase leading-tight">
-                Gönderi {index + 1} / {total}
-              </p>
-            ) : null}
-          </div>
-        </div>
-        <div className="mt-2 flex items-center gap-3">
+      {/* Durum metni en baskın öğedir; "Gönderi 4/8" yalnız bilgi satırıdır (M3b düzeltmesi). */}
+      <div className="sticky top-0 z-10 -mx-4 bg-background/95 px-4 pb-2 pt-1 backdrop-blur">
+        <p className="font-display text-2xl uppercase leading-tight text-accent">
+          {view.prompt?.text ?? '—'}
+        </p>
+        <div className="mt-1 flex items-center justify-between gap-3 text-xs text-muted">
+          {index !== undefined && total !== undefined ? (
+            <span className="font-bold uppercase tracking-wider">Gönderi {index + 1} / {total}</span>
+          ) : (
+            <span />
+          )}
           {submission.ratingProgress ? (
-            <p className="text-sm text-muted">
+            <span>
               {submission.ratingProgress.received}/{submission.ratingProgress.eligible} kişi puan
               verdi
-            </p>
+            </span>
           ) : null}
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-3">
+      {/* Meme alanı 1–5 düğmeleri kaydırmadan görünür olacak yükseklikte kalır. */}
+      <div className="flex min-h-0 flex-1 flex-col gap-2">
         <MemeFrame media={submission.media} className="flex-1" />
         {hasSound ? (
           <button
             type="button"
             onClick={onToggleMute}
             aria-pressed={!muted}
-            className="min-h-11 rounded-md border border-line bg-surface px-4 text-sm font-bold transition-colors hover:border-accent"
+            className="min-h-10 rounded-md border border-line bg-surface px-4 text-sm font-bold transition-colors hover:border-accent"
           >
             {muted ? '🔇 Sesi aç' : '🔊 Sesi kapat'}
           </button>
         ) : null}
       </div>
 
-      <div className="sticky bottom-0 -mx-4 bg-background/95 px-4 pb-2 pt-3 backdrop-blur">
+      <div className="sticky bottom-0 -mx-4 bg-background/95 px-4 pb-2 pt-2 backdrop-blur">
         <LiveStatus message={lastCall ? 'Son karar saniyeleri; puanın hâlâ değişebilir.' : null} />
         {lastCall ? (
           <p
             aria-hidden="true"
-            className="mb-2 text-center font-display text-lg uppercase text-accent motion-safe:animate-pulse-slow"
+            className="text-center font-display text-base uppercase text-accent motion-safe:animate-pulse-slow"
           >
             Son karar!
           </p>
         ) : null}
         {locked ? (
-          <Note className="mb-2 text-center">{lockedNote}</Note>
+          <Note className="text-center">{lockedNote}</Note>
         ) : (
-          <Note className="mb-2 text-center">Tek dokunuşla puanla; son karara kadar değiştirebilirsin.</Note>
+          <Note className="text-center">Tek dokunuşla puanla; son karara kadar değiştirebilirsin.</Note>
         )}
         <ScoreScale
           size="lg"
@@ -116,7 +114,7 @@ export function PresentationScreen({
           value={submission.ownScore}
           disabled={locked}
           onChange={(score) => onRate(submission.id, score)}
-          className={cn(lastCall && !locked && 'motion-safe:animate-pulse-slow')}
+          className={cn('mt-2', lastCall && !locked && 'motion-safe:animate-pulse-slow')}
         />
       </div>
     </Screen>

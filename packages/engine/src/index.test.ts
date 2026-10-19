@@ -1040,6 +1040,68 @@ describe('additional boundary regressions', () => {
   });
 });
 
+describe('view position and own submission identity (M3b)', () => {
+  it('exposes presentation position and own submission id without sender identity', () => {
+    const g = new Game({}, 2, 1).start();
+    g.submitAll();
+    const p = g.state.phase;
+    if (p.kind !== 'presentation') throw new Error();
+    const ownId = (participantId: string) =>
+      Object.values(g.round.submissions).find((x) => x.playerId === participantId)!.id;
+    for (const viewer of [
+      { kind: 'participant', participantId: 'p0' },
+      { kind: 'participant', participantId: 'p1' },
+      { kind: 'display' },
+    ] as const) {
+      const v = project(g.state, viewer, g.ctx);
+      expect(v.presentation).toEqual({ index: p.index, total: 2 });
+      expect(v.submissions.every((s) => s.playerId === undefined)).toBe(true);
+    }
+    const p0 = project(g.state, { kind: 'participant', participantId: 'p0' }, g.ctx);
+    expect(p0.ownSubmissionId).toBe(ownId('p0'));
+    const p1 = project(g.state, { kind: 'participant', participantId: 'p1' }, g.ctx);
+    expect(p1.ownSubmissionId).toBe(ownId('p1'));
+    const voter = project(g.state, { kind: 'participant', participantId: 'v0' }, g.ctx);
+    expect(voter.ownSubmissionId).toBeNull();
+    expect(project(g.state, { kind: 'display' }, g.ctx)).not.toHaveProperty('ownSubmissionId');
+  });
+  it('keeps own submission id during review and clears position outside presentation', () => {
+    const g = new Game({}, 2, 1).start();
+    g.submitAll();
+    g.toReview();
+    expect(g.state.phase.kind).toBe('review');
+    const p0 = project(g.state, { kind: 'participant', participantId: 'p0' }, g.ctx);
+    expect(p0.presentation).toBeUndefined();
+    expect(p0.ownSubmissionId).toBe(
+      Object.values(g.round.submissions).find((x) => x.playerId === 'p0')!.id,
+    );
+  });
+  it('no round or no submission yields null identity before selection starts', () => {
+    const g = new Game({}, 2, 1);
+    const lobby = project(g.state, { kind: 'participant', participantId: 'p0' }, g.ctx);
+    expect(lobby.ownSubmissionId).toBeNull();
+    g.start();
+    expect(g.state.phase.kind).toBe('selection');
+    const v = project(g.state, { kind: 'participant', participantId: 'p0' }, g.ctx);
+    expect(v.ownSubmissionId).toBeNull();
+    expect(v.presentation).toBeUndefined();
+  });
+  it('an invalidated own submission still reports its id but stays unpresented', () => {
+    const g = new Game({}, 2, 1).start();
+    g.submitAll();
+    g.send({ type: 'hideCurrent' });
+    const order = g.round.order;
+    const hiddenId = order[0]!;
+    const hiddenPlayer = Object.values(g.round.submissions).find(
+      (x) => x.id === hiddenId,
+    )!.playerId;
+    const v = project(g.state, { kind: 'participant', participantId: hiddenPlayer }, g.ctx);
+    expect(v.ownSubmissionId).toBe(hiddenId);
+    expect(v.presentation!.total).toBe(2);
+    expect(v.submissions[0]).toMatchObject({ id: hiddenId, hidden: true, media: null });
+  });
+});
+
 it('projects stage totals after reveal, excludes spectators, and keeps scores hidden while voting', () => {
   const g = new Game({ leagueRounds: 2 }, 3, 2).start();
   g.submitAll();

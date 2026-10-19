@@ -15,4 +15,16 @@ export default defineConfig({
       '@mol/engine': path.resolve(import.meta.dirname, '../../packages/engine/src/index.ts'),
     },
   },
+  // Yerel geliştirmede API + WebSocket wrangler dev'e (8787) vekillenir; sunucunun
+  // kaynak kökeni denetimi için Origin başlığı hedef kökene yazılır.
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8787',
+        changeOrigin: true,
+        ws: true,
+        headers: { origin: 'http://localhost:8787' },
+      },
+    },
+  },
 });

@@ -98,6 +98,49 @@ it('validates engine projections and rejects privileged event/state payloads', a
   ).toBe(false);
 });
 
+it('accepts M3b presentation position and own submission id fields', async () => {
+  const { createSession, reduce, project, DEFAULT_TIMING } = await import('@mol/engine');
+  const { serverMessageSchema, viewSchema } = await import('./index.js');
+  const ctx = {
+    now: 1000,
+    prompts: [{ id: 'prompt', text: 'Maaş günü', owner: 'platform' }],
+    timing: DEFAULT_TIMING,
+  };
+  let state = createSession({ seed: 1, config: { mode: 'league', leagueRounds: 1 } }, ctx);
+  for (const participantId of ['alice', 'bob'])
+    state = reduce(
+      state,
+      { type: 'join', participantId, nickname: participantId, wants: 'player' },
+      ctx,
+    ).state;
+  state = reduce(state, { type: 'start' }, ctx).state;
+  for (const participantId of ['alice', 'bob']) {
+    state = reduce(
+      state,
+      {
+        type: 'select',
+        participantId,
+        media: { source: 'system', memeId: 'meme', mediaType: 'image' },
+      },
+      ctx,
+    ).state;
+    state = reduce(state, { type: 'confirm', participantId }, ctx).state;
+  }
+  expect(state.phase.kind).toBe('presentation');
+  const view = project(state, { kind: 'participant', participantId: 'alice' }, ctx);
+  expect(view.presentation).toBeDefined();
+  expect(view.ownSubmissionId).toBe(
+    Object.values(state.rounds.at(-1)!.submissions).find((x) => x.playerId === 'alice')!.id,
+  );
+  expect(viewSchema.safeParse(view).success).toBe(true);
+  expect(
+    serverMessageSchema.safeParse({ type: 'view', seq: 1, serverNow: ctx.now, view }).success,
+  ).toBe(true);
+  expect(viewSchema.safeParse({ ...view, presentation: { index: -1, total: 2 } }).success).toBe(
+    false,
+  );
+});
+
 it('validates v0.2 shell commands, private manager metadata and recovery messages', async () => {
   const {
     shellActionSchema,

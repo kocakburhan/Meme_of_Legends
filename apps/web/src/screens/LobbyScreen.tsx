@@ -17,6 +17,7 @@ export function LobbyScreen({
   room,
   onShare,
   shareHint,
+  onLeave,
   className,
 }: {
   view: View;
@@ -24,6 +25,8 @@ export function LobbyScreen({
   room: RoomInfo;
   onShare: () => void;
   shareHint?: string | null;
+  /** Oyuncu lobi farklı rolde devam etmek istemezse (SPEC 3.1 menüsü). */
+  onLeave?: () => void;
   className?: string;
 }) {
   const players = view.participants.filter((p) => p.role === 'player');
@@ -93,6 +96,11 @@ export function LobbyScreen({
       </details>
 
       <div className="mt-auto">
+        {onLeave && me.role === 'player' ? (
+          <GhostButton onClick={onLeave} ariaLabel="Gönderi yapmayı bırak, seyirci olarak devam et">
+            Seyirci olarak devam et
+          </GhostButton>
+        ) : null}
         <GhostButton onClick={onShare}>Linki paylaş</GhostButton>
         {shareHint ? (
           <p role="status" className="mt-1 text-center text-sm text-success">

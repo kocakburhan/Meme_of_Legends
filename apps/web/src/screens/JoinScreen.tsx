@@ -2,7 +2,7 @@ import { useId, useState, type FormEvent } from 'react';
 import type { JoinInput, JoinRole } from '@/lib/contracts';
 import { validateNickname, validateRoomCode } from '@/lib/contracts';
 import { cn } from '@/lib/cn';
-import { Card, Note, PrimaryButton, Screen } from '@/components/ui';
+import { Card, GhostButton, Note, PrimaryButton, Screen } from '@/components/ui';
 
 const ROLES: Array<{ value: JoinRole; title: string; description: string }> = [
   { value: 'player', title: 'Oyuncu', description: 'Her tura meme gönderir, puan da verir.' },
@@ -11,19 +11,28 @@ const ROLES: Array<{ value: JoinRole; title: string; description: string }> = [
 
 /**
  * Katılım ekranı: oda kodu (girilmediyse) + işletme adı, takma ad, rol kartları.
- * Oyun başladıysa oyuncu kartı pasiftir (SPEC 5.2).
+ * Oyun başladıysa oyuncu kartı pasiftir (SPEC 5.2). Ad kullanımdaysa cihaz
+ * devri isteği sunulur (SPEC 5.5).
  */
 export function JoinScreen({
   code = null,
   businessName = null,
   allowPlayer = true,
   onEnter,
+  serverError = null,
+  takeoverAvailable = false,
+  onRequestTakeover,
   className,
 }: {
   code?: string | null;
   businessName?: string | null;
   allowPlayer?: boolean;
   onEnter: (input: JoinInput) => void;
+  /** Sunucu kaynaklı hata (ad kullanımda, seyirci kabulü kapalı vb.). */
+  serverError?: string | null;
+  /** Ad kullanımda: cihaz devri isteği girilen takma adla sunulur. */
+  takeoverAvailable?: boolean;
+  onRequestTakeover?: (nickname: string) => void;
   className?: string;
 }) {
   const [codeText, setCodeText] = useState('');
@@ -110,6 +119,10 @@ export function JoinScreen({
             <p id={errorId} role="alert" className="mt-1 text-sm text-danger">
               {error}
             </p>
+          ) : serverError ? (
+            <p id={errorId} role="alert" className="mt-1 text-sm text-danger">
+              {serverError}
+            </p>
           ) : (
             <p id={`${nicknameId}-hint`} className="mt-1 text-sm text-muted">
               2–20 karakter; harf, rakam, boşluk ve emoji. Adın oyun sonunda anonimleşir.{' '}
@@ -154,6 +167,23 @@ export function JoinScreen({
             })}
           </div>
         </fieldset>
+
+        {takeoverAvailable && onRequestTakeover ? (
+          <Card className="border-accent">
+            <Note>
+              <span className="font-bold text-foreground">Bu ad sen misin?</span> Başka bir
+              cihazdan devam ediyorsan yöneticiden onay iste; kimliğin bu cihaza devredilir.
+            </Note>
+            <div className="mt-2">
+              <GhostButton
+                onClick={() => onRequestTakeover(nickname.trim())}
+                ariaLabel="Cihaz devri için onay iste"
+              >
+                Devam için yöneticiden onay iste
+              </GhostButton>
+            </div>
+          </Card>
+        ) : null}
 
         <PrimaryButton type="submit">Odaya gir</PrimaryButton>
       </form>

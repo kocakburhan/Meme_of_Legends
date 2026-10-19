@@ -4,6 +4,7 @@ import { Countdown, LiveStatus } from '@/components/Countdown';
 import { MemeFrame } from '@/components/MemeFrame';
 import { ScoreScale } from '@/components/ScoreScale';
 import { Note, PrimaryButton, Screen } from '@/components/ui';
+import { remainingSeconds } from '@/lib/format';
 
 /**
  * Final gözden geçirme (SPEC 7.3): tüm gönderiler listelenir; eksik puanlar
@@ -30,16 +31,19 @@ export function ReviewScreen({
   className?: string;
 }) {
   const phase = view.phase;
-  const secondsLeft = phase.kind === 'review' ? Math.max(0, Math.ceil((phase.endsAt - now) / 1000)) : 0;
+  const secondsLeft = phase.kind === 'review' ? remainingSeconds(phase.endsAt, now) : 0;
 
   return (
     <Screen className={className}>
-      <div className="sticky top-0 z-10 -mx-4 bg-background/95 px-4 pb-3 pt-1 backdrop-blur">
-        <p className="text-xs font-bold uppercase tracking-wider text-muted">
+      <div className="sticky top-0 z-10 -mx-4 bg-background/95 px-4 pb-2 pt-1 backdrop-blur">
+        {/* Durum metni büyük başlık; aşama adı küçük bilgi (M3b hiyerarşi düzeltmesi). */}
+        <p className="font-display text-2xl uppercase leading-tight text-accent">
           {view.prompt?.text ?? '—'}
         </p>
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="font-display text-2xl uppercase leading-tight">Final gözden geçirme</h1>
+        <div className="mt-1 flex items-center justify-between gap-3">
+          <h1 className="text-xs font-bold uppercase tracking-wider text-muted">
+            Final gözden geçirme
+          </h1>
           <Countdown secondsLeft={secondsLeft} totalSeconds={view.config.reviewSeconds} />
         </div>
         {doneCount ? (

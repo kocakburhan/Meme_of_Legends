@@ -1,7 +1,7 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { validateNickname } from '@/lib/contracts';
 import { LiveStatus } from '@/components/Countdown';
-import { Note, PrimaryButton, Screen, TopBar } from '@/components/ui';
+import { GhostButton, Note, PrimaryButton, Screen, TopBar } from '@/components/ui';
 
 /** Tam ekran geçiş/durum ekranlarının ortak çerçevesi. */
 function StatusShell({
@@ -31,6 +31,21 @@ export function PausedOverlay({ className }: { className?: string }) {
         ⏸️
       </p>
       <Note>Yönetici devam ettirene kadar bekleniyor. Seçim ve puanların güvende.</Note>
+    </StatusShell>
+  );
+}
+
+/** İlk bağlantı: henüz kopulmadı; "yeniden bağlanıyor" değil, nötr durum. */
+export function ConnectingOverlay({ className }: { className?: string }) {
+  return (
+    <StatusShell title="Bağlanıyor" className={className}>
+      <p
+        aria-hidden="true"
+        className="font-display text-5xl text-accent motion-safe:animate-pulse-slow"
+      >
+        ⋯
+      </p>
+      <Note>Oda açılıyor; birkaç saniye sürebilir.</Note>
     </StatusShell>
   );
 }
@@ -74,6 +89,94 @@ export function KickedScreen({ className }: { className?: string }) {
         🚪
       </p>
       <Note>Yönetici seni odadan çıkardı. Bu tarayıcıyla bu odaya geri giremezsin.</Note>
+    </StatusShell>
+  );
+}
+
+/** Aynı kimliğe başka bir cihaz/sekme bağlandı (protokol v0.2: superseded). */
+export function SupersededScreen({ className }: { className?: string }) {
+  return (
+    <StatusShell title="Bağlılık başka cihaza geçti" className={className}>
+      <p aria-hidden="true" className="text-5xl">
+        🔁
+      </p>
+      <Note>Oyunun bu cihazda kapatıldı; kimliğin devralındı. Bu sekmede kalmana gerek yok.</Note>
+    </StatusShell>
+  );
+}
+
+/** Oturum bitti ya da oda kapandı; lobi kodu geçersiz (SPEC 4.5). */
+export function SessionEndedScreen({ reason }: { reason: 'sessionEnded' | 'roomExpired' }) {
+  return (
+    <StatusShell title="Oturum bitti">
+      <p aria-hidden="true" className="text-5xl">
+        🌙
+      </p>
+      <Note>
+        {reason === 'roomExpired'
+          ? 'Lobi zaman aşımına uğradı ve kapandı.'
+          : 'Yönetici oturumu kapattı.'}{' '}
+        Yeni oyun için işletmenin vereceği kodu kullan.
+      </Note>
+    </StatusShell>
+  );
+}
+
+/** Onay bekleyen katılımcı: görünümde henüz listede değil (SPEC 5.2). */
+export function PendingApprovalScreen({ className }: { className?: string }) {
+  return (
+    <StatusShell title="Onay bekleniyor" className={className}>
+      <p aria-hidden="true" className="font-display text-5xl text-accent motion-safe:animate-pulse-slow">
+        ⋯
+      </p>
+      <Note>Girişin yöneticide. Onaylanınca lobiye geçeceksin; bu sayfayı kapatma.</Note>
+    </StatusShell>
+  );
+}
+
+/** Cihaz devri: yeni cihaz yönetici onayı bekler (SPEC 5.5). */
+export function TakeoverPendingScreen({
+  nickname,
+  onCancel,
+  className,
+}: {
+  nickname: string;
+  onCancel: () => void;
+  className?: string;
+}) {
+  return (
+    <StatusShell title="Devam onayı bekleniyor" className={className}>
+      <p aria-hidden="true" className="font-display text-5xl text-accent motion-safe:animate-pulse-slow">
+        ⋯
+      </p>
+      <Note>
+        "{nickname}" adı başka bir cihazda kullanımda. Yönetici onaylarsa oyuna bu cihazdan devam
+        edeceksin.
+      </Note>
+      <div className="w-full max-w-xs">
+        <GhostButton onClick={onCancel}>Vazgeç</GhostButton>
+      </div>
+    </StatusShell>
+  );
+}
+
+/** Oda kodu geçersiz ya da oda kapalı (SPEC 5.1). */
+export function RoomNotFoundScreen({
+  onBack,
+  className,
+}: {
+  onBack: () => void;
+  className?: string;
+}) {
+  return (
+    <StatusShell title="Oda bulunamadı" className={className}>
+      <Note>
+        Kod hatalı olabilir ya da oturum kapandı. QR'ı yeniden okut; hâlâ duruyorsa kodu tekrar
+        yaz.
+      </Note>
+      <div className="w-full max-w-xs">
+        <PrimaryButton onClick={onBack}>Kod tekrar gir</PrimaryButton>
+      </div>
     </StatusShell>
   );
 }
@@ -146,7 +249,7 @@ export function EliminatedScreen({
   className?: string;
 }) {
   return (
-    <StatusShell title="Eldin!" className={className}>
+    <StatusShell title="Elendin!" className={className}>
       <p aria-hidden="true" className="text-5xl">
         🫡
       </p>

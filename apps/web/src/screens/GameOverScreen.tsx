@@ -30,21 +30,22 @@ export function GameOverScreen({
       </div>
 
       <section aria-label="Kürsü" className="flex items-end justify-center gap-2 pt-2">
-        {[2, 1, 0].map((slot) => {
+        {/* Soldan sağa: 2., 1. (en yüksek, vurgulu), 3.; rakam sıra numarasıdır. */}
+        {[1, 0, 2].map((slot) => {
           const entry = top3[slot];
           if (!entry) return null;
-          const heights = ['h-24', 'h-32', 'h-20'];
+          const heights = ['h-32', 'h-24', 'h-20'];
           return (
             <div key={entry.participantId} className="flex flex-1 flex-col items-center gap-1">
               <span className="font-display text-lg uppercase">{nicknameOf(view, entry.participantId)}</span>
               <div
                 className={
-                  slot === 1
-                    ? `flex w-full items-start justify-center rounded-t-[var(--radius-card)] border border-accent bg-accent/20 ${heights[slot]}`
-                    : `flex w-full items-start justify-center rounded-t-[var(--radius-card)] border border-line bg-surface ${heights[slot]}`
+                  entry.rank === 1
+                    ? `flex w-full items-start justify-center rounded-t-[var(--radius-card)] border border-accent bg-accent/20 ${heights[entry.rank - 1]}`
+                    : `flex w-full items-start justify-center rounded-t-[var(--radius-card)] border border-line bg-surface ${heights[entry.rank - 1]}`
                 }
               >
-                <span className="font-display text-3xl pt-2">{slot + 1}</span>
+                <span className="font-display text-3xl pt-2">{entry.rank}</span>
               </div>
             </div>
           );
