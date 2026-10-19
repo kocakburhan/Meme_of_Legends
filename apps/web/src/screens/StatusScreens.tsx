@@ -35,6 +35,21 @@ export function PausedOverlay({ className }: { className?: string }) {
   );
 }
 
+/** İlk bağlantı: henüz kopulmadı; "yeniden bağlanıyor" değil, nötr durum. */
+export function ConnectingOverlay({ className }: { className?: string }) {
+  return (
+    <StatusShell title="Bağlanıyor" className={className}>
+      <p
+        aria-hidden="true"
+        className="font-display text-5xl text-accent motion-safe:animate-pulse-slow"
+      >
+        ⋯
+      </p>
+      <Note>Oda açılıyor; birkaç saniye sürebilir.</Note>
+    </StatusShell>
+  );
+}
+
 /** Sunucu bağlantısı kopunca (SPEC 5.5, 12.4). */
 export function ReconnectingOverlay({ className }: { className?: string }) {
   return (

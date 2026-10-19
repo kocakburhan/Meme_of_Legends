@@ -5,6 +5,7 @@ import { pairDisplay } from '@/net/http';
 import { forgetDisplay, loadDisplay, saveDisplay, type StoredDisplay } from '@/net/tokens';
 import { useParticipantSocket } from '@/net/useRoom';
 import { Card, GhostButton, Note, PrimaryButton, Screen, TopBar } from '@/components/ui';
+import { remainingSeconds } from '@/lib/format';
 import {
   DisplayFinishedScene,
   DisplayLobbyScene,
@@ -16,6 +17,7 @@ import {
   type StageRoom,
 } from '@/screens/DisplayScenes';
 import {
+  ConnectingOverlay,
   PausedOverlay,
   ReconnectingOverlay,
   ResumeCountdownOverlay,
@@ -102,7 +104,12 @@ export default function EkranPage() {
 
   if (reason) return <ClosedScreens reason={reason} />;
 
-  if (!view || state !== 'open') return <ReconnectingOverlay className="h-dvh" />;
+  if (!view || state !== 'open')
+    return state === 'connecting' ? (
+      <ConnectingOverlay className="h-dvh" />
+    ) : (
+      <ReconnectingOverlay className="h-dvh" />
+    );
 
   const room: StageRoom = {
     code: stored.roomCode,
@@ -117,7 +124,7 @@ export default function EkranPage() {
           <Card className="max-w-md">
             <Note>
               Bu ekran lobiden oyun sonuna kadar her aşamayı 16:9 sahnede gösterir. Sesi yalnız
-              ortak ekran çalar; telefonlar sessiz kalır (SPEC 13.2).
+              ortak ekran çalar; telefonlar sessiz kalır.
             </Note>
           </Card>
           <div className="w-full max-w-sm">
@@ -148,9 +155,7 @@ function sceneFor(view: View, now: number, room: StageRoom, recoveryResumesAt: n
     );
   if (recoveryResumesAt !== null && recoveryResumesAt > now)
     return (
-      <ResumeCountdownOverlay
-        secondsLeft={Math.max(0, Math.ceil((recoveryResumesAt - now) / 1000))}
-      />
+      <ResumeCountdownOverlay secondsLeft={remainingSeconds(recoveryResumesAt, now)} />
     );
   switch (view.phase.kind) {
     case 'lobby':

@@ -27,6 +27,7 @@ import { RoundResultScreen } from '@/screens/RoundResultScreen';
 import { GameOverScreen } from '@/screens/GameOverScreen';
 import {
   ByeScreen,
+  ConnectingOverlay,
   DrawScreen,
   EliminatedScreen,
   KickedScreen,
@@ -280,6 +281,9 @@ function StatusEntries() {
     <>
       <Frame title="Duraklatıldı" width={390}>
         <PausedOverlay className="h-full" />
+      </Frame>
+      <Frame title="Bağlanıyor" width={390} note="İlk bağlantı; kopma yok.">
+        <ConnectingOverlay className="h-full" />
       </Frame>
       <Frame title="Yeniden bağlanıyor" width={390}>
         <ReconnectingOverlay className="h-full" />

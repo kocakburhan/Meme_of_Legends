@@ -14,6 +14,7 @@ import { useLibrary, useParticipantSocket, type LibraryEntry } from '@/net/useRo
 import type { SocketReason } from '@/net/socket';
 import { LibraryMediaProvider, MemeFrame } from '@/components/MemeFrame';
 import type { RateScore, RoundOutcome } from '@/lib/contracts';
+import { remainingSeconds } from '@/lib/format';
 import { JoinScreen } from '@/screens/JoinScreen';
 import { LobbyScreen } from '@/screens/LobbyScreen';
 import { SelectionScreen } from '@/screens/SelectionScreen';
@@ -24,6 +25,7 @@ import { RoundResultScreen } from '@/screens/RoundResultScreen';
 import { GameOverScreen } from '@/screens/GameOverScreen';
 import {
   ByeScreen,
+  ConnectingOverlay,
   EliminatedScreen,
   KickedScreen,
   NicknameChangeScreen,
@@ -400,9 +402,14 @@ export function OdaPage() {
   if (!connection.view) {
     if (stored) {
       // Bağlantı kuruluyor ya da kopmuş; görünüm gelene kadar bekle.
+      // İlk bağlantıda "yeniden bağlanıyor" denmez (M3b görsel düzeltme).
       return (
         <PageFrame>
-          <ReconnectingOverlay className="flex-1" />
+          {connection.state === 'connecting' ? (
+            <ConnectingOverlay className="flex-1" />
+          ) : (
+            <ReconnectingOverlay className="flex-1" />
+          )}
         </PageFrame>
       );
     }
@@ -503,13 +510,17 @@ export function OdaPage() {
       <LibraryMediaProvider entries={library.map((m) => ({ memeId: m.id }))}>
         {connection.state !== 'open' ? (
           <div className="fixed inset-0 z-40 bg-background/95">
-            <ReconnectingOverlay className="h-full" />
+            {connection.state === 'connecting' ? (
+              <ConnectingOverlay className="h-full" />
+            ) : (
+              <ReconnectingOverlay className="h-full" />
+            )}
           </div>
         ) : null}
         {connection.recoveryResumesAt !== null && connection.recoveryResumesAt > now ? (
           <div className="fixed inset-0 z-40 bg-background/95">
             <ResumeCountdownOverlay
-              secondsLeft={Math.max(0, Math.ceil((connection.recoveryResumesAt - now) / 1000))}
+              secondsLeft={remainingSeconds(connection.recoveryResumesAt, now)}
               className="h-full"
             />
           </div>
