@@ -1,4 +1,4 @@
-import { expect, test, type Browser, type Page } from '@playwright/test';
+import { expect, test, type Browser, type BrowserContext, type Page } from '@playwright/test';
 import {
   createBusinessAndLobby,
   createDisplayPairCode,
@@ -10,7 +10,7 @@ import {
   WEB,
   type GameLobby,
 } from '../helpers/driver';
-import { E2E_ADMIN } from '../global-setup';
+import { E2E_ADMIN, makePng } from '../global-setup';
 import {
   expectNoA11yViolations,
   expectNoHorizontalOverflow,
@@ -34,6 +34,75 @@ const GAME_SETTINGS = {
   reviewSeconds: 15,
 };
 
+const YOUTUBE_ID = 'dQw4w9WgXcQ';
+
+/**
+ * IFrame Player API ikamesi (custom-content.spec.ts ile aynı yaklaşım):
+ * YouTube'a ağ isteği gitmeden sahte oynatıcı süre/konum bildirir.
+ */
+const YOUTUBE_STUB = `
+(() => {
+  class MockPlayer {
+    constructor(element, options) {
+      this.options = options;
+      this.offset = 0;
+      this.playing = false;
+      this.startedAt = 0;
+      this.muted = false;
+      const iframe = document.createElement('iframe');
+      iframe.setAttribute('src', 'https://www.youtube-nocookie.com/embed/' + options.videoId + '?enablejsapi=1');
+      iframe.setAttribute('title', options.videoId ? 'Sahte YouTube oynatıcı' : 'YouTube');
+      iframe.style.width = '100%';
+      iframe.style.height = '100%';
+      element.appendChild(iframe);
+      this.iframe = iframe;
+      setTimeout(() => {
+        if (options.events && options.events.onReady) options.events.onReady({ target: this });
+      }, 0);
+    }
+    getIframe() { return this.iframe; }
+    getDuration() { return 30; }
+    getCurrentTime() {
+      return this.offset + (this.playing ? (Date.now() - this.startedAt) / 1000 : 0);
+    }
+    seekTo(seconds) { this.offset = seconds; this.startedAt = Date.now(); }
+    playVideo() { this.playing = true; this.startedAt = Date.now(); }
+    pauseVideo() { this.playing = false; }
+    mute() { this.muted = true; }
+    unMute() { this.muted = false; }
+    destroy() { this.iframe.remove(); }
+  }
+  window.YT = { Player: MockPlayer };
+})();
+`;
+
+/** YouTube doğrulama ucu, embed ve kapak yereldir; ağa çıkılmaz. */
+async function newMockedContext(
+  browser: Browser,
+  options: Parameters<Browser['newContext']>[0] = {},
+): Promise<BrowserContext> {
+  const context = await browser.newContext(options);
+  await context.addInitScript({ content: YOUTUBE_STUB });
+  await context.route('https://www.youtube-nocookie.com/**', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'text/html',
+      body: '<!doctype html><title>Sahte gömme</title>',
+    }),
+  );
+  await context.route('https://i.ytimg.com/**', (route) =>
+    route.fulfill({ status: 200, contentType: 'image/png', body: makePng(8, [200, 200, 200]) }),
+  );
+  await context.route('**/api/rooms/*/custom/youtube', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ videoId: YOUTUBE_ID, durationMs: null }),
+    }),
+  );
+  return context;
+}
+
 async function loginBusiness(page: Page, username: string, password: string): Promise<void> {
   await page.goto(`${WEB}/isletme/giris`);
   await page.getByLabel('Kullanıcı adı').fill(username);
@@ -52,11 +121,10 @@ async function loginAdmin(page: Page): Promise<void> {
 
 /** Tarayıcıdan katılımcı olarak girer; lobi ekranı hazır olana kadar bekler. */
 async function joinUiPlayer(
-  browser: Browser,
+  context: BrowserContext,
   code: string,
   nickname: string,
-): Promise<{ context: Awaited<ReturnType<Browser['newContext']>>; page: Page }> {
-  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+): Promise<{ context: BrowserContext; page: Page }> {
   const page = await context.newPage();
   await page.goto(`${WEB}/oda/${code}`);
   await page.getByLabel('Takma adın').fill(nickname);
@@ -232,7 +300,10 @@ test('admin paneli sayfaları axe taramasından geçer', async ({ page }) => {
     password: 'e2e-a11y-pass-123',
   });
   const identity = await identityOf(business);
-  const players = [await joinViaApi(business.code, 'E2E Deniz'), await joinViaApi(business.code, 'E2E Ege')];
+  const players = [
+    await joinViaApi(business.code, 'E2E Deniz'),
+    await joinViaApi(business.code, 'E2E Ege'),
+  ];
   try {
     for (const player of players) await player.client.view((view) => view.phase.kind === 'lobby');
     await playQuickLeagueGame(business, players);
@@ -266,7 +337,11 @@ test('admin paneli sayfaları axe taramasından geçer', async ({ page }) => {
       heading: 'İşletme durumu denetimi',
       label: 'Admin — İşletme durumları',
     },
-    { path: '/admin/icerik/etiketle', heading: 'Hızlı etiketleme', label: 'Admin — Hızlı etiketleme' },
+    {
+      path: '/admin/icerik/etiketle',
+      heading: 'Hızlı etiketleme',
+      label: 'Admin — Hızlı etiketleme',
+    },
     { path: '/admin/oturumlar', heading: 'Oturumlar', label: 'Admin — Oturumlar' },
     {
       path: '/admin/oturumlar/kullanim',
@@ -298,15 +373,19 @@ test('admin paneli sayfaları axe taramasından geçer', async ({ page }) => {
   business.close();
 });
 
-test('oyun ekranları: katılımcı, ortak ekran ve konsol aşamaları taranır', async ({
-  browser,
-}) => {
+test('oyun ekranları: katılımcı, ortak ekran ve konsol aşamaları taranır', async ({ browser }) => {
   test.setTimeout(420_000);
-  const lobby = await createLobby({ ...GAME_SETTINGS });
-  const contexts: Awaited<ReturnType<Browser['newContext']>>[] = [];
+  const lobby = await createLobby({
+    ...GAME_SETTINGS,
+    selectionSeconds: 120,
+    customContent: true,
+  });
+  const contexts: BrowserContext[] = [];
   try {
     const pair = await createDisplayPairCode(lobby.manager);
-    const displayContext = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+    const displayContext = await newMockedContext(browser, {
+      viewport: { width: 1280, height: 720 },
+    });
     contexts.push(displayContext);
     const display = await displayContext.newPage();
     await display.goto(`${WEB}/ekran`);
@@ -317,17 +396,26 @@ test('oyun ekranları: katılımcı, ortak ekran ve konsol aşamaları taranır'
     await display.getByRole('button', { name: 'Ekranı başlat' }).click();
     await expect(display.getByText("Oyun kodunu yaz ya da QR'ı okut")).toBeVisible();
 
-    const duman = await joinUiPlayer(browser, lobby.code, 'Duman');
+    const dumanContext = await newMockedContext(browser, {
+      viewport: { width: 390, height: 844 },
+    });
+    const duman = await joinUiPlayer(dumanContext, lobby.code, 'Duman');
     contexts.push(duman.context);
-    const kral = await joinUiPlayer(browser, lobby.code, 'Kral');
+    const kralContext = await newMockedContext(browser, {
+      viewport: { width: 390, height: 844 },
+    });
+    const kral = await joinUiPlayer(kralContext, lobby.code, 'Kral');
     contexts.push(kral.context);
 
-    const managerContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const managerContext = await newMockedContext(browser, {
+      viewport: { width: 390, height: 844 },
+    });
     contexts.push(managerContext);
     const managerPage = await managerContext.newPage();
     await loginBusiness(managerPage, lobby.username, lobby.password);
     await managerPage.goto(`${WEB}/isletme/oyun/${lobby.code}`);
     const gameTab = managerPage.locator('#console-game');
+    const customSection = gameTab.locator('section[aria-label="Özel içerik (canlı)"]');
     await expect(managerPage.getByText(`Oda ${lobby.code}`)).toBeVisible({ timeout: 15_000 });
 
     // Lobi: katılımcı, ortak ekran ve konsol.
@@ -347,24 +435,69 @@ test('oyun ekranları: katılımcı, ortak ekran ve konsol aşamaları taranır'
     await expect(managerPage.getByText('Tur 1 · Seçim')).toBeVisible({ timeout: 20_000 });
     await expectNoA11yViolations(managerPage, 'Konsol — seçim kartı');
 
-    // Sekmeler klavyeyle: ok tuşu odağı ve seçimi taşır.
+    // Sekmeler klavyeyle: ok tuşu odağı ve seçimi taşır; Yükle ve YouTube taranır.
     const libraryTab = duman.page.getByRole('tab', { name: 'Kütüphane' });
     await libraryTab.press('ArrowRight');
-    await expect(duman.page.getByRole('tab', { name: 'Yükle' })).toHaveAttribute(
-      'aria-selected',
-      'true',
+    const uploadTab = duman.page.getByRole('tab', { name: 'Yükle' });
+    await expect(uploadTab).toHaveAttribute('aria-selected', 'true');
+    await expect(duman.page.getByRole('tabpanel')).toContainText("Kendi resmin ya da GIF'in");
+    await expectNoA11yViolations(duman.page, 'Katılımcı — seçim (Yükle)');
+    await expectTouchTargets(duman.page, 'Katılımcı — seçim (Yükle)');
+
+    await uploadTab.press('ArrowRight');
+    const youtubeTab = duman.page.getByRole('tab', { name: 'YouTube' });
+    await expect(youtubeTab).toHaveAttribute('aria-selected', 'true');
+    const youtubeInput = duman.page.getByLabel('YouTube linki');
+    await expect(youtubeInput).toBeVisible();
+    // Alana bağlı hata: boş link doğrulanınca aria-describedby hata kimliğini kapsar.
+    await duman.page.getByRole('button', { name: 'Linki doğrula' }).click();
+    await expect(youtubeInput).toHaveAttribute('aria-invalid', 'true');
+    const youtubeErrorId = await youtubeInput.getAttribute('aria-describedby');
+    expect(youtubeErrorId).toBeTruthy();
+    await expect(duman.page.locator(`[id="${youtubeErrorId!.split(' ').at(-1)}"]`)).toHaveAttribute(
+      'role',
+      'alert',
     );
-    await expect(duman.page.getByRole('tabpanel')).toContainText('Yakında');
-    await duman.page.getByRole('tab', { name: 'Yükle' }).press('ArrowRight');
-    await expect(duman.page.getByRole('tab', { name: 'YouTube' })).toHaveAttribute(
-      'aria-selected',
-      'true',
-    );
-    await duman.page.getByRole('tab', { name: 'YouTube' }).press('Home');
+    await expectNoA11yViolations(duman.page, 'Katılımcı — seçim (YouTube)');
+    await expectTouchTargets(duman.page, 'Katılımcı — seçim (YouTube)');
+    await youtubeTab.press('Home');
     await expect(libraryTab).toHaveAttribute('aria-selected', 'true');
 
+    // Yükle: dosya seçimi → ilerleme/önizleme → seçim.
+    await uploadTab.click();
+    await duman.page.locator('input[type="file"]').setInputFiles({
+      name: 'a11y.png',
+      mimeType: 'image/png',
+      buffer: makePng(24, [230, 70, 70]),
+    });
+    await expect(duman.page.getByRole('img', { name: 'Yüklediğin içerik' })).toBeVisible({
+      timeout: 30_000,
+    });
+    await expectNoA11yViolations(duman.page, 'Katılımcı — seçim (Yükle, önizleme)');
+    await duman.page.getByRole('button', { name: 'Bu içeriği seç' }).click();
+    await expect(duman.page.getByText(/^Seçim gönderildi;/)).toBeVisible();
+
+    // YouTube: bağlantı doğrulama → sahte oynatıcı → kırpma → seçim.
+    await kral.page.getByRole('tab', { name: 'YouTube' }).click();
+    await kral.page.getByLabel('YouTube linki').fill(`https://youtu.be/${YOUTUBE_ID}`);
+    await kral.page.getByRole('button', { name: 'Linki doğrula' }).click();
+    await expect(kral.page.getByLabel('Başlangıç')).toBeVisible({ timeout: 30_000 });
+    await expectNoA11yViolations(kral.page, 'Katılımcı — seçim (YouTube, kırpma)');
+    await expectTouchTargets(kral.page, 'Katılımcı — seçim (YouTube, kırpma)');
+    await kral.page.getByRole('button', { name: 'Bu aralığı seç' }).click();
+    await expect(kral.page.getByText(/^Seçim gönderildi;/)).toBeVisible();
+
+    // Konsolun canlı özel içerik listesi: yükleme + YouTube satırları.
+    await expect(customSection.getByText('Duman', { exact: true })).toBeVisible({
+      timeout: 20_000,
+    });
+    await expect(customSection.getByText('Kral', { exact: true })).toBeVisible({
+      timeout: 20_000,
+    });
+    await expectNoA11yViolations(managerPage, 'Konsol — seçim kartı (özel içerik)');
+    await expectTouchTargets(managerPage, 'Konsol — seçim kartı (özel içerik)');
+
     for (const page of [duman.page, kral.page]) {
-      await page.getByRole('button', { name: /Maaş yattı ama kira da yattı/ }).click();
       await page.getByRole('button', { name: 'Seçimimi onayla' }).click();
     }
     await expect(duman.page.getByText('Gönderi 1 / 2', { exact: true })).toBeVisible({
@@ -373,19 +506,14 @@ test('oyun ekranları: katılımcı, ortak ekran ve konsol aşamaları taranır'
     await expect(display.getByText('Gönderi 1 / 2', { exact: true })).toBeVisible({
       timeout: 20_000,
     });
-    await expect(
-      duman.page.getByText('Gönderim sırası başladı. Sıra 1; toplam 2.'),
-    ).toBeAttached();
-    await expect(duman.page.getByText(/kişi puan verdi/)).toHaveAttribute(
-      'aria-live',
-      'polite',
-    );
+    await expect(duman.page.getByText('Gönderim sırası başladı. Sıra 1; toplam 2.')).toBeAttached();
+    await expect(duman.page.getByText(/kişi puan verdi/)).toHaveAttribute('aria-live', 'polite');
 
     // Gösterim + puanlama: iki slotta farklı ortalamalar → uzatma yok.
     for (let slot = 1; slot <= 2; slot++) {
-      await expect(
-        duman.page.getByText(`Gönderi ${slot} / 2`, { exact: true }),
-      ).toBeVisible({ timeout: 60_000 });
+      await expect(duman.page.getByText(`Gönderi ${slot} / 2`, { exact: true })).toBeVisible({
+        timeout: 60_000,
+      });
       if (slot === 1) {
         await expectNoA11yViolations(duman.page, 'Katılımcı — gösterim + puanlama');
         await expectTouchTargets(duman.page, 'Katılımcı — gösterim + puanlama');
@@ -580,4 +708,3 @@ test('prefers-reduced-motion: animasyonlar durur, seçim akışı çalışır', 
     lobby.close();
   }
 });
-
