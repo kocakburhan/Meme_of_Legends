@@ -16,7 +16,8 @@
     "dev": "pnpm -r --parallel dev",
     "verify": "pnpm typecheck && pnpm lint && pnpm test && pnpm build",
     "test:heavy": "pnpm --filter @mol/engine test:heavy",
-    "demo": "pnpm --filter @mol/e2e demo"
+    "demo": "pnpm --filter @mol/e2e demo",
+    "media": "pnpm --filter @mol/media start"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

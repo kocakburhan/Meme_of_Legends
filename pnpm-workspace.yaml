@@ -2,6 +2,7 @@ packages:
   - packages/*
   - apps/*
   - tools/loadtest
+  - tools/media
 
 # Native binaries (esbuild, workerd) run their install scripts; pnpm 10+ blocks
 # build scripts by default and requires explicit approval.
