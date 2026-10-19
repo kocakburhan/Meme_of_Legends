@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useId, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import type { AdminBusiness } from '@mol/shared';
 import { createAdminBusiness, listAdminBusinesses } from '@/net/admin';
@@ -45,6 +45,7 @@ export default function AdminBusinessesPage() {
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [created, setCreated] = useState<CreatedCredentials | null>(null);
+  const createErrorId = useId();
 
   useEffect(() => {
     let alive = true;
@@ -170,6 +171,8 @@ export default function AdminBusinessesPage() {
                 id="business-name"
                 name="name"
                 maxLength={200}
+                aria-invalid={createError ? true : undefined}
+                aria-describedby={createError ? createErrorId : undefined}
                 className="h-12 w-full rounded-md border border-line bg-background px-3 text-base"
               />
             </div>
@@ -182,6 +185,8 @@ export default function AdminBusinessesPage() {
                 name="username"
                 autoCapitalize="none"
                 maxLength={100}
+                aria-invalid={createError ? true : undefined}
+                aria-describedby={createError ? createErrorId : undefined}
                 className="h-12 w-full rounded-md border border-line bg-background px-3 text-base"
               />
             </div>
@@ -209,6 +214,8 @@ export default function AdminBusinessesPage() {
                 defaultValue={suggestedPassword()}
                 autoCapitalize="none"
                 maxLength={128}
+                aria-invalid={createError ? true : undefined}
+                aria-describedby={createError ? createErrorId : undefined}
                 className="h-12 w-full rounded-md border border-line bg-background px-3 text-base"
               />
               <p className="mt-1 text-xs text-muted">
@@ -216,7 +223,7 @@ export default function AdminBusinessesPage() {
               </p>
             </div>
             {createError ? (
-              <p role="alert" className="text-sm text-danger">
+              <p id={createErrorId} role="alert" className="text-sm text-danger">
                 {createError}
               </p>
             ) : null}

@@ -281,6 +281,8 @@ export default function AdminMemesPage() {
                           id={`meme-category-${meme.id}`}
                           value={draft.categoryId}
                           onChange={(e) => setEditing({ ...draft, categoryId: e.target.value })}
+                          aria-invalid={editError ? true : undefined}
+                          aria-describedby={editError ? `meme-edit-${meme.id}-error` : undefined}
                           className="h-11 w-full rounded-md border border-line bg-surface px-3 text-sm"
                         >
                           <option value="">Kategori yok</option>
@@ -304,11 +306,17 @@ export default function AdminMemesPage() {
                           value={draft.description}
                           onChange={(e) => setEditing({ ...draft, description: e.target.value })}
                           maxLength={1000}
+                          aria-invalid={editError ? true : undefined}
+                          aria-describedby={editError ? `meme-edit-${meme.id}-error` : undefined}
                           className="w-full rounded-md border border-line bg-surface p-2 text-sm"
                         />
                       </div>
                       {editError ? (
-                        <p role="alert" className="text-sm text-danger">
+                        <p
+                          id={`meme-edit-${meme.id}-error`}
+                          role="alert"
+                          className="text-sm text-danger"
+                        >
                           {editError}
                         </p>
                       ) : null}

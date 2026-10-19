@@ -9,13 +9,18 @@ export function QrCode({
   value,
   size = 240,
   className,
+  label = 'Katılım QR kodu',
 }: {
   value: string;
   size?: number;
   className?: string;
+  /** QR'ın neye yaradığını söyleyen erişilebilir ad. */
+  label?: string;
 }) {
   return (
     <div
+      role="img"
+      aria-label={label}
       className={cn(
         'flex items-center justify-center rounded-[var(--radius-card)] bg-white p-3',
         className,

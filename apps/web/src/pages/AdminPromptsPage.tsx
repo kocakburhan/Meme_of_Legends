@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { promptTextSchema } from '@mol/shared';
 import { cn } from '@/lib/cn';
@@ -43,10 +43,11 @@ type HealthState =
   | { state: 'error' };
 
 /** Canlı karakter sayacı (kod noktası sayar; sunucu şemasıyla aynı ölçü). */
-function TextCounter({ text }: { text: string }) {
+function TextCounter({ text, id }: { text: string; id?: string }) {
   const count = [...text].length;
   return (
     <p
+      id={id}
       aria-live="polite"
       className={cn('mt-1 text-xs', count > PROMPT_MAX ? 'text-danger' : 'text-muted')}
     >
@@ -59,14 +60,16 @@ function TextCounter({ text }: { text: string }) {
 function PromptErrorAlert({
   error,
   onReactivate,
+  id,
 }: {
   error: PromptError;
   onReactivate: (id: string) => void;
+  id?: string;
 }) {
   if (error.kind === 'invalid')
     return (
       <div className="flex flex-col gap-1">
-        <p role="alert" className="text-sm text-danger">
+        <p id={id} role="alert" className="text-sm text-danger">
           Durum 3–160 karakter olmalı; link ve HTML kabul edilmez.
         </p>
         <p className="text-xs text-muted">İpucu: Nokta sonrası boşluk bırak.</p>
@@ -74,13 +77,13 @@ function PromptErrorAlert({
     );
   if (error.kind === 'generic')
     return (
-      <p role="alert" className="text-sm text-danger">
+      <p id={id} role="alert" className="text-sm text-danger">
         Durum kaydedilemedi; biraz sonra tekrar dene.
       </p>
     );
   return (
     <div className="flex flex-col gap-2">
-      <p role="alert" className="text-sm text-danger">
+      <p id={id} role="alert" className="text-sm text-danger">
         Bu durum zaten var.
       </p>
       {error.archived ? (
@@ -109,6 +112,7 @@ export default function AdminPromptsPage() {
   const [editError, setEditError] = useState<PromptError | null>(null);
   const [rowBusyId, setRowBusyId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const addErrorId = useId();
 
   useEffect(() => {
     let alive = true;
@@ -297,13 +301,16 @@ export default function AdminPromptsPage() {
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Örn: Toplantı bitince kendine gelen çocuk"
+            aria-invalid={addError ? true : undefined}
+            aria-describedby={addError ? addErrorId : 'admin-prompt-new-counter'}
             className="w-full rounded-md border border-line bg-background p-3 text-base"
           />
-          <TextCounter text={text} />
+          <TextCounter text={text} id="admin-prompt-new-counter" />
         </div>
         {addError ? (
           <PromptErrorAlert
             error={addError}
+            id={addErrorId}
             onReactivate={(id) => void changeStatus(id, 'active')}
           />
         ) : null}
@@ -375,12 +382,22 @@ export default function AdminPromptsPage() {
                         rows={2}
                         value={draft.text}
                         onChange={(e) => setEditing({ id: prompt.id, text: e.target.value })}
+                        aria-invalid={editError ? true : undefined}
+                        aria-describedby={
+                          editError
+                            ? `admin-prompt-edit-${prompt.id}-error`
+                            : `admin-prompt-edit-${prompt.id}-counter`
+                        }
                         className="w-full rounded-md border border-line bg-surface p-3 text-sm"
                       />
-                      <TextCounter text={draft.text} />
+                      <TextCounter
+                        text={draft.text}
+                        id={`admin-prompt-edit-${prompt.id}-counter`}
+                      />
                       {editError ? (
                         <PromptErrorAlert
                           error={editError}
+                          id={`admin-prompt-edit-${prompt.id}-error`}
                           onReactivate={(id) => void changeStatus(id, 'active')}
                         />
                       ) : null}

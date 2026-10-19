@@ -5,6 +5,7 @@ import { HttpError, getBusinessMe, getRoom, type BusinessAccount } from '@/net/h
 import { useManagerSocket } from '@/net/useRoom';
 import { cn } from '@/lib/cn';
 import { Card, GhostButton, Note } from '@/components/ui';
+import { PhaseAnnouncer } from '@/components/Countdown';
 import { StatusBar } from '@/console/StatusBar';
 import { GameTab } from '@/console/GameTab';
 import { ParticipantsTab } from '@/console/ParticipantsTab';
@@ -162,8 +163,9 @@ export default function ConsolePage() {
   const pendingCount = (shell?.pendingTakeovers.length ?? 0) + view.participants.filter((p) => p.status === 'pending').length;
 
   return (
-    <div className="flex min-h-dvh flex-col">
+    <main className="flex min-h-dvh flex-col">
       <h1 className="sr-only">Yönetici konsolu</h1>
+      <PhaseAnnouncer view={view} />
       <StatusBar
         view={view}
         code={roomCode}
@@ -175,16 +177,16 @@ export default function ConsolePage() {
         onCreatePairCode={() => void runShell({ kind: 'createDisplayPairCode' })}
       />
 
-      <nav aria-label="Konsol sekmeleri" className="sticky top-[132px] z-20 border-b border-line bg-background/95 px-4 py-2 lg:hidden">
+      <nav aria-label="Konsol sekmeleri" className="sticky top-[132px] z-20 overflow-x-auto border-b border-line bg-background/95 px-4 py-2 lg:hidden">
         <div className="flex gap-2">
           {(Object.keys(TAB_LABELS) as Tab[]).map((t) => (
             <button
               key={t}
               type="button"
-              aria-current={tab === t ? 'page' : undefined}
+              aria-pressed={tab === t}
               onClick={() => setTab(t)}
               className={cn(
-                'flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-md border px-2 text-sm font-bold',
+                'flex min-h-11 min-w-0 flex-1 items-center justify-center gap-1.5 break-words rounded-md border px-2 text-center text-sm font-bold leading-tight',
                 tab === t ? 'border-accent bg-accent text-accent-ink' : 'border-line bg-surface text-foreground',
               )}
             >
@@ -235,7 +237,7 @@ export default function ConsolePage() {
           {ackNote}
         </p>
       ) : null}
-    </div>
+    </main>
   );
 }
 

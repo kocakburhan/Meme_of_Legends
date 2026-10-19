@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useId, useState, type FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { loginAdmin } from '@/net/admin';
 import { HttpError } from '@/net/http';
@@ -21,6 +21,7 @@ export default function AdminLoginPage() {
   const [params] = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const errorId = useId();
   const next = safeNext(params.get('next'));
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -61,6 +62,8 @@ export default function AdminLoginPage() {
             name="username"
             autoComplete="username"
             autoCapitalize="none"
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? errorId : undefined}
             className="h-12 w-full rounded-md border border-line bg-surface px-3 text-base"
           />
         </div>
@@ -73,11 +76,13 @@ export default function AdminLoginPage() {
             name="password"
             type="password"
             autoComplete="current-password"
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? errorId : undefined}
             className="h-12 w-full rounded-md border border-line bg-surface px-3 text-base"
           />
         </div>
         {error ? (
-          <p role="alert" className="text-sm text-danger">
+          <p id={errorId} role="alert" className="text-sm text-danger">
             {error}
           </p>
         ) : null}

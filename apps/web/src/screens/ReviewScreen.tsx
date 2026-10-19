@@ -37,36 +37,31 @@ export function ReviewScreen({
     <Screen className={className}>
       <div className="sticky top-0 z-10 -mx-4 bg-background/95 px-4 pb-2 pt-1 backdrop-blur">
         {/* Durum metni büyük başlık; aşama adı küçük bilgi (M3b hiyerarşi düzeltmesi). */}
-        <p className="font-display text-2xl uppercase leading-tight text-accent">
+        <h1 className="font-display text-2xl uppercase leading-tight text-accent">
           {view.prompt?.text ?? '—'}
-        </p>
+        </h1>
         <div className="mt-1 flex items-center justify-between gap-3">
-          <h1 className="text-xs font-bold uppercase tracking-wider text-muted">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-muted">
             Final gözden geçirme
-          </h1>
+          </h2>
           <Countdown secondsLeft={secondsLeft} totalSeconds={view.config.reviewSeconds} />
         </div>
         {doneCount ? (
-          <p className="text-sm text-muted">
+          <p className="text-sm text-muted" aria-live="polite" aria-atomic="true">
             {doneCount.done}/{doneCount.total} kişi bitirdi
           </p>
         ) : null}
       </div>
 
       <ul className="flex flex-col gap-3">
-        {view.submissions.map((submission) => {
+        {view.submissions.map((submission, index) => {
           const unrated = submission.canRate && submission.ownScore === undefined;
-          const locked = !submission.canRate;
           return (
             <li
               key={submission.id}
-              className={
-                locked
-                  ? 'rounded-[var(--radius-card)] border border-line bg-surface p-3 opacity-60'
-                  : 'rounded-[var(--radius-card)] border border-line bg-surface p-3'
-              }
+              className="rounded-[var(--radius-card)] border border-line bg-surface p-3"
               aria-label={
-                unrated ? `Gönderi ${submission.id}, puanlanmadı` : `Gönderi ${submission.id}`
+                unrated ? `Gönderi ${index + 1}, puanlanmadı` : `Gönderi ${index + 1}`
               }
             >
               <MemeFrame
@@ -81,7 +76,7 @@ export function ReviewScreen({
                   ) : null}
                   <ScoreScale
                     size="sm"
-                    label={`Gönderi ${submission.id} için puan`}
+                    label={`Gönderi ${index + 1} için puan`}
                     value={submission.ownScore}
                     onChange={(score) => onRate(submission.id, score)}
                   />

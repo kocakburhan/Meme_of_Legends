@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useId, useState, type FormEvent } from 'react';
 import { Navigate, useNavigate } from 'react-router';
 import { HttpError, changeBusinessPassword, logoutBusiness } from '@/net/http';
 import { Card, GhostButton, Note, PrimaryButton, TopBar } from '@/components/ui';
@@ -17,6 +17,7 @@ export default function BusinessAccountPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [changed, setChanged] = useState(false);
+  const errorId = useId();
 
   if (status === 'unauth')
     return <Navigate to={`/isletme/giris?next=${encodeURIComponent('/isletme/hesap')}`} replace />;
@@ -99,6 +100,8 @@ export default function BusinessAccountPage() {
               name="currentPassword"
               type="password"
               autoComplete="current-password"
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? errorId : undefined}
               className="h-12 w-full rounded-md border border-line bg-background px-3 text-base"
             />
           </div>
@@ -111,6 +114,8 @@ export default function BusinessAccountPage() {
               name="newPassword"
               type="password"
               autoComplete="new-password"
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? errorId : undefined}
               className="h-12 w-full rounded-md border border-line bg-background px-3 text-base"
             />
             <p className="mt-1 text-xs text-muted">En az 12 karakter.</p>
@@ -124,11 +129,13 @@ export default function BusinessAccountPage() {
               name="confirm"
               type="password"
               autoComplete="new-password"
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? errorId : undefined}
               className="h-12 w-full rounded-md border border-line bg-background px-3 text-base"
             />
           </div>
           {error ? (
-            <p role="alert" className="text-sm text-danger">
+            <p id={errorId} role="alert" className="text-sm text-danger">
               {error}
             </p>
           ) : null}

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import type { View } from '@mol/engine';
 import type { SocketReason } from '@/net/socket';
 import { pairDisplay } from '@/net/http';
@@ -6,6 +6,7 @@ import { forgetDisplay, loadDisplay, saveDisplay, type StoredDisplay } from '@/n
 import { LibraryMediaProvider } from '@/components/MemeFrame';
 import { useLibrary, useParticipantSocket } from '@/net/useRoom';
 import { Card, GhostButton, Note, PrimaryButton, Screen, TopBar } from '@/components/ui';
+import { PhaseAnnouncer } from '@/components/Countdown';
 import { remainingSeconds } from '@/lib/format';
 import {
   DisplayFinishedScene,
@@ -147,7 +148,10 @@ export default function EkranPage() {
       <LibraryMediaProvider
         entries={library.map((m) => ({ memeId: m.id, src: m.mediaUrl, coverUrl: m.coverUrl }))}
       >
-        <Stage>{sceneFor(view, now, room, recoveryResumesAt)}</Stage>
+        <Stage>
+          <PhaseAnnouncer view={view} />
+          {sceneFor(view, now, room, recoveryResumesAt)}
+        </Stage>
       </LibraryMediaProvider>
     </div>
   );
@@ -206,6 +210,7 @@ function PairForm({
   error: string | null;
   busy: boolean;
 }) {
+  const errorId = useId();
   return (
     <Screen className="h-dvh items-center justify-center">
       <form onSubmit={onSubmit} className="flex w-full max-w-sm flex-col gap-4" noValidate>
@@ -224,11 +229,13 @@ function PairForm({
             autoComplete="one-time-code"
             maxLength={6}
             placeholder="000000"
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? errorId : undefined}
             className="h-14 w-full rounded-md border border-line bg-surface px-3 text-center font-display text-3xl tracking-widest placeholder:text-muted"
           />
         </div>
         {error ? (
-          <p role="alert" className="text-sm text-danger">
+          <p id={errorId} role="alert" className="text-sm text-danger">
             {error}
           </p>
         ) : null}

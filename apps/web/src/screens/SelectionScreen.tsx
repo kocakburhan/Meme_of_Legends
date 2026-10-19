@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from 'react';
+import { useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import type { MediaRef, View } from '@mol/engine';
 import type { LibraryMeme, Me } from '@/lib/contracts';
 import { cn } from '@/lib/cn';
@@ -76,6 +76,26 @@ export function SelectionScreen({
   }, [library, query, category]);
 
   const panelId = useId();
+  const tabRefs = useRef<Record<TabId, HTMLButtonElement | null>>({
+    library: null,
+    upload: null,
+    youtube: null,
+  });
+
+  /** Sekmelerde ok/Home/End; yalnız etkin sekme Tab sırasındadır (WAI-ARIA). */
+  function handleTabKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    const index = TABS.findIndex((t) => t.id === tab);
+    let next: number | null = null;
+    if (event.key === 'ArrowRight') next = (index + 1) % TABS.length;
+    else if (event.key === 'ArrowLeft') next = (index - 1 + TABS.length) % TABS.length;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = TABS.length - 1;
+    if (next === null) return;
+    event.preventDefault();
+    const nextTab = TABS[next]!;
+    setTab(nextTab.id);
+    tabRefs.current[nextTab.id]?.focus();
+  }
 
   return (
     <Screen className={className}>
@@ -84,9 +104,9 @@ export function SelectionScreen({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-xs font-bold uppercase tracking-wider text-muted">Durum</p>
-            <p className="font-display text-2xl uppercase leading-tight text-accent">
+            <h1 className="font-display text-2xl uppercase leading-tight text-accent">
               {view.prompt?.text ?? '—'}
-            </p>
+            </h1>
             {rival ? (
               <p className="mt-1 text-sm text-muted">Düello: {nicknameOf(view, rival)} ile</p>
             ) : null}
@@ -99,17 +119,24 @@ export function SelectionScreen({
       <div
         role="tablist"
         aria-label="İçerik kaynağı"
-        className="flex gap-1 rounded-md bg-surface p-1"
+        onKeyDown={handleTabKeyDown}
+        className="flex gap-1 overflow-x-auto rounded-md bg-surface p-1"
       >
         {TABS.map((t) => (
           <button
             key={t.id}
+            ref={(element) => {
+              tabRefs.current[t.id] = element;
+            }}
+            id={`${panelId}-tab-${t.id}`}
             type="button"
             role="tab"
             aria-selected={tab === t.id}
+            aria-controls={`${panelId}-panel-${t.id}`}
+            tabIndex={tab === t.id ? 0 : -1}
             onClick={() => setTab(t.id)}
             className={cn(
-              'min-h-11 flex-1 rounded-sm px-2 text-sm font-bold transition-colors',
+              'min-h-11 min-w-fit flex-1 whitespace-nowrap rounded-sm px-2 text-sm font-bold transition-colors',
               tab === t.id ? 'bg-accent text-accent-ink' : 'text-muted hover:text-foreground',
             )}
           >
@@ -118,100 +145,107 @@ export function SelectionScreen({
         ))}
       </div>
 
-      {tab === 'library' ? (
-        <div className="flex min-h-0 flex-1 flex-col gap-3">
-          <div>
-            <label htmlFor={`${panelId}-search`} className="sr-only">
-              Ara
-            </label>
-            <input
-              id={`${panelId}-search`}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Ara…"
-              className="h-11 w-full rounded-md border border-line bg-surface px-3 text-sm placeholder:text-muted"
-            />
-          </div>
-          <div className="flex gap-2 overflow-x-auto pb-1" role="group" aria-label="Kategoriler">
-            <button
-              type="button"
-              aria-pressed={category === null}
-              onClick={() => setCategory(null)}
-              className={cn(
-                'min-h-11 shrink-0 rounded-md border px-3 text-sm font-bold transition-colors',
-                category === null
-                  ? 'border-accent bg-accent text-accent-ink'
-                  : 'border-line bg-surface',
-              )}
-            >
-              Tümü
-            </button>
-            {categories.map((c) => (
+      <div
+        role="tabpanel"
+        id={`${panelId}-panel-${tab}`}
+        aria-labelledby={`${panelId}-tab-${tab}`}
+        className="flex min-h-0 flex-1 flex-col gap-3"
+      >
+        {tab === 'library' ? (
+          <>
+            <div>
+              <label htmlFor={`${panelId}-search`} className="sr-only">
+                Ara
+              </label>
+              <input
+                id={`${panelId}-search`}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Ara…"
+                className="h-11 w-full rounded-md border border-line bg-surface px-3 text-sm placeholder:text-muted"
+              />
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-1" role="group" aria-label="Kategoriler">
               <button
-                key={c}
                 type="button"
-                aria-pressed={category === c}
-                onClick={() => setCategory(category === c ? null : c)}
+                aria-pressed={category === null}
+                onClick={() => setCategory(null)}
                 className={cn(
                   'min-h-11 shrink-0 rounded-md border px-3 text-sm font-bold transition-colors',
-                  category === c
+                  category === null
                     ? 'border-accent bg-accent text-accent-ink'
                     : 'border-line bg-surface',
                 )}
               >
-                {c}
+                Tümü
               </button>
-            ))}
-          </div>
-          {filtered.length === 0 ? (
-            <Note>Meme kalmadı; aramayı değiştir.</Note>
-          ) : (
-            <ul className="grid grid-cols-2 gap-3">
-              {filtered.map((meme) => {
-                const selected = selectedMemeId === meme.memeId;
-                return (
-                  <li key={meme.memeId}>
-                    <button
-                      type="button"
-                      aria-pressed={selected}
-                      onClick={() => onSelect(systemMedia(meme))}
-                      className={cn(
-                        'flex w-full flex-col gap-1 rounded-[var(--radius-card)] border p-1.5 text-left transition-colors',
-                        selected
-                          ? 'border-accent bg-accent/10'
-                          : 'border-line bg-surface hover:border-accent',
-                      )}
-                    >
-                      <MemeFrame
-                        media={systemMedia(meme)}
-                        className="aspect-square min-h-0 flex-none"
-                      />
-                      <span className="line-clamp-2 min-h-8 px-1 text-xs leading-snug">
-                        {meme.title}
-                      </span>
-                      {selected ? (
-                        <span className="mx-1 mb-1 rounded-sm bg-accent px-1.5 py-0.5 text-center text-xs font-bold text-accent-ink">
-                          Seçili
+              {categories.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  aria-pressed={category === c}
+                  onClick={() => setCategory(category === c ? null : c)}
+                  className={cn(
+                    'min-h-11 shrink-0 rounded-md border px-3 text-sm font-bold transition-colors',
+                    category === c
+                      ? 'border-accent bg-accent text-accent-ink'
+                      : 'border-line bg-surface',
+                  )}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+            {filtered.length === 0 ? (
+              <Note>Meme kalmadı; aramayı değiştir.</Note>
+            ) : (
+              <ul className="grid grid-cols-2 gap-3">
+                {filtered.map((meme) => {
+                  const selected = selectedMemeId === meme.memeId;
+                  return (
+                    <li key={meme.memeId}>
+                      <button
+                        type="button"
+                        aria-pressed={selected}
+                        onClick={() => onSelect(systemMedia(meme))}
+                        className={cn(
+                          'flex w-full flex-col gap-1 rounded-[var(--radius-card)] border p-1.5 text-left transition-colors',
+                          selected
+                            ? 'border-accent bg-accent/10'
+                            : 'border-line bg-surface hover:border-accent',
+                        )}
+                      >
+                        <MemeFrame
+                          media={systemMedia(meme)}
+                          className="aspect-square min-h-0 flex-none"
+                        />
+                        <span className="line-clamp-2 min-h-8 px-1 text-xs leading-snug">
+                          {meme.title}
                         </span>
-                      ) : null}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
-      ) : tab === 'upload' ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-[var(--radius-card)] border border-dashed border-line bg-surface p-6 text-center">
-          <p className="font-display text-xl uppercase">Yakında</p>
-          <Note>Resim/GIF yükleme M6'da geliyor. JPG, PNG, WebP, GIF; en fazla 10 MB olacak.</Note>
-        </div>
-      ) : (
-        <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-[var(--radius-card)] border border-dashed border-line bg-surface p-6 text-center">
-          <p className="font-display text-xl uppercase">Yakında</p>
-          <Note>YouTube kırpma M6'da geliyor; en fazla 25 sn'lik klip seçebileceksin.</Note>
-        </div>
-      )}
+                        {selected ? (
+                          <span className="mx-1 mb-1 rounded-sm bg-accent px-1.5 py-0.5 text-center text-xs font-bold text-accent-ink">
+                            Seçili
+                          </span>
+                        ) : null}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </>
+        ) : tab === 'upload' ? (
+          <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-[var(--radius-card)] border border-dashed border-line bg-surface p-6 text-center">
+            <p className="font-display text-xl uppercase">Yakında</p>
+            <Note>Resim/GIF yükleme M6'da geliyor. JPG, PNG, WebP, GIF; en fazla 10 MB olacak.</Note>
+          </div>
+        ) : (
+          <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-[var(--radius-card)] border border-dashed border-line bg-surface p-6 text-center">
+            <p className="font-display text-xl uppercase">Yakında</p>
+            <Note>YouTube kırpma M6'da geliyor; en fazla 25 sn'lik klip seçebileceksin.</Note>
+          </div>
+        )}
+      </div>
 
       {/* Alt onay çubuğu */}
       <div className="sticky bottom-0 -mx-4 mt-2 bg-background/95 px-4 pb-2 pt-3 backdrop-blur">

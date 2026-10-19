@@ -38,20 +38,20 @@ export function StatusBar({
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-background/95 px-4 pb-3 pt-3 backdrop-blur">
       <div className="mx-auto flex w-full max-w-[1360px] flex-col gap-2">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="font-display text-lg uppercase tracking-wide">
             Oda <span className="text-accent">{code}</span>
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {!connected ? <Badge tone="danger">Bağlantı kopuk</Badge> : null}
             {view.status === 'paused' ? <Badge tone="accent">Duraklatıldı</Badge> : null}
             <Badge>{phaseLabel(view)}</Badge>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {endsAt !== null && endsAt > now ? (
-            <p className="flex-1">
+            <p className="min-w-0 flex-1">
               <span className="text-xs font-bold uppercase tracking-wider text-muted">Kalan süre </span>
               <time
                 role="timer"
@@ -65,7 +65,7 @@ export function StatusBar({
               </time>
             </p>
           ) : (
-            <p className="flex-1 text-sm text-muted">{deadlineNote(view)}</p>
+            <p className="min-w-0 flex-1 text-sm text-muted">{deadlineNote(view)}</p>
           )}
           {view.status === 'running' || view.status === 'paused' ? (
             view.status === 'running' ? (
@@ -73,7 +73,7 @@ export function StatusBar({
                 type="button"
                 onClick={onPause}
                 aria-label="Oyunu duraklat"
-                className="flex min-h-14 w-40 shrink-0 items-center justify-center rounded-md border border-accent bg-surface font-display text-lg uppercase text-foreground hover:bg-surface-raised"
+                className="flex min-h-14 shrink-0 items-center justify-center rounded-md border border-accent bg-surface px-4 font-display text-lg uppercase text-foreground hover:bg-surface-raised"
               >
                 ⏸ Duraklat
               </button>
@@ -82,7 +82,7 @@ export function StatusBar({
                 type="button"
                 onClick={onResume}
                 aria-label="Oyuna devam et"
-                className="flex min-h-14 w-40 shrink-0 items-center justify-center rounded-md bg-accent font-display text-lg uppercase text-accent-ink hover:bg-[#ffdd66]"
+                className="flex min-h-14 shrink-0 items-center justify-center rounded-md bg-accent px-4 font-display text-lg uppercase text-accent-ink hover:bg-[#ffdd66]"
               >
                 ▶ Devam
               </button>
@@ -91,7 +91,7 @@ export function StatusBar({
         </div>
 
         <details className="rounded-md border border-line bg-surface px-3 py-2">
-          <summary className="flex cursor-pointer items-center justify-between gap-2 text-sm font-bold">
+          <summary className="flex min-h-11 cursor-pointer flex-wrap items-center justify-between gap-2 text-sm font-bold">
             Ortak ekran
             <Badge tone={shell?.displayConnected ? 'success' : 'line'}>
               {shell?.displayConnected ? 'Bağlı ✓' : 'Yok'}
@@ -103,11 +103,10 @@ export function StatusBar({
                 <p className="text-xs text-muted">
                   Ekranda <span className="font-bold">/ekran</span> sayfasını açıp bu kodu gir.
                 </p>
-                <p
-                  aria-label="Eşleştirme kodu"
-                  className="text-center font-display text-4xl tracking-[0.3em] text-accent"
-                >
-                  {pairCode.code}
+                <p role="group" aria-label="Eşleştirme kodu" className="text-center">
+                  <span className="break-all font-display text-4xl tracking-[0.3em] text-accent">
+                    {pairCode.code}
+                  </span>
                 </p>
                 <p className="text-center text-xs tabular-nums text-muted">
                   {Math.max(0, pairLeft)} sn sonra geçersiz · tek kullanımlık

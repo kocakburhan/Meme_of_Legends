@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '@/lib/cn';
 
 /**
@@ -27,7 +28,7 @@ export function Section({
       )}
     >
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-muted">{title}</h3>
+        <h2 className="text-xs font-bold uppercase tracking-wider text-muted">{title}</h2>
         {aside}
       </div>
       {children}
@@ -35,7 +36,7 @@ export function Section({
   );
 }
 
-/** İki adımlı onay: ilk dokunuş açıklamayı gösterir, ikinci dokunuş uygular. */
+/** İki adımlı onay: ilk dokunuş erişilebilir bir diyalog açar, onay uygular. */
 export function ConfirmButton({
   label,
   note,
@@ -53,12 +54,55 @@ export function ConfirmButton({
   className?: string;
 }) {
   const [armed, setArmed] = useState(false);
-  if (!armed)
-    return (
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const titleId = useId();
+  const noteId = useId();
+
+  // Odak tuzağı + Esc ile kapatma + kapanınca odağı tetikleyiciye geri verme.
+  useEffect(() => {
+    if (!armed) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const timer = window.setTimeout(() => cancelRef.current?.focus(), 0);
+    function onKeyDown(event: globalThis.KeyboardEvent) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setArmed(false);
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      if (!focusable || focusable.length === 0) return;
+      const first = focusable[0]!;
+      const last = focusable[focusable.length - 1]!;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener('keydown', onKeyDown);
+      previouslyFocused?.focus?.();
+    };
+  }, [armed]);
+
+  return (
+    <>
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setArmed(true)}
         disabled={disabled}
+        aria-haspopup="dialog"
+        aria-expanded={armed}
         className={cn(
           'flex min-h-12 w-full items-center justify-center rounded-md border border-line bg-surface px-4 font-bold text-foreground transition-colors hover:border-accent disabled:cursor-not-allowed disabled:opacity-50',
           className,
@@ -66,37 +110,49 @@ export function ConfirmButton({
       >
         {label}
       </button>
-    );
-  return (
-    <div
-      role="group"
-      aria-label={`${label} onayı`}
-      className={cn(
-        'flex flex-col gap-2 rounded-md border border-accent bg-surface p-3',
-        className,
-      )}
-    >
-      <p className="text-sm font-bold leading-snug">{note}</p>
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => {
-            setArmed(false);
-            onConfirm();
-          }}
-          className="flex min-h-12 flex-1 items-center justify-center rounded-md bg-accent px-3 font-bold text-accent-ink"
-        >
-          {confirmLabel}
-        </button>
-        <button
-          type="button"
-          onClick={() => setArmed(false)}
-          className="flex min-h-12 flex-1 items-center justify-center rounded-md border border-line bg-surface px-3 font-bold text-foreground"
-        >
-          Vazgeç
-        </button>
-      </div>
-    </div>
+      {armed
+        ? createPortal(
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4">
+              <div
+                ref={dialogRef}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby={titleId}
+                aria-describedby={noteId}
+                className="flex max-h-[90dvh] w-full max-w-md flex-col gap-3 overflow-y-auto rounded-[var(--radius-card)] border border-accent bg-surface p-4 shadow-lg"
+              >
+                <h2 id={titleId} className="font-display text-xl uppercase leading-tight">
+                  {label}
+                </h2>
+                <p id={noteId} className="text-sm leading-snug">
+                  {note}
+                </p>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <button
+                    ref={cancelRef}
+                    type="button"
+                    onClick={() => setArmed(false)}
+                    className="flex min-h-12 flex-1 items-center justify-center rounded-md border border-line bg-surface px-3 font-bold text-foreground"
+                  >
+                    Vazgeç
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setArmed(false);
+                      onConfirm();
+                    }}
+                    className="flex min-h-12 flex-1 items-center justify-center rounded-md bg-accent px-3 font-bold text-accent-ink"
+                  >
+                    {confirmLabel}
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
+    </>
   );
 }
 
@@ -123,6 +179,7 @@ export function HoldButton({
   hint?: string;
 }) {
   const [progress, setProgress] = useState(0);
+  const hintId = useId();
   const hold = useRef<{ timer: number | null; startedAt: number; fired: boolean }>({
     timer: null,
     startedAt: 0,
@@ -183,6 +240,7 @@ export function HoldButton({
         }}
         onKeyUp={() => stop(true)}
         aria-label={typeof children === 'string' ? `${children} (1 saniye basılı tut)` : undefined}
+        aria-describedby={hint ? hintId : undefined}
       >
         <span
           aria-hidden="true"
@@ -191,7 +249,11 @@ export function HoldButton({
         />
         <span className="relative">{children}</span>
       </button>
-      {hint ? <p className="mt-1 text-center text-xs text-muted">{hint}</p> : null}
+      {hint ? (
+        <p id={hintId} className="mt-1 text-center text-xs text-muted">
+          {hint}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -276,9 +338,9 @@ export function Stepper({
   const buttonClass =
     'flex h-12 w-12 items-center justify-center rounded-md border border-line bg-surface font-display text-xl disabled:opacity-40';
   return (
-    <div className="flex items-center justify-between gap-3">
-      <p className="text-sm font-bold leading-snug">{label}</p>
-      <div className="flex items-center gap-1">
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <p className="min-w-0 text-sm font-bold leading-snug">{label}</p>
+      <div className="flex flex-wrap items-center gap-1">
         <button
           type="button"
           aria-label={`${label} azalt`}
@@ -334,20 +396,49 @@ export function Segmented({
   ariaLabel: string;
   disabled?: boolean;
 }) {
+  const refs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (disabled) return;
+    const index = options.findIndex((option) => option.value === value);
+    let next: number | null = null;
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown')
+      next = (index + 1) % options.length;
+    else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp')
+      next = (index - 1 + options.length) % options.length;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = options.length - 1;
+    if (next === null) return;
+    event.preventDefault();
+    const option = options[next];
+    if (!option) return;
+    onChange(option.value);
+    refs.current[next]?.focus();
+  }
+
   return (
-    <div role="radiogroup" aria-label={ariaLabel} className="flex gap-2">
-      {options.map((o) => {
+    <div
+      role="radiogroup"
+      aria-label={ariaLabel}
+      className="flex flex-wrap gap-2"
+      onKeyDown={handleKeyDown}
+    >
+      {options.map((o, index) => {
         const selected = o.value === value;
         return (
           <button
             key={o.value}
+            ref={(element) => {
+              refs.current[index] = element;
+            }}
             type="button"
             role="radio"
             aria-checked={selected}
+            tabIndex={disabled ? -1 : selected ? 0 : -1}
             disabled={disabled}
             onClick={() => onChange(o.value)}
             className={cn(
-              'flex min-h-11 flex-1 items-center justify-center rounded-md border px-2 font-display text-sm uppercase',
+              'flex min-h-11 min-w-fit flex-1 basis-20 items-center justify-center rounded-md border px-2 font-display text-sm uppercase',
               selected ? 'border-accent bg-accent text-accent-ink' : 'border-line bg-surface text-foreground',
               disabled && 'cursor-not-allowed opacity-50',
             )}
