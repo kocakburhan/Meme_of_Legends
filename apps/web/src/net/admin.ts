@@ -2,12 +2,19 @@ import {
   adminBusinessCreatedResponseSchema,
   adminBusinessesResponseSchema,
   adminBusinessResponseSchema,
+  adminCategoriesResponseSchema,
+  adminCategoryResponseSchema,
+  adminCategorySchema,
   adminErrorsResponseSchema,
   adminImpersonateResponseSchema,
+  adminMemeResponseSchema,
   adminMemesResponseSchema,
   adminOkResponseSchema,
   adminPasswordResponseSchema,
   adminPromptHealthResponseSchema,
+  adminPromptResponseSchema,
+  adminPromptSchema,
+  adminPromptsResponseSchema,
   adminSessionsResponseSchema,
 } from '@mol/shared';
 import type { AdminBusiness, AdminSession, AdminUsage } from '@mol/shared';
@@ -35,6 +42,15 @@ export type AdminSessionStatusFilter =
   | 'finished'
   | 'cancelled'
   | 'terminated';
+
+export type AdminPromptStatusFilter = 'active' | 'archived' | 'all';
+export type AdminPromptBlockFilter = 'true' | 'false' | 'all';
+export type AdminMemeStatusFilter = 'all' | 'untagged' | 'active' | 'archived';
+
+/** Kategori kaydı (@mol/shared şemasından). */
+export type AdminCategory = z.infer<typeof adminCategorySchema>;
+/** Platform ya da işletme durum kaydı (@mol/shared şemasından). */
+export type AdminPrompt = z.infer<typeof adminPromptSchema>;
 
 export function loginAdmin(input: { username: string; password: string }): Promise<{ ok: true }> {
   return request('/api/auth/admin/login', adminOkResponseSchema, {
@@ -132,15 +148,139 @@ export function getPromptHealth(): Promise<z.infer<typeof adminPromptHealthRespo
   return request('/api/admin/prompts/health', adminPromptHealthResponseSchema);
 }
 
+/* ------------------- İçerik: kategoriler ve durumlar (M5c-2) ------------------- */
+
+/** Kategori listesi (arşivliler dahil; `sortOrder,id` artan). */
+export function listAdminCategories(): Promise<z.infer<typeof adminCategoriesResponseSchema>> {
+  return request('/api/admin/categories', adminCategoriesResponseSchema);
+}
+
+/** Kategori ekler; sıra verilmezse sona koyacak `sortOrder` sayfa tarafından seçilir. */
+export function createAdminCategory(input: {
+  name: string;
+  sortOrder?: number;
+}): Promise<z.infer<typeof adminCategoryResponseSchema>> {
+  return request('/api/admin/categories', adminCategoryResponseSchema, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+/** Yeniden adlandırma, sıralama ve arşiv/geri al; her satır ayrı güncellenir. */
+export function updateAdminCategory(
+  id: string,
+  patch: { name?: string; sortOrder?: number; archived?: boolean },
+): Promise<z.infer<typeof adminCategoryResponseSchema>> {
+  return request(`/api/admin/categories/${encodeURIComponent(id)}`, adminCategoryResponseSchema, {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  });
+}
+
+/** Platform durum listesi (imleçli; aramada Türkçe normalize eşleşme). */
+export function listAdminPrompts(
+  opts: {
+    q?: string;
+    status?: AdminPromptStatusFilter;
+    cursor?: string;
+    limit?: number;
+  } = {},
+): Promise<z.infer<typeof adminPromptsResponseSchema>> {
+  const params = new URLSearchParams({ q: opts.q ?? '', status: opts.status ?? 'all' });
+  if (opts.cursor) params.set('cursor', opts.cursor);
+  if (opts.limit) params.set('limit', String(opts.limit));
+  return request(`/api/admin/prompts?${params.toString()}`, adminPromptsResponseSchema);
+}
+
+/** Platform durumu ekler; tekrar 409 PROMPT_DUPLICATE + existingId döner. */
+export function createAdminPrompt(text: string): Promise<z.infer<typeof adminPromptResponseSchema>> {
+  return request('/api/admin/prompts', adminPromptResponseSchema, {
+    method: 'POST',
+    body: JSON.stringify({ text }),
+  });
+}
+
+/** Platform durumunu düzenler ya da arşivler / yeniden etkinleştirir. */
+export function updateAdminPrompt(
+  id: string,
+  patch: { text?: string; status?: 'active' | 'archived' },
+): Promise<z.infer<typeof adminPromptResponseSchema>> {
+  return request(`/api/admin/prompts/${encodeURIComponent(id)}`, adminPromptResponseSchema, {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  });
+}
+
+/** İşletme durumlarının platform denetim listesi (imleçli). */
+export function listAdminBusinessPrompts(
+  opts: {
+    businessId?: string;
+    q?: string;
+    blocked?: AdminPromptBlockFilter;
+    cursor?: string;
+    limit?: number;
+  } = {},
+): Promise<z.infer<typeof adminPromptsResponseSchema>> {
+  const params = new URLSearchParams({ q: opts.q ?? '', blocked: opts.blocked ?? 'all' });
+  if (opts.businessId) params.set('businessId', opts.businessId);
+  if (opts.cursor) params.set('cursor', opts.cursor);
+  if (opts.limit) params.set('limit', String(opts.limit));
+  return request(`/api/admin/business-prompts?${params.toString()}`, adminPromptsResponseSchema);
+}
+
+/** İşletme durumunu engeller / engeli kaldırır; metin düzenlenemez. */
+export function blockAdminBusinessPrompt(
+  id: string,
+  adminBlocked: boolean,
+): Promise<z.infer<typeof adminPromptResponseSchema>> {
+  return request(
+    `/api/admin/business-prompts/${encodeURIComponent(id)}`,
+    adminPromptResponseSchema,
+    { method: 'PATCH', body: JSON.stringify({ adminBlocked }) },
+  );
+}
+
+/* ------------------------ İçerik: meme kütüphanesi (M5c-2) ------------------------ */
+
+/** Sistem meme listesi (imleçli); arama açıklamada, kategori/durum filtreli. */
+export function listAdminMemes(
+  opts: {
+    q?: string;
+    categoryId?: string;
+    status?: AdminMemeStatusFilter;
+    order?: 'newest' | 'oldest';
+    cursor?: string;
+    limit?: number;
+  } = {},
+): Promise<z.infer<typeof adminMemesResponseSchema>> {
+  const params = new URLSearchParams({
+    q: opts.q ?? '',
+    status: opts.status ?? 'all',
+    order: opts.order ?? 'newest',
+  });
+  if (opts.categoryId) params.set('categoryId', opts.categoryId);
+  if (opts.cursor) params.set('cursor', opts.cursor);
+  if (opts.limit) params.set('limit', String(opts.limit));
+  return request(`/api/admin/memes?${params.toString()}`, adminMemesResponseSchema);
+}
+
+/** Kategori/açıklama etiketi ve durum güncellemesi (422 MEME_TAGS_REQUIRED olabilir). */
+export function updateAdminMeme(
+  id: string,
+  patch: { categoryId?: string | null; description?: string; status?: 'untagged' | 'active' | 'archived' },
+): Promise<z.infer<typeof adminMemeResponseSchema>> {
+  return request(`/api/admin/memes/${encodeURIComponent(id)}`, adminMemeResponseSchema, {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  });
+}
+
 /**
  * Etiketlenmemiş meme kuyruğu. Sunucu sayı vermez; genel bakış en fazla 100
  * kayıt çeker, taşarsa "100+" gösterir.
  */
 export function listUntaggedMemes(): Promise<z.infer<typeof adminMemesResponseSchema>> {
-  return request(
-    '/api/admin/memes?status=untagged&order=oldest&limit=100',
-    adminMemesResponseSchema,
-  );
+  return listAdminMemes({ status: 'untagged', order: 'oldest', limit: 100 });
 }
 
 /** Son sistem hataları (genel bakışta kısa liste; tam sayfa M5c-3'te). */

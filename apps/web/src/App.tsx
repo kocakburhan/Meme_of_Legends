@@ -11,6 +11,12 @@ import AdminLoginPage from '@/pages/AdminLoginPage';
 import AdminOverviewPage from '@/pages/AdminOverviewPage';
 import AdminBusinessesPage from '@/pages/AdminBusinessesPage';
 import AdminBusinessDetailPage from '@/pages/AdminBusinessDetailPage';
+import AdminContentPage from '@/pages/AdminContentPage';
+import AdminMemesPage from '@/pages/AdminMemesPage';
+import AdminCategoriesPage from '@/pages/AdminCategoriesPage';
+import AdminPromptsPage from '@/pages/AdminPromptsPage';
+import AdminBusinessPromptsPage from '@/pages/AdminBusinessPromptsPage';
+import AdminTaggingPage from '@/pages/AdminTaggingPage';
 import { AdminLayout } from '@/admin/AdminLayout';
 import { AdminStubPage } from '@/admin/AdminStubPage';
 import { Placeholder } from '@/pages/Placeholder';
@@ -42,32 +48,28 @@ function buildRouter() {
     { path: '/admin/giris', Component: AdminLoginPage },
     {
       // Admin paneli (M5c-1): düzen + oturum denetimi ortaktır; bölüm sayfaları
-      // alt rotalardadır. M5c-2/M5c-3 parçaları yer tutucu rotaları doldurur.
+      // alt rotalardadır. İçerik bölümleri M5c-2'de, Oturumlar/Sistem M5c-3'te.
       path: '/admin',
       Component: AdminLayout,
       children: [
         { index: true, Component: AdminOverviewPage },
         { path: 'isletmeler', Component: AdminBusinessesPage },
         { path: 'isletmeler/:id', Component: AdminBusinessDetailPage },
-        { path: 'oturumlar', element: <AdminStubPage title="Oturumlar" part="M5c-3" /> },
+        { path: 'oturumlar', element: <AdminStubPage title="Oturumlar" /> },
         {
           path: 'oturumlar/:id',
-          element: <AdminStubPage title="Oturum detayı" part="M5c-3" />,
+          element: <AdminStubPage title="Oturum detayı" />,
         },
-        { path: 'icerik', element: <AdminStubPage title="İçerik" part="M5c-2" /> },
-        {
-          path: 'icerik/etiketle',
-          element: <AdminStubPage title="Hızlı etiketleme" part="M5c-2" />,
-        },
-        {
-          path: 'icerik/durumlar',
-          element: <AdminStubPage title="Platform durumları" part="M5c-2" />,
-        },
+        { path: 'icerik', Component: AdminContentPage },
+        { path: 'icerik/kutuphane', Component: AdminMemesPage },
+        { path: 'icerik/kategoriler', Component: AdminCategoriesPage },
+        { path: 'icerik/etiketle', Component: AdminTaggingPage },
+        { path: 'icerik/durumlar', Component: AdminPromptsPage },
         {
           path: 'icerik/isletme-durumlari',
-          element: <AdminStubPage title="İşletme durumu denetimi" part="M5c-2" />,
+          Component: AdminBusinessPromptsPage,
         },
-        { path: 'sistem', element: <AdminStubPage title="Sistem" part="M5c-3" /> },
+        { path: 'sistem', element: <AdminStubPage title="Sistem" /> },
       ],
     },
     { path: '*', Component: NotFoundPage },
