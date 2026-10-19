@@ -164,12 +164,18 @@ export class ManagerClient {
   }
 }
 
-export interface GameLobby {
+export interface GameLobby extends BusinessLobby {
+  manager: ManagerClient;
+  close(): void;
+}
+
+/** Yalnız API ile işletme + lobi (WebSocket'siz); konsol arayüz testleri için. */
+export interface BusinessLobby {
   code: string;
   sessionId: string;
-  manager: ManagerClient;
   businessCookie: string;
-  close(): void;
+  username: string;
+  password: string;
 }
 
 async function login(
@@ -187,13 +193,13 @@ async function login(
   return { cookie };
 }
 
-export async function createLobby(
+export async function createBusinessAndLobby(
   settings: Partial<SessionConfig>,
   business: { username: string; password: string } = {
     username: `anka-${crypto.randomUUID().slice(0, 8)}`,
     password: 'anka-kafe-pass-123',
   },
-): Promise<GameLobby> {
+): Promise<BusinessLobby> {
   const admin = await login('/api/auth/admin/login', {
     username: 'e2e-admin',
     password: 'e2e-admin-password-123',
@@ -224,12 +230,24 @@ export async function createLobby(
   });
   if (!res.ok) throw new Error(`lobby create → ${res.status} ${await res.text()}`);
   const data = (await res.json()) as { session: { id: string; roomCode: string } };
-  const manager = await ManagerClient.connect(data.session.roomCode, session.cookie);
   return {
     code: data.session.roomCode,
     sessionId: data.session.id,
-    manager,
     businessCookie: session.cookie,
+    username: business.username,
+    password: business.password,
+  };
+}
+
+export async function createLobby(
+  settings: Partial<SessionConfig>,
+  business?: { username: string; password: string },
+): Promise<GameLobby> {
+  const base = await createBusinessAndLobby(settings, business);
+  const manager = await ManagerClient.connect(base.code, base.businessCookie);
+  return {
+    ...base,
+    manager,
     close() {
       manager.close();
     },
