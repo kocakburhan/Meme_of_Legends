@@ -9,7 +9,6 @@ import { StatusBar } from '@/console/StatusBar';
 import { GameTab } from '@/console/GameTab';
 import { ParticipantsTab } from '@/console/ParticipantsTab';
 import { SettingsTab } from '@/console/SettingsTab';
-import { storedSessionFor } from '@/console/session';
 import { ackReasonNote } from '@/console/reasons';
 import { validateRoomCode } from '@/lib/contracts';
 
@@ -37,10 +36,11 @@ export default function ConsolePage() {
   const [account, setAccount] = useState<BusinessAccount | null>(null);
   const [authState, setAuthState] = useState<'loading' | 'ready' | 'unauth'>('loading');
   const [roomState, setRoomState] = useState<'loading' | 'ready' | 'missing'>('loading');
-  const [sessionId, setSessionId] = useState<string | null>(null);
   const [ackNote, setAckNote] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>('game');
   const [mountedAt] = useState(() => Date.now());
+  // validateRoomCode geçersizken hata metni, geçerliyken null döner.
+  const invalidCode = validateRoomCode(roomCode) !== null;
 
   useEffect(() => {
     let alive = true;
@@ -60,11 +60,7 @@ export default function ConsolePage() {
   }, []);
 
   useEffect(() => {
-    // validateRoomCode geçersizken hata metni, geçerliyken null döner.
-    if (validateRoomCode(roomCode) !== null) {
-      setRoomState('missing');
-      return;
-    }
+    if (invalidCode) return;
     let alive = true;
     getRoom(roomCode)
       .then(() => alive && setRoomState('ready'))
@@ -72,9 +68,7 @@ export default function ConsolePage() {
     return () => {
       alive = false;
     };
-  }, [roomCode]);
-
-  useEffect(() => setSessionId(storedSessionFor(roomCode)), [roomCode]);
+  }, [roomCode, invalidCode]);
 
   const conn = useManagerSocket(roomCode, authState === 'ready' && roomState === 'ready');
 
@@ -122,7 +116,7 @@ export default function ConsolePage() {
   if (authState === 'unauth')
     return <Navigate to={`/isletme/giris?next=${encodeURIComponent(`/isletme/oyun/${roomCode}`)}`} replace />;
 
-  if (roomState === 'missing')
+  if (invalidCode || roomState === 'missing')
     return (
       <Shell>
         <Card className="flex flex-col items-center gap-3 text-center">
@@ -136,7 +130,8 @@ export default function ConsolePage() {
     );
 
   if (conn.view === null) {
-    const stuck = authState === 'ready' && roomState === 'ready' && Date.now() - mountedAt > FIRST_VIEW_TIMEOUT_MS;
+    // conn.now her 250 ms'de tazelendiği için bu koşul yeniden hesaplanır.
+    const stuck = authState === 'ready' && roomState === 'ready' && conn.now - mountedAt > FIRST_VIEW_TIMEOUT_MS;
     if (stuck)
       return (
         <Shell>
@@ -211,7 +206,6 @@ export default function ConsolePage() {
             code={roomCode}
             now={conn.now}
             account={account}
-            sessionId={sessionId}
             send={(cmd) => run(cmd)}
             sendShell={(action) => runShell(action)}
             onAckNote={setAckNote}

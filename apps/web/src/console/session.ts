@@ -1,7 +1,8 @@
 /**
  * Konsolun bildiği oturum kimliği: panelde lobi açılırken hatırlanır.
  * Sunucu HTTP yüzeyinde "oda koduna göre oturum" ucu bulunmadığından iptal
- * işlemi bu kimliğe bağlıdır (bkz. görev özeti — açık soru).
+ * işlemi bu kimliğe bağlıdır (bkz. görev özeti — açık soru). İptal düğmesi
+ * kimliği eylem anında okur; render'da okunmaz.
  */
 
 const KEY = 'mol:business:session';

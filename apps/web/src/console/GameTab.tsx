@@ -7,6 +7,7 @@ import { Card, Note, PrimaryButton, GhostButton } from '@/components/ui';
 import { QrCode } from '@/components/QrCode';
 import { Badge, ConfirmButton, HoldButton, Section, Segmented } from '@/console/bits';
 import { SettingsEditor } from '@/console/SettingsEditor';
+import { storedSessionFor } from '@/console/session';
 import {
   MODE_DESCRIPTIONS,
   ackReasonNote,
@@ -23,8 +24,6 @@ export interface GameTabProps {
   code: string;
   now: number;
   account: BusinessAccount | null;
-  /** Panelde lobi açılırken saklanan oturum kimliği; iptal için gerekli. */
-  sessionId: string | null;
   send: (cmd: ManagerCommand) => Promise<AckResult>;
   sendShell: (action: ShellAction) => Promise<AckResult>;
   onAckNote: (note: string) => void;
@@ -64,7 +63,7 @@ function mediaLabel(media: MediaRef): string {
 
 /* --------------------------------- Lobi ---------------------------------- */
 
-function LobbyCard({ view, code, account, sessionId, send, onAckNote }: GameTabProps) {
+function LobbyCard({ view, code, account, send, onAckNote }: GameTabProps) {
   const players = view.participants.filter((p) => p.role === 'player' && p.status === 'active');
   const duration = formatEstimatedDuration(view.config, players.length);
   const block = startBlockReason(view, account ?? { credits: 1, unlimitedCredits: false });
@@ -114,6 +113,8 @@ function LobbyCard({ view, code, account, sessionId, send, onAckNote }: GameTabP
   }
 
   async function handleCancel() {
+    // Oturum kimliği panelde lobi açılırken saklanır; iptal anında okunur.
+    const sessionId = storedSessionFor(code);
     if (!sessionId) {
       onAckNote('Bu lobinin oturum kimliği bulunamadı; panelde açılan lobilerde iptal kullanılabilir.');
       return;
