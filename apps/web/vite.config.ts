@@ -5,6 +5,8 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
 // https://vite.dev/config/
+const apiOrigin = `http://localhost:${process.env.MOL_SERVER_PORT ?? '8787'}`;
+
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
@@ -15,16 +17,16 @@ export default defineConfig({
       '@mol/engine': path.resolve(import.meta.dirname, '../../packages/engine/src/index.ts'),
     },
   },
-  // Yerel geliştirmede API + WebSocket wrangler dev'e (8787) vekillenir; sunucunun
-  // kaynak kökeni denetimi için Origin başlığı hedef kökene yazılır.
+  // Yerel geliştirmede API + WebSocket wrangler dev'e (8787; `MOL_SERVER_PORT`)
+  // vekillenir; sunucunun kaynak kökeni denetimi için Origin başlığı hedef kökene yazılır.
   server: {
     proxy: {
-      '/media': { target: 'http://localhost:8787', changeOrigin: true },
+      '/media': { target: apiOrigin, changeOrigin: true },
       '/api': {
-        target: 'http://localhost:8787',
+        target: apiOrigin,
         changeOrigin: true,
         ws: true,
-        headers: { origin: 'http://localhost:8787' },
+        headers: { origin: apiOrigin },
       },
     },
   },

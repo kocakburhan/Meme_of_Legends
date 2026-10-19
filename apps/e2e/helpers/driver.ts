@@ -12,8 +12,11 @@ import {
  * WebSocket'iyle oyunu yönetir (konsol arayüzü M4'te).
  */
 
-export const SERVER = 'http://localhost:8787';
-export const WEB = 'http://localhost:5173';
+/** Portlar `MOL_SERVER_PORT` / `MOL_WEB_PORT` ile değişir (paralel worktree'ler için). */
+export const SERVER_PORT = process.env.MOL_SERVER_PORT ?? '8787';
+export const WEB_PORT = process.env.MOL_WEB_PORT ?? '5173';
+export const SERVER = `http://localhost:${SERVER_PORT}`;
+export const WEB = `http://localhost:${WEB_PORT}`;
 
 export interface AckResult {
   ok: boolean;
@@ -144,7 +147,7 @@ export class ManagerClient extends RoomClient {
   }
 
   static async connect(code: string, cookie: string): Promise<ManagerClient> {
-    const ws = new WebSocket(`ws://localhost:8787/api/rooms/${code}/ws`, {
+    const ws = new WebSocket(`ws://localhost:${SERVER_PORT}/api/rooms/${code}/ws`, {
       headers: { cookie },
     });
     const client = new ManagerClient(ws);
@@ -179,7 +182,7 @@ export class ParticipantClient extends RoomClient {
 
   static async connect(code: string, token: string): Promise<ParticipantClient> {
     const ws = new WebSocket(
-      `ws://localhost:8787/api/rooms/${code}/ws?token=${encodeURIComponent(token)}`,
+      `ws://localhost:${SERVER_PORT}/api/rooms/${code}/ws?token=${encodeURIComponent(token)}`,
     );
     const client = new ParticipantClient(ws);
     await client.opened;
