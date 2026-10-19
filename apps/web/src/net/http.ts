@@ -1,4 +1,5 @@
 import {
+  businessSessionsResponseSchema,
   displayPairRequestSchema,
   displayPairResponseSchema,
   joinRequestSchema,
@@ -184,5 +185,32 @@ export function createBusinessSession(settings?: Partial<SessionConfig>): Promis
 export function cancelBusinessSession(sessionId: string): Promise<{ ok: true }> {
   return request(`/api/business/sessions/${encodeURIComponent(sessionId)}/cancel`, z.strictObject({ ok: z.literal(true) }), {
     method: 'POST',
+  });
+}
+
+export type BusinessSessionList = z.infer<typeof businessSessionsResponseSchema>;
+
+/**
+ * İşletmenin oturum listesi (docs/contracts/business-api.md §2): `active`
+ * lobi/oyun/duraklatılmışları, `past` biten/iptal/sonlandırılanları döner.
+ */
+export function listBusinessSessions(
+  status: 'active' | 'past',
+  opts: { cursor?: string; limit?: number } = {},
+): Promise<BusinessSessionList> {
+  const params = new URLSearchParams({ status });
+  if (opts.cursor) params.set('cursor', opts.cursor);
+  if (opts.limit) params.set('limit', String(opts.limit));
+  return request(`/api/business/sessions?${params.toString()}`, businessSessionsResponseSchema);
+}
+
+/** Şifre değiştirir; bu oturum açık kalır, diğer cihazlardaki girişler kapanır. */
+export function changeBusinessPassword(input: {
+  currentPassword: string;
+  newPassword: string;
+}): Promise<{ ok: true }> {
+  return request('/api/auth/business/password', z.strictObject({ ok: z.literal(true) }), {
+    method: 'POST',
+    body: JSON.stringify(input),
   });
 }

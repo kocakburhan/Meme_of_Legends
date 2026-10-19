@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatClock, remainingSeconds } from './format';
+import { formatClock, formatDateTime, remainingSeconds } from './format';
 
 const NOW = 1_000_000;
 
@@ -14,5 +14,12 @@ describe('remainingSeconds', () => {
 
   it('formatClock ondalık saniye göstermez', () => {
     expect(formatClock(15.181449951171874)).toBe('0:15');
+  });
+});
+
+describe('formatDateTime', () => {
+  it('gün, kısa ay ve saati Türkçe biçimde birleştirir', () => {
+    // Saat diliminden bağımsız: yalnız bileşenlerin biçimi denetlenir.
+    expect(formatDateTime(Date.UTC(2026, 1, 12, 14, 3))).toMatch(/^12 Ş\w+ \d{2}:\d{2}$/u);
   });
 });

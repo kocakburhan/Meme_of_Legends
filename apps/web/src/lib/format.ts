@@ -33,3 +33,13 @@ export const MODE_LABELS: Record<SessionConfig['mode'], string> = {
   league: 'Lig',
   hybrid: 'Hibrit',
 };
+
+/** "12 Şub 17:03" biçimli kısa tarih (panel listeleri; Saat dilimi cihazın). */
+export function formatDateTime(timestamp: number): string {
+  return new Date(timestamp).toLocaleString('tr-TR', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
