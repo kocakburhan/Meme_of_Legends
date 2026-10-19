@@ -1,0 +1,170 @@
+{
+  "room": "TTKSF5",
+  "players": 16,
+  "voters": 284,
+  "mode": "league",
+  "rounds": 2,
+  "durationMs": 607335,
+  "completed": true,
+  "failure": null,
+  "connectionMs": {
+    "count": 1776,
+    "p50": 1084.7988879999903,
+    "p95": 2462.103042999981,
+    "p99": 2648.762737000012,
+    "max": 2671.237533000065
+  },
+  "ackMs": {
+    "count": 10195,
+    "p50": 190.33054400002584,
+    "p95": 713.217488000053,
+    "p99": 1637.0200289999484,
+    "max": 2478.5402539999923
+  },
+  "phaseSpread": {
+    "transitions": 71,
+    "completeTransitions": 2,
+    "localMs": {
+      "count": 71,
+      "p50": 113,
+      "p95": 148,
+      "p99": 193,
+      "max": 193
+    },
+    "serverNowMs": {
+      "count": 71,
+      "p50": 186,
+      "p95": 260,
+      "p99": 330,
+      "max": 330
+    }
+  },
+  "errors": {
+    "cannotRate": 2,
+    "notCurrentSubmission": 11
+  },
+  "acceptedCommands": {
+    "start": 1,
+    "select": 32,
+    "confirm": 32,
+    "rate": 9547,
+    "finishReview": 570
+  },
+  "settings": {
+    "mode": "league",
+    "leagueRounds": 2,
+    "selectionSeconds": 30,
+    "reviewSeconds": 15,
+    "customContent": false,
+    "playerApproval": false,
+    "voterApproval": false,
+    "acceptVoters": true
+  },
+  "disconnects": 1475,
+  "plannedDisconnects": 1529,
+  "reconnects": 1475,
+  "targets": {
+    "ackWithin1s": false,
+    "phaseWithin1s": true
+  },
+  "result": {
+    "champion": "349fb69a-e1c0-4628-8590-6a985168d1b9",
+    "ranking": [
+      {
+        "participantId": "349fb69a-e1c0-4628-8590-6a985168d1b9",
+        "rank": 1,
+        "score": 6.2885906040268456
+      },
+      {
+        "participantId": "4edafde5-6d9a-4781-b79e-55d48ddd255a",
+        "rank": 2,
+        "score": 6.247491638795987
+      },
+      {
+        "participantId": "fd48cde6-cd82-46d1-993a-4723725c272b",
+        "rank": 3,
+        "score": 6.107023411371237
+      },
+      {
+        "participantId": "903d7152-60a4-4140-af08-36f9abcf07e0",
+        "rank": 4,
+        "score": 6.090390788085565
+      },
+      {
+        "participantId": "03539673-cd52-4c36-97f9-d58280da4a94",
+        "rank": 5,
+        "score": 6.06029075594293
+      },
+      {
+        "participantId": "2c34f9c1-1371-4889-a14f-5cd6b5beacb4",
+        "rank": 6,
+        "score": 6.053354582388723
+      },
+      {
+        "participantId": "6100ded8-b26a-4541-9e53-6dd162d66073",
+        "rank": 7,
+        "score": 6.0367892976588635
+      },
+      {
+        "participantId": "99d3459d-bfd1-49a4-b2ba-d6749e91fe6d",
+        "rank": 8,
+        "score": 6.033421462951664
+      },
+      {
+        "participantId": "f1c81da2-15c6-46a8-8f80-df27ffd1dcb6",
+        "rank": 9,
+        "score": 5.967253358557706
+      },
+      {
+        "participantId": "7d6f204c-c05a-480b-af20-f29319edc7f3",
+        "rank": 10,
+        "score": 5.959866220735786
+      },
+      {
+        "participantId": "13efc73c-3140-405c-b131-8896c78194f4",
+        "rank": 11,
+        "score": 5.9597315436241605
+      },
+      {
+        "participantId": "5bab00f2-aae0-4a6c-8117-f0ccede76fbc",
+        "rank": 12,
+        "score": 5.953177257525084
+      },
+      {
+        "participantId": "34b87fd9-47de-4a0a-91f3-dbf8f7f2e353",
+        "rank": 13,
+        "score": 5.952974561670214
+      },
+      {
+        "participantId": "2eb1cd19-a99a-44b5-a03b-b5eceb3328d0",
+        "rank": 14,
+        "score": 5.909384750061728
+      },
+      {
+        "participantId": "71480a0e-f2fb-47ea-bf6a-9ddc1b8c6c83",
+        "rank": 15,
+        "score": 5.868709466024902
+      },
+      {
+        "participantId": "686b1272-d26d-4cd8-bc25-ada206e9076d",
+        "rank": 16,
+        "score": 5.852134318577272
+      }
+    ],
+    "jury": {
+      "harshest": [
+        {
+          "nickname": "Bot 114",
+          "average": 2.375
+        }
+      ],
+      "mostGenerous": [
+        {
+          "nickname": "Bot 239",
+          "average": 3.71875
+        }
+      ]
+    },
+    "reason": "completed"
+  }
+}

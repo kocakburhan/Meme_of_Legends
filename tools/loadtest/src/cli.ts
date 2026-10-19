@@ -3,7 +3,7 @@ import { writeFile } from 'node:fs/promises';
 import WebSocket from 'ws';
 import type { ClientCommand, ServerMessage, View } from '@mol/shared';
 import { phaseKey, PhaseMetrics, summary } from './metrics.js';
-import { shouldSelect } from './decisions.js';
+import { runBotStep, shouldSelect } from './decisions.js';
 
 const { values } = parseArgs({
   args: process.argv.slice(2).filter((a) => a !== '--'),
@@ -316,11 +316,7 @@ try {
   while (!stopped && Date.now() - started < timeout) {
     if (managerView?.status === 'finished' || managerView?.status === 'terminated') break;
     for (const bot of clients.filter((c) => c.token)) {
-      void bot.act();
-      if (bot.socket?.readyState === WebSocket.OPEN && Math.random() < reconnectRate / 20) {
-        plannedDisconnects++;
-        bot.socket.close();
-      }
+      if (runBotStep(bot, reconnectRate)) plannedDisconnects++;
     }
     await new Promise((r) => setTimeout(r, 250));
   }

@@ -46,11 +46,15 @@ class Client {
     connections.push(socket);
   }
   async wait(predicate: (m: ServerMessage) => boolean): Promise<ServerMessage> {
-    for (let i = 0; i < 100; i++) {
+    const deadline = performance.now() + 3000;
+    while (performance.now() < deadline) {
       const index = this.messages.findIndex(predicate);
       if (index >= 0) return this.messages.splice(index, 1)[0]!;
       await new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('Socket response timed out')), 3000);
+        const timeout = setTimeout(
+          () => reject(new Error('Socket response timed out')),
+          Math.max(1, deadline - performance.now()),
+        );
         this.waiters.push(() => {
           clearTimeout(timeout);
           resolve();
@@ -169,6 +173,175 @@ afterEach(async () => {
 });
 
 describe('room WebSockets', () => {
+  it.each([false, true])(
+    'replays every ACK in a durable vote batch after interruption (D1 already applied: %s)',
+    async (alreadyApplied) => {
+      await lobby();
+      const a = await join('Birinci'),
+        b = await join('İkinci');
+      const players = [await connect(a.token), await connect(b.token)];
+      const v = await join('Seyirci', 'voter');
+      const voter = await connect(v.token);
+      const manager = await connect(undefined, true);
+      for (const client of [...players, voter, manager]) await client.view();
+      await manager.command({ type: 'start' });
+      for (const player of players) {
+        await player.command({
+          type: 'select',
+          media: { source: 'system', memeId: 'meme', mediaType: 'image' },
+        });
+        await player.command({ type: 'confirm' });
+      }
+      const saved = await snapshot();
+      const submissionId = saved.engine.rounds[0]!.order[0]!;
+      const first = reduce(
+        saved.engine,
+        { type: 'rate', participantId: v.participantId, submissionId, score: 3 },
+        { now, prompts: [], timing: DEFAULT_TIMING },
+      );
+      const second = reduce(
+        first.state,
+        { type: 'rate', participantId: v.participantId, submissionId, score: 5 },
+        { now, prompts: [], timing: DEFAULT_TIMING },
+      );
+      const events = [...first.events, ...second.events];
+      const intentId = crypto.randomUUID();
+      await runInDurableObject(stub(), async (_i, state) => {
+        const room = (await state.storage.get<Record<string, unknown>>('room'))!;
+        await state.storage.put('room', {
+          ...room,
+          broadcastAt: now + 250,
+          pending: {
+            engine: second.state,
+            events,
+            id: intentId,
+            now,
+            acks: ['first-crash-vote', 'second-crash-vote'].map((id) => ({
+              key: `ack:participant:${v.participantId}:${id}`,
+              value: { type: 'ack', clientMsgId: id, ok: true },
+            })),
+          },
+        });
+      });
+      if (alreadyApplied)
+        await env.DB.batch(
+          events.map((event, i) =>
+            env.DB.prepare(
+              'INSERT INTO session_audit (id,session_id,occurred_at,type,payload) VALUES (?,?,?,?,?)',
+            ).bind(`${intentId}:${i}`, sessionId, now, event.type, JSON.stringify(event)),
+          ),
+        );
+      await evictDurableObject(stub());
+      for (const id of ['first-crash-vote', 'second-crash-vote'])
+        expect((await voter.command({ type: 'rate', submissionId, score: 1 }, id)).ok).toBe(true);
+      expect((await snapshot()).engine.rounds[0]!.ratings[v.participantId]![submissionId]).toBe(5);
+      expect((await snapshot()).pending).toBeNull();
+      const audit = await env.DB.prepare(
+        "SELECT count(*) n FROM session_audit WHERE session_id=? AND type='ratingProgress'",
+      )
+        .bind(sessionId)
+        .first<{ n: number }>();
+      expect(audit!.n).toBe(2);
+    },
+  );
+
+  it('coalesces admissions and connections but immediately snapshots new and replacement sockets', async () => {
+    await lobby();
+    const manager = await connect(undefined, true);
+    await manager.view();
+    const a = await join('Birinci');
+    const first = await connect(a.token);
+    expect((await first.view()).participants).toHaveLength(1);
+    const b = await join('İkinci');
+    const second = await connect(b.token);
+    expect((await second.view()).participants).toHaveLength(2);
+    expect(manager.messages.filter((m) => m.type === 'view')).toHaveLength(0);
+    const replacement = await connect(a.token);
+    expect((await replacement.view()).participants).toHaveLength(2);
+    expect(await first.wait((m) => m.type === 'closed')).toEqual({
+      type: 'closed',
+      reason: 'superseded',
+    });
+    now += 250;
+    await runDurableObjectAlarm(stub());
+    expect((await manager.view()).participants).toHaveLength(2);
+    expect(manager.messages.filter((m) => m.type === 'view')).toHaveLength(0);
+    // A phase transition cancels a pending lobby publication instead of delaying start.
+    await join('Seyirci', 'voter');
+    expect((await manager.command({ type: 'start' })).ok).toBe(true);
+    expect((await manager.view()).phase.kind).toBe('selection');
+    const stored = await runInDurableObject(stub(), async (_i, state) =>
+      state.storage.get<{ broadcastAt: number | null }>('room'),
+    );
+    expect(stored!.broadcastAt).toBeNull();
+  });
+  it('commits concurrent votes and their ACKs together, deduplicates within the batch and survives eviction', async () => {
+    await lobby();
+    const manager = await connect(undefined, true);
+    await manager.view();
+    const a = await join('Birinci'),
+      b = await join('İkinci');
+    const v = await join('Seyirci', 'voter'),
+      w = await join('Diğer', 'voter');
+    const players = [await connect(a.token), await connect(b.token)];
+    const voter = await connect(v.token),
+      other = await connect(w.token);
+    for (const client of [...players, voter, other]) await client.view();
+    await manager.command({ type: 'start' });
+    for (const player of players) {
+      await player.command({
+        type: 'select',
+        media: { source: 'system', memeId: 'meme', mediaType: 'image' },
+      });
+      await player.command({ type: 'confirm' });
+    }
+    const before = await snapshot();
+    const submissionId = before.engine.rounds[0]!.order[0]!;
+    const votes = await Promise.all([
+      voter.command({ type: 'rate', submissionId, score: 3 }, 'batch-vote'),
+      voter.command({ type: 'rate', submissionId, score: 5 }, 'batch-vote'),
+      other.command({ type: 'rate', submissionId, score: 4 }, 'other-vote'),
+    ]);
+    expect(votes.every((a) => a.ok)).toBe(true);
+    const saved = await snapshot();
+    expect(saved.seq - before.seq).toBe(1);
+    expect(saved.engine.rounds[0]!.ratings[v.participantId]![submissionId]).toBe(3);
+    expect(saved.engine.rounds[0]!.ratings[w.participantId]![submissionId]).toBe(4);
+    expect(saved.pending).toBeNull();
+    const audit = await env.DB.prepare(
+      "SELECT count(*) AS n FROM session_audit WHERE session_id=? AND type='ratingProgress'",
+    )
+      .bind(sessionId)
+      .first<{ n: number }>();
+    expect(audit!.n).toBe(2);
+    await evictDurableObject(stub());
+    expect((await voter.command({ type: 'rate', submissionId, score: 1 }, 'batch-vote')).ok).toBe(
+      true,
+    );
+    expect((await snapshot()).engine.rounds[0]!.ratings[v.participantId]![submissionId]).toBe(3);
+    now += 250;
+    await runDurableObjectAlarm(stub());
+    const own = await voter.wait(
+      (m) => m.type === 'view' && m.view.submissions.some((s) => s.ownScore === 3),
+    );
+    expect(own.type).toBe('view');
+    const theirs = await other.wait(
+      (m) => m.type === 'view' && m.view.submissions.some((s) => s.ownScore === 4),
+    );
+    expect(theirs.type).toBe('view');
+    // Cross the storage API's 128-key limit in one socket burst.
+    const burst = await Promise.all(
+      Array.from({ length: 130 }, (_, i) =>
+        other.command({ type: 'rate', submissionId, score: 4 }, `burst-${i}`),
+      ),
+    );
+    expect(burst.every((ack) => ack.ok)).toBe(true);
+    const storedAcks = await runInDurableObject(stub(), async (_i, state) =>
+      state.storage.list({ prefix: `ack:participant:${w.participantId}:burst-` }),
+    );
+    expect(storedAcks.size).toBe(130);
+  });
+
   it.each(['elimination', 'league'])(
     'plays an entire %s game, persists credits/report, hides authors and rejects unauthorized commands',
     async (mode) => {
@@ -476,7 +649,9 @@ describe('room WebSockets', () => {
   it('expires lobbies by alarm and invalidates revoked managers before further projections', async () => {
     await lobby();
     const manager = await connect(undefined, true);
+    const secondManager = await connect(undefined, true);
     await manager.view();
+    await secondManager.view();
     const a = await join('Birinci');
     const player = await connect(a.token);
     await player.view();
@@ -485,6 +660,10 @@ describe('room WebSockets', () => {
       .run();
     await player.command({ type: 'changeNickname', nickname: 'Değişen' });
     expect(await manager.wait((m) => m.type === 'closed')).toEqual({
+      type: 'closed',
+      reason: 'superseded',
+    });
+    expect(await secondManager.wait((m) => m.type === 'closed')).toEqual({
       type: 'closed',
       reason: 'superseded',
     });
