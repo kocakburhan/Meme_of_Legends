@@ -11,9 +11,9 @@ import {
   type DisplayPairResponse,
   type JoinResponse,
   type RoomInfo,
-  type SessionConfig,
   type TakeoverResponse,
 } from '@mol/shared';
+import type { SessionConfig } from '@mol/engine';
 import { z } from 'zod';
 
 /**
@@ -170,16 +170,15 @@ const createdSessionSchema = z.object({
   roomCode: roomCodeSchema,
   status: z.enum(['lobby', 'running', 'paused', 'finished', 'cancelled', 'terminated']),
 });
+export type BusinessSession = z.infer<typeof createdSessionSchema>;
 
 /** Lobi açar (hak tüketmez); dönen oturumda oda kodu ve kimlik bulunur. */
-export function createBusinessSession(
-  settings?: Partial<SessionConfig>,
-): Promise<z.infer<typeof createdSessionSchema>> {
+export function createBusinessSession(settings?: Partial<SessionConfig>): Promise<BusinessSession> {
   sessionConfigSchema.partial().parse(settings ?? {});
   return request('/api/business/sessions', z.strictObject({ session: createdSessionSchema }), {
     method: 'POST',
     body: JSON.stringify(settings ? { settings } : {}),
-  });
+  }).then((d) => d.session);
 }
 
 export function cancelBusinessSession(sessionId: string): Promise<{ ok: true }> {
