@@ -60,7 +60,7 @@ export function PanelLayout({ children }: { children: ReactNode }) {
               end={item.end}
               className={({ isActive }) =>
                 cn(
-                  'flex min-h-14 flex-1 items-center justify-center px-1 text-xs font-bold transition-colors',
+                  'flex min-h-14 min-w-0 flex-1 items-center justify-center break-words px-1 text-center text-xs font-bold leading-tight transition-colors',
                   isActive ? 'text-accent' : 'text-muted',
                 )
               }

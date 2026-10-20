@@ -295,6 +295,7 @@ export function MemeFrame({
           muted={custom?.muted ?? true}
           playsInline
           controls
+          aria-label={title ?? 'Meme videosu'}
           onError={handleError}
           className="h-full w-full object-contain"
         />

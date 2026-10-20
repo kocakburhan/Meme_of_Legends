@@ -25,6 +25,7 @@ export function CustomUploadPanel({
   onSelect: (media: MediaRef) => void;
 }) {
   const fileInputId = useId();
+  const errorId = useId();
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [upload, setUpload] = useState<CustomUpload | null>(null);
@@ -98,6 +99,8 @@ export function CustomUploadPanel({
             type="file"
             accept={CUSTOM_UPLOAD_ACCEPT}
             disabled={uploading}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? errorId : undefined}
             onChange={(event) => {
               const file = event.currentTarget.files?.[0];
               event.currentTarget.value = '';
@@ -124,6 +127,7 @@ export function CustomUploadPanel({
 
       {error ? (
         <p
+          id={errorId}
           role="alert"
           className="rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger"
         >

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useId, useState, type FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { HttpError, loginBusiness } from '@/net/http';
 import { Note, PrimaryButton, Screen, TopBar } from '@/components/ui';
@@ -12,6 +12,7 @@ export default function BusinessLoginPage() {
   const [params] = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const errorId = useId();
   const rawNext = params.get('next');
   const next = rawNext && rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/isletme';
 
@@ -53,6 +54,8 @@ export default function BusinessLoginPage() {
             name="username"
             autoComplete="username"
             autoCapitalize="none"
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? errorId : undefined}
             className="h-12 w-full rounded-md border border-line bg-surface px-3 text-base"
           />
         </div>
@@ -65,11 +68,13 @@ export default function BusinessLoginPage() {
             name="password"
             type="password"
             autoComplete="current-password"
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? errorId : undefined}
             className="h-12 w-full rounded-md border border-line bg-surface px-3 text-base"
           />
         </div>
         {error ? (
-          <p role="alert" className="text-sm text-danger">
+          <p id={errorId} role="alert" className="text-sm text-danger">
             {error}
           </p>
         ) : null}

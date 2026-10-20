@@ -258,6 +258,8 @@ export default function AdminSessionsPage() {
                 setFrom(event.target.value);
                 resetList();
               }}
+              aria-invalid={rangeInvalid ? true : undefined}
+              aria-describedby={rangeInvalid ? 'session-range-error' : undefined}
               className="h-12 w-full rounded-md border border-line bg-background px-3 text-base"
             />
           </div>
@@ -273,6 +275,8 @@ export default function AdminSessionsPage() {
                 setTo(event.target.value);
                 resetList();
               }}
+              aria-invalid={rangeInvalid ? true : undefined}
+              aria-describedby={rangeInvalid ? 'session-range-error' : undefined}
               className="h-12 w-full rounded-md border border-line bg-background px-3 text-base"
             />
           </div>
@@ -286,7 +290,9 @@ export default function AdminSessionsPage() {
       >
         <p className="text-xs font-bold uppercase tracking-wider text-muted">Oturumlar</p>
         {rangeInvalid ? (
-          <Note>Başlangıç tarihi bitiş tarihinden sonra olamaz.</Note>
+          <p id="session-range-error" role="alert" className="text-sm text-danger">
+            Başlangıç tarihi bitiş tarihinden sonra olamaz.
+          </p>
         ) : list.state === 'loading' ? (
           <Note>Yükleniyor…</Note>
         ) : list.state === 'error' ? (

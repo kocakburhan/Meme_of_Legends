@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from 'react';
+import { useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import type { MediaRef, View } from '@mol/engine';
 import type { LibraryMeme, Me } from '@/lib/contracts';
 import { cn } from '@/lib/cn';
@@ -88,6 +88,27 @@ export function SelectionScreen({
   }, [library, query, category]);
 
   const panelId = useId();
+  const tabRefs = useRef<Record<TabId, HTMLButtonElement | null>>({
+    library: null,
+    upload: null,
+    youtube: null,
+  });
+
+  /** Sekmelerde ok/Home/End; yalnız etkin, etkinleştirilmiş sekme Tab sırasındadır (WAI-ARIA). */
+  function handleTabKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    const enabled = TABS.filter((t) => t.id === 'library' || customEnabled);
+    const index = enabled.findIndex((t) => t.id === activeTab);
+    let next: number | null = null;
+    if (event.key === 'ArrowRight') next = (index + 1) % enabled.length;
+    else if (event.key === 'ArrowLeft') next = (index - 1 + enabled.length) % enabled.length;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = enabled.length - 1;
+    if (next === null) return;
+    event.preventDefault();
+    const nextTab = enabled[next]!;
+    setTab(nextTab.id);
+    tabRefs.current[nextTab.id]?.focus();
+  }
 
   return (
     <Screen className={className}>
@@ -96,9 +117,9 @@ export function SelectionScreen({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-xs font-bold uppercase tracking-wider text-muted">Durum</p>
-            <p className="font-display text-2xl uppercase leading-tight text-accent">
+            <h1 className="font-display text-2xl uppercase leading-tight text-accent">
               {view.prompt?.text ?? '—'}
-            </p>
+            </h1>
             {rival ? (
               <p className="mt-1 text-sm text-muted">Düello: {nicknameOf(view, rival)} ile</p>
             ) : null}
@@ -111,13 +132,17 @@ export function SelectionScreen({
       <div
         role="tablist"
         aria-label="İçerik kaynağı"
-        className="flex gap-1 rounded-md bg-surface p-1"
+        onKeyDown={handleTabKeyDown}
+        className="flex gap-1 overflow-x-auto rounded-md bg-surface p-1"
       >
         {TABS.map((t) => {
           const disabled = t.id !== 'library' && !customEnabled;
           return (
             <button
               key={t.id}
+              ref={(element) => {
+                tabRefs.current[t.id] = element;
+              }}
               id={`${panelId}-tab-${t.id}`}
               type="button"
               role="tab"
@@ -125,9 +150,10 @@ export function SelectionScreen({
               aria-controls={`${panelId}-panel`}
               aria-describedby={disabled ? `${panelId}-custom-off` : undefined}
               disabled={disabled}
+              tabIndex={activeTab === t.id ? 0 : -1}
               onClick={() => setTab(t.id)}
               className={cn(
-                'min-h-11 flex-1 rounded-sm px-2 text-sm font-bold transition-colors',
+                'min-h-11 min-w-fit flex-1 whitespace-nowrap rounded-sm px-2 text-sm font-bold transition-colors',
                 activeTab === t.id
                   ? 'bg-accent text-accent-ink'
                   : 'text-muted hover:text-foreground',

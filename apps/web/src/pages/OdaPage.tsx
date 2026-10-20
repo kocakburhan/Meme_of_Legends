@@ -20,6 +20,7 @@ import {
 import { useLibrary, useParticipantSocket, type LibraryEntry } from '@/net/useRoom';
 import type { SocketReason } from '@/net/socket';
 import { LibraryMediaProvider, MemeFrame } from '@/components/MemeFrame';
+import { PhaseAnnouncer } from '@/components/Countdown';
 import { CustomMediaProvider } from '@/components/CustomMedia';
 import type { RateScore, RoundOutcome } from '@/lib/contracts';
 import { uploadErrorMessage, youtubeErrorMessage } from '@/lib/custom';
@@ -589,6 +590,7 @@ export function OdaPage() {
               />
             </div>
           ) : null}
+          <PhaseAnnouncer view={view} />
           <Scene
             view={view}
             me={me}
@@ -637,6 +639,7 @@ function PageFrame({ children }: { children: ReactNode }) {
 function ConnectingScreen() {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
+      <h1 className="sr-only">Meme of Legends</h1>
       <p
         aria-hidden="true"
         className="font-display text-3xl uppercase text-accent motion-safe:animate-pulse-slow"
@@ -831,6 +834,7 @@ function LibraryBrowseScreen({
 function WaitScreen({ note }: { note: string }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
+      <h1 className="sr-only">{note}</h1>
       <p
         aria-hidden="true"
         className="font-display text-3xl uppercase text-accent motion-safe:animate-pulse-slow"

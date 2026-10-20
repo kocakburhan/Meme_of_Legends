@@ -28,6 +28,7 @@ export function YouTubePanel({
 }) {
   const inputId = useId();
   const hintId = useId();
+  const errorId = useId();
   const [url, setUrl] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [video, setVideo] = useState<YoutubeVerification | null>(null);
@@ -86,7 +87,8 @@ export function YouTubePanel({
           value={url}
           onChange={(event) => setUrl(event.target.value)}
           placeholder="https://www.youtube.com/watch?v=…"
-          aria-describedby={hintId}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? `${hintId} ${errorId}` : hintId}
           className="h-11 w-full rounded-md border border-line bg-background px-3 text-sm placeholder:text-muted"
         />
         <p id={hintId} className="text-xs leading-relaxed text-muted">
@@ -105,6 +107,7 @@ export function YouTubePanel({
 
       {error ? (
         <p
+          id={errorId}
           role="alert"
           className="rounded-md border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger"
         >

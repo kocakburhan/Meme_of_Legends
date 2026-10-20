@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import type { AdminMeme } from '@mol/shared';
 import {
@@ -37,6 +37,7 @@ export default function AdminTaggingPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  const errorId = useId();
 
   useEffect(() => {
     let alive = true;
@@ -264,6 +265,8 @@ export default function AdminTaggingPage() {
                 id="tagging-category"
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? errorId : undefined}
                 className="h-12 w-full rounded-md border border-line bg-background px-3 text-base"
               >
                 <option value="">Kategori seçin</option>
@@ -287,11 +290,13 @@ export default function AdminTaggingPage() {
                 onChange={(e) => setDescription(e.target.value)}
                 maxLength={1000}
                 placeholder="Kütüphanede ve seçim ekranında görünen ad"
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? errorId : undefined}
                 className="w-full rounded-md border border-line bg-background p-3 text-base"
               />
             </div>
             {error ? (
-              <p role="alert" className="text-sm text-danger">
+              <p id={errorId} role="alert" className="text-sm text-danger">
                 {error}
               </p>
             ) : null}

@@ -95,7 +95,14 @@ export function RoundResultScreen({
                               : 'flex items-center justify-between rounded-md bg-surface-raised px-3 py-2'
                           }
                         >
-                          <span className="font-display text-lg uppercase">{id ? nicknameOf(view, id) : '—'}</span>
+                          <span className="font-display text-lg uppercase">
+                            {id ? nicknameOf(view, id) : '—'}
+                            {isWinner ? (
+                              <span className="ml-2 font-sans text-xs font-normal normal-case tracking-normal text-muted">
+                                Kazandı
+                              </span>
+                            ) : null}
+                          </span>
                           <span className="flex items-baseline gap-2">
                             {score ? (
                               <>

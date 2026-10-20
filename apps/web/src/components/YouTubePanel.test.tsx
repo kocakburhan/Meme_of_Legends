@@ -55,6 +55,11 @@ describe('YouTubePanel', () => {
 
     expect(onVerify).not.toHaveBeenCalled();
     expect(screen.getByRole('alert')).toHaveTextContent('Bir YouTube linki yapıştır.');
+    // Hata alana bağlanır (SPEC 18).
+    const input = screen.getByLabelText('YouTube linki');
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+    const describedBy = input.getAttribute('aria-describedby') ?? '';
+    expect(screen.getByRole('alert')).toHaveAttribute('id', describedBy.split(' ').at(-1));
   });
 
   it('gömülemeyen videoyu Türkçe hata ile bildirir', async () => {

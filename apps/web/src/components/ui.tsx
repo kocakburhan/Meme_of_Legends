@@ -142,7 +142,7 @@ export function ProgressBar({
     <div className={cn('w-full', className)}>
       <div className="mb-1 flex items-center justify-between text-sm">
         <span>{label}</span>
-        <span className="font-display">
+        <span className="font-display" aria-live="polite" aria-atomic="true">
           {value}/{max}
         </span>
       </div>

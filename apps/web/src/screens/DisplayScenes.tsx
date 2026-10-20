@@ -21,11 +21,11 @@ export interface StageRoom {
 /** 16:9 sahne çerçevesi. */
 export function Stage({ children }: { children: ReactNode }) {
   return (
-    <div className="relative flex h-dvh w-full items-center justify-center bg-background p-4">
+    <main className="relative flex h-dvh w-full items-center justify-center bg-background p-4">
       <div className="relative flex h-full w-full max-w-[1400px] flex-col overflow-hidden rounded-[var(--radius-card)] border border-line bg-background">
         {children}
       </div>
-    </div>
+    </main>
   );
 }
 
@@ -42,9 +42,9 @@ export function DisplayLobbyScene({ view, room }: { view: View; room: StageRoom 
       <div className="flex min-w-0 flex-1 flex-col gap-5">
         <div>
           <p className="text-xs font-bold uppercase tracking-widest text-muted">Oyun başlamak üzere</p>
-          <p className="font-display text-5xl uppercase leading-tight">
+          <h1 className="font-display text-5xl uppercase leading-tight">
             Meme <span className="text-accent">of</span> Legends
-          </p>
+          </h1>
         </div>
         <Card>
           <div className="flex items-baseline justify-between">
@@ -89,9 +89,9 @@ export function DisplaySelectionScene({ view, now, room }: { view: View; now: nu
       <div className="flex items-start justify-between gap-10 pr-56">
         <div className="min-w-0">
           <p className="text-xs font-bold uppercase tracking-widest text-muted">Durum</p>
-          <p className="font-display text-6xl uppercase leading-tight text-accent">
+          <h1 className="font-display text-6xl uppercase leading-tight text-accent">
             {view.prompt?.text ?? '—'}
-          </p>
+          </h1>
         </div>
         <Countdown
           secondsLeft={secondsLeft}
@@ -103,11 +103,18 @@ export function DisplaySelectionScene({ view, now, room }: { view: View; now: nu
         <div>
           <div className="mb-2 flex items-baseline justify-between">
             <span className="text-sm text-muted">oyuncu seçti</span>
-            <span className="font-display text-4xl">
+            <span className="font-display text-4xl" aria-live="polite" aria-atomic="true">
               {readyCount}/{players.length}
             </span>
           </div>
-          <div aria-hidden="true" className="h-2 w-full overflow-hidden rounded-full bg-surface-raised">
+          <div
+            role="progressbar"
+            aria-label="oyuncu seçti"
+            aria-valuenow={readyCount}
+            aria-valuemin={0}
+            aria-valuemax={players.length}
+            className="h-2 w-full overflow-hidden rounded-full bg-surface-raised"
+          >
             <div
               className="h-full rounded-full bg-accent transition-[width]"
               style={{ width: `${pct}%` }}
@@ -142,7 +149,8 @@ function DuelCard({ names, marks }: { names: string[]; marks: boolean[] }) {
       <span className="truncate font-display text-2xl uppercase">
         {names[0]} <span className="text-muted">–</span> {names[1] ?? '—'}
       </span>
-      <span className="flex items-center gap-2" aria-label={`Hazır: ${marks.filter(Boolean).length}/2`}>
+      <span className="flex items-center gap-2">
+        <span className="sr-only">Hazır: {marks.filter(Boolean).length}/2</span>
         {marks.map((ready, i) => (
           <span
             key={i}
@@ -184,7 +192,7 @@ export function DisplayPresentationScene({
   return (
     <div className="flex flex-1 flex-col gap-4 p-12">
       <div className="flex items-baseline justify-between gap-8">
-        <p className="font-display text-5xl uppercase text-accent">{view.prompt?.text ?? '—'}</p>
+        <h1 className="font-display text-5xl uppercase text-accent">{view.prompt?.text ?? '—'}</h1>
         {view.presentation ? (
           <p className="text-sm text-muted">
             Gönderi {view.presentation.index + 1} / {view.presentation.total}
@@ -213,7 +221,7 @@ export function DisplayPresentationScene({
           {formatClock(remaining)}
         </p>
         {submission.ratingProgress ? (
-          <p className="min-w-44 text-right text-sm text-muted">
+          <p className="min-w-44 text-right text-sm text-muted" aria-live="polite" aria-atomic="true">
             {submission.ratingProgress.received}/{submission.ratingProgress.eligible} kişi puan
             verdi
           </p>
@@ -247,9 +255,9 @@ export function DisplayReviewScene({ view, now, room }: { view: View; now: numbe
           <p className="text-xs font-bold uppercase tracking-widest text-muted">
             Final gözden geçirme
           </p>
-          <p className="font-display text-5xl uppercase leading-tight text-accent">
+          <h1 className="font-display text-5xl uppercase leading-tight text-accent">
             {view.prompt?.text ?? '—'}
-          </p>
+          </h1>
         </div>
         <p className="font-display text-5xl tabular-nums">{formatClock(secondsLeft)}</p>
       </div>
@@ -263,10 +271,12 @@ export function DisplayReviewScene({ view, now, room }: { view: View; now: numbe
           ))}
         </ul>
       ) : null}
-      <Note className="text-center text-lg">
-        {submitted.length}/{players.length} gönderi onaylandı; telefonlarda son puanlar veriliyor,
-        bitirenler bekleniyor.
-      </Note>
+      <div aria-live="polite" aria-atomic="true">
+        <Note className="text-center text-lg">
+          {submitted.length}/{players.length} gönderi onaylandı; telefonlarda son puanlar veriliyor,
+          bitirenler bekleniyor.
+        </Note>
+      </div>
       <CornerHud view={view} room={room} />
     </div>
   );
@@ -291,9 +301,9 @@ export function DisplayResultsScene({
   if (phase.kind === 'draw')
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-6 p-12">
-        <p className="font-display text-6xl uppercase text-accent motion-safe:animate-shuffle">
+        <h1 className="font-display text-6xl uppercase text-accent motion-safe:animate-shuffle">
           Kura çekiliyor…
-        </p>
+        </h1>
         <p className="font-display text-4xl uppercase">{drawCandidates.join(' 🆚 ')}</p>
         <Note>Beraberlik zararla çözülüyor.</Note>
         <CornerHud view={view} room={room} />
@@ -302,9 +312,10 @@ export function DisplayResultsScene({
   return (
     <div className="flex flex-1 flex-col gap-5 p-12">
       <div className="flex items-start justify-between gap-10 pr-56">
-        <p className="font-display text-5xl uppercase">
+        <h1 className="font-display text-5xl uppercase">
+          <span className="sr-only">Sonuçlar: </span>
           {'roundNo' in phase ? phase.roundNo : 0}. tur sonuçları
-        </p>
+        </h1>
         {secondsLeft > 0 ? (
           <p className="font-display text-4xl tabular-nums">{formatClock(secondsLeft)}</p>
         ) : null}
@@ -347,6 +358,11 @@ export function DisplayResultsScene({
                   >
                     <span className="truncate font-display text-2xl uppercase">
                       {id ? nicknameOf(view, id) : '—'}
+                      {winner === id ? (
+                        <span className="ml-2 font-sans text-xs font-normal normal-case tracking-normal text-muted">
+                          Kazandı
+                        </span>
+                      ) : null}
                     </span>
                     <span className="flex items-baseline gap-3">
                       {score ? (
@@ -408,12 +424,12 @@ export function DisplayFinishedScene({ view, room }: { view: View; room: StageRo
     <div className="flex flex-1 flex-col gap-6 p-12">
       <div className="text-center">
         <p className="text-xs font-bold uppercase tracking-widest text-muted">Oyun bitti</p>
-        <p className="font-display text-7xl uppercase leading-tight">
+        <h1 className="font-display text-7xl uppercase leading-tight">
           Şampiyon:{' '}
           <span className="text-accent">
             {result?.champion ? nicknameOf(view, result.champion) : 'Yok'}
           </span>
-        </p>
+        </h1>
       </div>
       <section aria-label="Kürsü" className="flex items-end justify-center gap-3">
         {/* Soldan sağa: 2., 1. (en yüksek, vurgulu), 3.; rakam sıra numarasıdır. */}

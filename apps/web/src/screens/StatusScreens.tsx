@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useId, useState, type FormEvent, type ReactNode } from 'react';
 import { validateNickname } from '@/lib/contracts';
 import { LiveStatus } from '@/components/Countdown';
 import { GhostButton, Note, PrimaryButton, Screen, TopBar } from '@/components/ui';
@@ -193,6 +193,7 @@ export function NicknameChangeScreen({
 }) {
   const [nickname, setNickname] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const errorId = useId();
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -220,10 +221,11 @@ export function NicknameChangeScreen({
             maxLength={40}
             autoComplete="off"
             aria-invalid={error ? true : undefined}
+            aria-describedby={error ? errorId : undefined}
             className="h-12 w-full rounded-md border border-line bg-surface px-3 text-base"
           />
           {error ? (
-            <p role="alert" className="mt-1 text-sm text-danger">
+            <p id={errorId} role="alert" className="mt-1 text-sm text-danger">
               {error}
             </p>
           ) : (

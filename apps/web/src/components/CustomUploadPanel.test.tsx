@@ -18,10 +18,16 @@ describe('CustomUploadPanel', () => {
     const onUpload = vi.fn();
     render(<CustomUploadPanel onUpload={onUpload} onSelect={() => undefined} />);
 
-    await user.upload(screen.getByLabelText('Dosya seç'), testFile('klip.mp4', 'video/mp4'));
+    const input = screen.getByLabelText('Dosya seç');
+    await user.upload(input, testFile('klip.mp4', 'video/mp4'));
 
     expect(onUpload).not.toHaveBeenCalled();
     expect(screen.getByRole('alert')).toHaveTextContent('Video yüklenemez; YouTube linki kullan.');
+    // Hata alana bağlanır (SPEC 18).
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+    const errorId = input.getAttribute('aria-describedby');
+    expect(errorId).toBeTruthy();
+    expect(screen.getByRole('alert')).toHaveAttribute('id', errorId);
   });
 
   it('10 MB üstündeki dosyayı sunucuya göndermeden reddeder', async () => {

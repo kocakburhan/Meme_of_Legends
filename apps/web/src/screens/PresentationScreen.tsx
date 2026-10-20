@@ -60,9 +60,9 @@ export function PresentationScreen({
     <Screen className={className}>
       {/* Durum metni en baskın öğedir; "Gönderi 4/8" yalnız bilgi satırıdır (M3b düzeltmesi). */}
       <div className="sticky top-0 z-10 -mx-4 bg-background/95 px-4 pb-2 pt-1 backdrop-blur">
-        <p className="font-display text-2xl uppercase leading-tight text-accent">
+        <h1 className="font-display text-2xl uppercase leading-tight text-accent">
           {view.prompt?.text ?? '—'}
-        </p>
+        </h1>
         <div className="mt-1 flex items-center justify-between gap-3 text-xs text-muted">
           {index !== undefined && total !== undefined ? (
             <span className="font-bold uppercase tracking-wider">Gönderi {index + 1} / {total}</span>
@@ -70,7 +70,7 @@ export function PresentationScreen({
             <span />
           )}
           {submission.ratingProgress ? (
-            <span>
+            <span aria-live="polite" aria-atomic="true">
               {submission.ratingProgress.received}/{submission.ratingProgress.eligible} kişi puan
               verdi
             </span>
@@ -86,7 +86,7 @@ export function PresentationScreen({
             type="button"
             onClick={onToggleMute}
             aria-pressed={!muted}
-            className="min-h-10 rounded-md border border-line bg-surface px-4 text-sm font-bold transition-colors hover:border-accent"
+            className="min-h-11 rounded-md border border-line bg-surface px-4 text-sm font-bold transition-colors hover:border-accent"
           >
             {muted ? '🔇 Sesi aç' : '🔊 Sesi kapat'}
           </button>

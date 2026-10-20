@@ -35,9 +35,9 @@ export function SpectatorSelectionScreen({
     <Screen className={className}>
       <div className="sticky top-0 z-10 -mx-4 bg-background/95 px-4 pb-3 pt-1 backdrop-blur">
         <p className="text-xs font-bold uppercase tracking-wider text-muted">Durum</p>
-        <p className="font-display text-2xl uppercase leading-tight text-accent">
+        <h1 className="font-display text-2xl uppercase leading-tight text-accent">
           {view.prompt?.text ?? '—'}
-        </p>
+        </h1>
         <Countdown secondsLeft={secondsLeft} totalSeconds={total} className="mt-2" />
       </div>
 
@@ -80,10 +80,10 @@ export function SpectatorSelectionScreen({
                 <span className="font-display text-lg uppercase">
                   {names[0]} <span className="text-muted">–</span> {names[1]}
                 </span>
-                <span
-                  className="flex items-center gap-1"
-                  aria-label={`Hazır durumu: ${marks.filter(Boolean).length}/2`}
-                >
+                <span className="flex items-center gap-1">
+                  <span className="sr-only">
+                    Hazır durumu: {marks.filter(Boolean).length}/2
+                  </span>
                   {marks.map((ready, i) => (
                     <span
                       key={i}

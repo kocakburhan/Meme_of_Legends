@@ -1,3 +1,4 @@
+import type { View } from '@mol/engine';
 import { formatClock } from '@/lib/format';
 import { cn } from '@/lib/cn';
 
@@ -36,6 +37,12 @@ export function Countdown({
           style={{ width: `${pct}%` }}
         />
       </div>
+      {/* Yalnız süre bittiğinde duyurulur; her saniye konuşmaz (SPEC 18). */}
+      {s === 0 ? (
+        <span role="status" aria-live="polite" className="sr-only">
+          Süre doldu.
+        </span>
+      ) : null}
     </div>
   );
 }
@@ -44,6 +51,50 @@ export function Countdown({
 export function LiveStatus({ message }: { message: string | null }) {
   return (
     <p aria-live="polite" role="status" className="sr-only">
+      {message}
+    </p>
+  );
+}
+
+/**
+ * Aşama değişimini bir kez duyuran canlı bölge (SPEC 18). Metin yalnız aşama
+ * anahtarı değişince değişir; geri sayım her saniye ekran okuyucuya okunmaz.
+ */
+export function PhaseAnnouncer({ view }: { view: View }) {
+  const phase = view.phase;
+  let message: string;
+  switch (phase.kind) {
+    case 'lobby':
+      message = 'Lobi açık; oyuncular bekleniyor.';
+      break;
+    case 'selection':
+      message = `${phase.roundNo}. tur seçim aşaması açıldı. ${view.config.selectionSeconds} saniyen var.`;
+      break;
+    case 'presentation': {
+      const index = view.presentation?.index ?? 0;
+      const total = view.presentation?.total ?? view.submissions.length;
+      message = `Gönderim sırası başladı. Sıra ${index + 1}; toplam ${total}.`;
+      break;
+    }
+    case 'review':
+      message = 'Puanlama gözden geçirmesi başladı. Eksik puanlarını tamamlayabilirsin.';
+      break;
+    case 'reveal':
+      message = `${phase.roundNo}. tur bitti; sonuçlar açıklanıyor.`;
+      break;
+    case 'results':
+      message = `${phase.roundNo}. tur bitti; sonuçlar açıklandı. Sıradaki tur bekleniyor.`;
+      break;
+    case 'draw':
+      message = 'Beraberlik kura ile çözülüyor.';
+      break;
+    case 'finished':
+      message = 'Karşılaşma tamamlandı. Sonuçlar ekranda.';
+      break;
+  }
+  if (view.status === 'paused') message = `Oyun duraklatıldı. ${message}`;
+  return (
+    <p role="status" aria-live="polite" aria-atomic="true" className="sr-only">
       {message}
     </p>
   );

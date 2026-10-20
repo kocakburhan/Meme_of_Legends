@@ -16,13 +16,13 @@ describe('ReviewScreen', () => {
     render(<ReviewScreen view={view} now={NOW} ownSubmissionId="s4" onRate={onRate} onFinish={() => undefined} />);
 
     expect(screen.getByText('Puan ver')).toBeInTheDocument(); // s2 puanlanmamış
-    const group = screen.getByRole('radiogroup', { name: 'Gönderi s2 için puan' });
+    const group = screen.getByRole('radiogroup', { name: 'Gönderi 1 için puan' });
     await user.click(within(group).getByRole('radio', { name: '5' }));
 
     expect(onRate).toHaveBeenCalledWith('s2', 5);
   });
 
-  it('kendi gönderim kilitli ve soluk görünür', () => {
+  it('kendi gönderim kilitli ve açıkça etiketli', () => {
     const view = fakeReviewView(NOW);
     render(<ReviewScreen view={view} now={NOW} ownSubmissionId="s4" onRate={() => undefined} onFinish={() => undefined} />);
 

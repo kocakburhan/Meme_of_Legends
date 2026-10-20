@@ -218,7 +218,11 @@ test('özel içerik: yükleme, red, yeniden seçim, YouTube, gösterim ve silme'
     await expect(customSection.locator('img[src*="/custom/uploads/"]')).toBeVisible();
 
     await customSection.getByRole('button', { name: 'Reddet' }).click();
-    await customSection.getByRole('button', { name: 'Evet, reddet' }).click();
+    // Onay diyaloğu erişilebilirlik için document.body'ye taşınır (portal).
+    await managerPage
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Evet, reddet' })
+      .click();
     await expect(duman.page.getByText('Bu içerik kabul edilmedi')).toBeVisible({
       timeout: 20_000,
     });

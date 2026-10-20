@@ -62,7 +62,7 @@ export function LobbyScreen({
       </Card>
 
       <section aria-label="Oyuncular">
-        <p className="mb-2 text-xs font-bold uppercase tracking-wider text-muted">
+        <p className="mb-2 text-xs font-bold uppercase tracking-wider text-muted" aria-live="polite">
           {players.length} oyuncu hazır
         </p>
         <ul className="flex flex-wrap gap-2">
@@ -81,13 +81,15 @@ export function LobbyScreen({
             </li>
           ))}
         </ul>
-        <p className="mt-2 text-sm text-muted">
+        <p className="mt-2 text-sm text-muted" aria-live="polite">
           {view.spectatorCount} seyirci izliyor
         </p>
       </section>
 
       <details className="rounded-[var(--radius-card)] border border-line bg-surface px-4 py-3">
-        <summary className="cursor-pointer text-sm font-bold">Nasıl oynanır?</summary>
+        <summary className="flex min-h-11 cursor-pointer items-center text-sm font-bold">
+          Nasıl oynanır?
+        </summary>
         <Note className="mt-2">
           Her tur bir durum gösterilir ("Maaşın yattığı an"). Süre bitmeden duruma en uygun meme'i
           seçer ve onaylarsın. Gönderiler anonim gösterilir; herkesi 1–5 arasında puanlarsın. Yüksek

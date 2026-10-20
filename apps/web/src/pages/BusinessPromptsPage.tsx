@@ -40,10 +40,11 @@ type PromptListState =
   | { state: 'error' };
 
 /** Canlı karakter sayacı (kod noktası sayar; sunucu şemasıyla aynı ölçü). */
-function TextCounter({ text }: { text: string }) {
+function TextCounter({ text, id }: { text: string; id?: string }) {
   const count = [...text].length;
   return (
     <p
+      id={id}
       aria-live="polite"
       className={cn('mt-1 text-xs', count > PROMPT_MAX ? 'text-danger' : 'text-muted')}
     >
@@ -56,14 +57,17 @@ function TextCounter({ text }: { text: string }) {
 function PromptErrorAlert({
   error,
   onReactivate,
+  id,
 }: {
   error: PromptError;
   onReactivate: (id: string) => void;
+  /** Alanın aria-describedby ile bağlandığı hata kimliği. */
+  id?: string;
 }) {
   if (error.kind === 'invalid')
     return (
       <div className="flex flex-col gap-1">
-        <p role="alert" className="text-sm text-danger">
+        <p id={id} role="alert" className="text-sm text-danger">
           Durum 3–160 karakter olmalı; link ve HTML kabul edilmez.
         </p>
         <p className="text-xs text-muted">İpucu: Nokta sonrası boşluk bırak.</p>
@@ -71,13 +75,13 @@ function PromptErrorAlert({
     );
   if (error.kind === 'generic')
     return (
-      <p role="alert" className="text-sm text-danger">
+      <p id={id} role="alert" className="text-sm text-danger">
         Durum kaydedilemedi; biraz sonra tekrar dene.
       </p>
     );
   return (
     <div className="flex flex-col gap-2">
-      <p role="alert" className="text-sm text-danger">
+      <p id={id} role="alert" className="text-sm text-danger">
         Bu durum zaten var.
       </p>
       {error.archived ? (
@@ -271,13 +275,16 @@ export default function BusinessPromptsPage() {
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Örn: Kahve soğuduktan sonraki hayat"
+            aria-invalid={addError ? true : undefined}
+            aria-describedby={addError ? 'prompt-new-error' : 'prompt-new-counter'}
             className="w-full rounded-md border border-line bg-background p-3 text-base"
           />
-          <TextCounter text={text} />
+          <TextCounter text={text} id="prompt-new-counter" />
         </div>
         {addError ? (
           <PromptErrorAlert
             error={addError}
+            id="prompt-new-error"
             onReactivate={(id) => void changeStatus(id, 'active')}
           />
         ) : null}
@@ -349,12 +356,22 @@ export default function BusinessPromptsPage() {
                         rows={2}
                         value={draft.text}
                         onChange={(e) => setEditing({ id: prompt.id, text: e.target.value })}
+                        aria-invalid={editError ? true : undefined}
+                        aria-describedby={
+                          editError
+                            ? `prompt-edit-${prompt.id}-error`
+                            : `prompt-edit-${prompt.id}-counter`
+                        }
                         className="w-full rounded-md border border-line bg-surface p-3 text-sm"
                       />
-                      <TextCounter text={draft.text} />
+                      <TextCounter
+                        text={draft.text}
+                        id={`prompt-edit-${prompt.id}-counter`}
+                      />
                       {editError ? (
                         <PromptErrorAlert
                           error={editError}
+                          id={`prompt-edit-${prompt.id}-error`}
                           onReactivate={(id) => void changeStatus(id, 'active')}
                         />
                       ) : null}

@@ -124,8 +124,8 @@ test('konsol: giriş → ayar → eşleştirme → başlat → Hemen gizle → b
     // Oyunu bitir (onaylı) — Ayarlar sekmesi; masaüstünde sütun görünür.
     await page.setViewportSize({ width: 1280, height: 800 });
     await settingsTab.getByRole('button', { name: 'Oyunu bitir' }).click();
-    await expect(settingsTab.getByText('Oyun şimdi sona erer')).toBeVisible();
-    await settingsTab.getByRole('button', { name: 'Evet, bitir', exact: true }).click();
+    await expect(page.getByText('Oyun şimdi sona erer')).toBeVisible();
+    await page.getByRole('button', { name: 'Evet, bitir', exact: true }).click();
     await expect(gameTab.getByRole('button', { name: 'Rövanş' })).toBeVisible({ timeout: 15_000 });
 
     // Rövanş: aynı odada yeni lobi; değiştirilen ayarlar taşınır, Başlat

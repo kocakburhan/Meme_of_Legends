@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
   createAdminCategory,
@@ -31,6 +31,7 @@ export default function AdminCategoriesPage() {
   const [editError, setEditError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const addErrorId = useId();
 
   useEffect(() => {
     let alive = true;
@@ -169,11 +170,13 @@ export default function AdminCategoriesPage() {
             onChange={(e) => setName(e.target.value)}
             maxLength={200}
             placeholder="Örn: İş yerine koy"
+            aria-invalid={addError ? true : undefined}
+            aria-describedby={addError ? addErrorId : undefined}
             className="h-12 w-full rounded-md border border-line bg-background px-3 text-base"
           />
         </div>
         {addError ? (
-          <p role="alert" className="text-sm text-danger">
+          <p id={addErrorId} role="alert" className="text-sm text-danger">
             {addError}
           </p>
         ) : null}
@@ -219,10 +222,18 @@ export default function AdminCategoriesPage() {
                       value={draft.name}
                       onChange={(e) => setEditing({ id: category.id, name: e.target.value })}
                       maxLength={200}
+                      aria-invalid={editError ? true : undefined}
+                      aria-describedby={
+                        editError ? `category-edit-${category.id}-error` : undefined
+                      }
                       className="h-11 w-full rounded-md border border-line bg-surface px-3 text-sm"
                     />
                     {editError ? (
-                      <p role="alert" className="text-sm text-danger">
+                      <p
+                        id={`category-edit-${category.id}-error`}
+                        role="alert"
+                        className="text-sm text-danger"
+                      >
                         {editError}
                       </p>
                     ) : null}

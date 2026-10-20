@@ -38,22 +38,24 @@ export function JoinScreen({
   const [codeText, setCodeText] = useState('');
   const [nickname, setNickname] = useState('');
   const [role, setRole] = useState<JoinRole>(allowPlayer ? 'player' : 'voter');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ field: 'code' | 'nickname'; message: string } | null>(null);
   const nicknameId = useId();
-  const errorId = useId();
+  const codeErrorId = useId();
+  const nicknameErrorId = useId();
+  const serverErrorId = useId();
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (!code) {
       const codeError = validateRoomCode(codeText);
       if (codeError) {
-        setError(codeError);
+        setError({ field: 'code', message: codeError });
         return;
       }
     }
     const nicknameError = validateNickname(nickname);
     if (nicknameError) {
-      setError(nicknameError);
+      setError({ field: 'nickname', message: nicknameError });
       return;
     }
     setError(null);
@@ -94,8 +96,15 @@ export function JoinScreen({
               autoComplete="off"
               maxLength={6}
               placeholder="ABC123"
+              aria-invalid={error?.field === 'code' ? true : undefined}
+              aria-describedby={error?.field === 'code' ? codeErrorId : undefined}
               className="h-12 w-full rounded-md border border-line bg-surface px-3 font-display text-2xl tracking-widest uppercase placeholder:text-muted"
             />
+            {error?.field === 'code' ? (
+              <p id={codeErrorId} role="alert" className="mt-1 text-sm text-danger">
+                {error.message}
+              </p>
+            ) : null}
           </div>
         )}
 
@@ -111,22 +120,31 @@ export function JoinScreen({
             inputMode="text"
             autoComplete="off"
             maxLength={40}
-            aria-invalid={error ? true : undefined}
-            aria-describedby={error ? errorId : `${nicknameId}-hint`}
+            aria-invalid={error?.field === 'nickname' || serverError ? true : undefined}
+            aria-describedby={
+              error?.field === 'nickname'
+                ? nicknameErrorId
+                : serverError
+                  ? serverErrorId
+                  : `${nicknameId}-hint`
+            }
             className="h-12 w-full rounded-md border border-line bg-surface px-3 text-base"
           />
-          {error ? (
-            <p id={errorId} role="alert" className="mt-1 text-sm text-danger">
-              {error}
+          {error?.field === 'nickname' ? (
+            <p id={nicknameErrorId} role="alert" className="mt-1 text-sm text-danger">
+              {error.message}
             </p>
           ) : serverError ? (
-            <p id={errorId} role="alert" className="mt-1 text-sm text-danger">
+            <p id={serverErrorId} role="alert" className="mt-1 text-sm text-danger">
               {serverError}
             </p>
           ) : (
             <p id={`${nicknameId}-hint`} className="mt-1 text-sm text-muted">
               2–20 karakter; harf, rakam, boşluk ve emoji. Adın oyun sonunda anonimleşir.{' '}
-              <a href="#" className="underline decoration-line underline-offset-2">
+              <a
+                href="#"
+                className="inline-flex min-h-11 items-center underline decoration-line underline-offset-2"
+              >
                 Aydınlatma metni
               </a>
             </p>
@@ -142,11 +160,11 @@ export function JoinScreen({
                 <label
                   key={option.value}
                   className={cn(
-                    'flex cursor-pointer flex-col gap-0.5 rounded-[var(--radius-card)] border p-3 transition-colors',
+                    'flex cursor-pointer flex-col gap-0.5 rounded-[var(--radius-card)] border p-3 transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent',
                     role === option.value && !optionDisabled
                       ? 'border-accent bg-accent/10'
                       : 'border-line bg-surface hover:border-accent',
-                    optionDisabled && 'cursor-not-allowed opacity-40',
+                    optionDisabled && 'cursor-not-allowed text-muted',
                   )}
                 >
                   <input
