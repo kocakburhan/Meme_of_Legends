@@ -73,6 +73,10 @@ describe('YouTube validation', () => {
         }),
       );
     await expect(validateYoutube(id)).resolves.toEqual({ videoId: id, durationMs: null });
+    // Workers rejects redirect: 'error' at runtime (canlıda tüm doğrulamalar düşüyordu).
+    expect(mock.mock.calls[0]![1]).toMatchObject({ redirect: 'manual' });
+    mock.mockResolvedValue(new Response(null, { status: 302, headers: { location: 'https://consent.youtube.com/' } }));
+    await expect(validateYoutube(id)).rejects.toMatchObject({ code: 'YOUTUBE_UNAVAILABLE' });
     mock.mockResolvedValue(Response.json({}));
     await expect(validateYoutube(id)).rejects.toMatchObject({ code: 'YOUTUBE_NOT_EMBEDDABLE' });
     mock.mockRejectedValue(new Error('network'));
