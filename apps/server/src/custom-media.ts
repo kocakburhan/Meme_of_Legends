@@ -226,11 +226,14 @@ export async function validateYoutube(videoId: string) {
   try {
     response = await fetch(
       `https://www.youtube.com/oembed?url=${encodeURIComponent(`https://www.youtube.com/watch?v=${videoId}`)}&format=json`,
-      { signal: AbortSignal.timeout(5000), redirect: 'error' },
+      // Workers yalnız 'follow' / 'manual' destekler; 'error' fetch'i her zaman düşürür.
+      { signal: AbortSignal.timeout(5000), redirect: 'manual' },
     );
   } catch {
     throw new ApiFailure(503, 'YOUTUBE_UNAVAILABLE');
   }
+  if (response.status >= 300 && response.status < 400)
+    throw new ApiFailure(503, 'YOUTUBE_UNAVAILABLE');
   if ([401, 403].includes(response.status)) throw new ApiFailure(422, 'YOUTUBE_NOT_EMBEDDABLE');
   if ([400, 404].includes(response.status)) throw new ApiFailure(422, 'YOUTUBE_NOT_PUBLIC');
   if (!response.ok) throw new ApiFailure(503, 'YOUTUBE_UNAVAILABLE');
