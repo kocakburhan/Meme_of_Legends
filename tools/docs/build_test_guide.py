@@ -268,7 +268,7 @@ def build():
         ("İşletme girişi", BASE + "/isletme/giris"),
         ("Ortak ekran", BASE + "/ekran"),
     ], [3.4, 13.6])
-    p("Admin kullanıcı adı: mol-admin. Şifre bu belgede yok; proje sahibi (owner) ayrıca iletir. Aynı admin hesabı ortak kullanılır.")
+    p("Admin kullanıcı adı: mol-admin. Şifre bu belgede yazmaz; bu belgeyle birlikte size verilen giriş bilgileri dosyasındadır (mol-admin-canli.txt). Aynı admin hesabını proje sahibi (owner) ile ortak kullanırsınız. Şifreyi kimseyle paylaşmayın, ekran görüntülerine dahil etmeyin.")
     p("Önerilen sıra: 1–3 ile hazırlanın → 4 ile birkaç meme yükleyin → 5–6 ile panelleri deneyin → 7A ile tam oyun oynayın → 7B–F ile özel durumları kontrol edin → 8–10 ile görünümü, hata kaydını ve temizliği tamamlayın.")
     checks("Test tarihi: __________________", "Testi yapan: __________________")
 
@@ -307,7 +307,7 @@ def build():
         "Telefon azsa normal pencere ile gizli pencereyi ayrı kişi olarak kullanabilirsiniz. Aynı tarayıcının birden çok gizli penceresi genellikle aynı kimliği paylaşır; her pencereyi ayrı kişi saymayın. Üçüncü ve dördüncü kişi için farklı profil veya farklı tarayıcı açın.",
         "Katılımcı pencerelerini test boyunca kapatmayın; gizli pencerelerin tamamını kapatmak kimliği kaybettirebilir. Konsol veya ortak ekran, oyuncu yerine geçmez; katılımı ayrıca yapın.",
     ], "Her katılımcı bağımsız bir kimlikle bağlanabilir. Yönetici ve ortak ekran pencereleri ayrıca açık kalır.",
-        "3 oyuncu ve 1 seyirci için ayrı kimlik hazır", "Admin şifresi owner'dan alındı", "Ortak ekran için pencere hazır")
+        "3 oyuncu ve 1 seyirci için ayrı kimlik hazır", "Giriş bilgileri dosyası (mol-admin-canli.txt) elinizde", "Ortak ekran için pencere hazır")
     h("Test notlarını tutun")
     p("Her testin kutusunu yalnız beklenen sonucu gördüğünüzde işaretleyin. Yapamadığınız test için ‘Denenmedi’ ve nedenini yazın. İlgili oda kodunu, cihazı ve saati birlikte kaydedin; sonradan raporu bulmak kolaylaşır.")
     p("Testler canlı ortamda hak tüketir. İlk işletmeyi sonlu hakla oluşturun; hak düşmesi ve iade testinden sonra gerekiyorsa sınırsız hak açın. Pasife alma, şifre sıfırlama, oyuncu atma ve sonlandırma işlemlerini yalnız test kayıtlarında deneyin.")
@@ -315,7 +315,7 @@ def build():
 
     page("3 İlk içeriği ve test işletmesini hazırlama", 1)
     test("Kategori ve platform durumları", [
-        "Admin girişini açın; mol-admin ve owner'ın ilettiği şifreyle giriş yapın. Menüden İçerik, ardından Kategoriler bölümünü açın.",
+        "Admin girişini açın; mol-admin ve giriş bilgileri dosyasındaki şifreyle giriş yapın. Menüden İçerik, ardından Kategoriler bölümünü açın.",
         "Kategori adı alanına TEST Komik yazıp Ekle'ye basın. Daha sonra gerçek kütüphane için anlaşılır kategori adları oluşturun.",
         "İçerik içinden Platform durumları bölümünü açın. Yeni durum alanına ‘TEST Kahve bitince toplantının başlaması’ yazın; Ekle'ye basın.",
         "Oyuna uygun farklı durumları tek tek ekleyin. Metinler 3–160 karakter olmalı; link veya HTML kullanmayın. İlk deneme için en az 30 aktif platform durumu önerilir; daha zengin bir açılış havuzu için 100 ve üzeri hedeflenebilir.",
@@ -332,43 +332,45 @@ def build():
     page("4 Bilgisayardan meme ekleme", 1)
     p("Bu kurulum yalnız kütüphaneye meme ekleyeceğiniz bilgisayarda gerekir. Oyun oynayan telefonlarda kurulum yapmayın. Terminal, komut yazıp Enter'a bastığınız penceredir. Aşağıdaki komutları satır satır çalıştırın; bir komut bitmeden sonrakine geçmeyin.")
     h("Node.js kurulumunu işletim sisteminize göre yapın")
-    p("Resmî indirme sayfası: https://nodejs.org/en/download . Araç Node.js 22 veya üzerini ister. Aşağıdaki yol için 22 serisinin güncel bakım sürümünü seçmek Corepack ile başlangıcı kolaylaştırır. 22.13 ve üzerini kullanın; farklı bir yeni sürümde Corepack ayrıca kurulabilir.")
+    p("Resmî indirme sayfası: https://nodejs.org/en/download . Araç Node.js 22 veya 24 sürümünü ister. Sayfada 'LTS' (uzun süreli destek) olarak işaretli 22 ya da 24 sürümünü seçin; bu sürümlerde pnpm'i açan Corepack hazır gelir. 25 ve üzeri sürümleri seçmeyin.")
     table(["Sistem", "Kısa kurulum"], [
-        ("Windows", "Sitede Windows'u ve bilgisayarınıza uygun mimariyi seçin; .msi kurucusunu indirin. Kurucuyu açıp varsayılan adımları tamamlayın. Terminali kapatıp yeniden açın."),
+        ("Windows", "Sayfada sürüm olarak LTS işaretli 22 ya da 24 serisini, işletim sistemi olarak Windows'u, mimari olarak x64'ü seçin ve 'Windows Installer (.msi)' düğmesiyle indirin. İnen dosyaya çift tıklayın; her ekranda İleri (Next) deyin, lisansı kabul edin, varsayılan ayarları değiştirmeyin. 'Tools for Native Modules' (Chocolatey) kutusunu işaretlemeyin; gerekmez. Kurulum bitince açık komut pencerelerini kapatın."),
         ("macOS", "Sitede macOS'u seçin. Apple Silicon için ARM64, Intel için x64 seçin; .pkg kurucusunu açıp adımları tamamlayın. Terminal'i yeniden açın."),
-        ("Linux", "Sitede Linux ve uygun mimariyi seçin; 22 serisinin .tar.xz hazır dosyasını indirin. Dosya yöneticisinde çıkarın. İçinde bin klasörü olan ana klasörü node22 olarak yeniden adlandırıp kişisel klasörünüze taşıyın. Terminalde aşağıdaki Linux komutunu çalıştırın."),
+        ("Linux", "Sitedeki Linux talimatını (ör. nvm ile 22 sürümü) izleyin."),
     ], [2.8, 14.2])
-    p("Yalnız Linux için, her yeni terminalde önce bu satırı çalıştırın; ardından diğer sistemlerle ortak adımlara geçin. node22 klasörü kişisel klasörünüzde olmalıdır.")
-    code('export PATH="$HOME/node22/bin:$PATH"')
-    steps(["Terminalde aşağıdaki sürüm kontrolünü çalıştırın. Çıktı v22.13 veya daha yeni bir sürüm olmalıdır."])
+    steps(["Bir terminal açın: Windows'ta Başlat menüsüne cmd yazıp Komut İstemi'ni açın (macOS'ta Terminal uygulaması). Aşağıdaki sürüm kontrolünü yazıp Enter'a basın. Çıktı v22 ya da v24 ile başlamalıdır. 'node tanınmıyor' derse pencereyi kapatıp yeniden açın; olmazsa bilgisayarı yeniden başlatın."])
     code("node --version")
-    steps(["pnpm adlı yardımcıyı etkinleştirin. Corepack, projenin istediği pnpm sürümünü seçer."], first=2)
+    steps(["pnpm adlı yardımcıyı etkinleştirin. Corepack, projenin istediği pnpm sürümünü seçer. Windows'ta bu tek komut yönetici yetkisi ister: Başlat menüsüne PowerShell yazın, çıkan sonuca sağ tıklayıp 'Yönetici olarak çalıştır'ı seçin, izin sorusuna Evet deyin ve açılan pencerede aşağıdaki komutu çalıştırın. Sonra bu pencereyi kapatın; sonraki komutlar için yönetici gerekmez."], first=2)
     code("corepack enable")
-    p("‘corepack bulunamadı’ veya imza hatası çıkarsa aşağıdaki komutla Corepack'i kurun/güncelleyin, sonra corepack enable komutunu yeniden çalıştırın. Windows kurucusunun mevcut Corepack bileşeni çakışırsa owner'dan destek alın.")
+    p("‘corepack bulunamadı’ veya imza hatası çıkarsa aşağıdaki komutla Corepack'i kurun/güncelleyin, sonra corepack enable komutunu yeniden çalıştırın. Corepack yine de çalışmazsa pnpm'i doğrudan kurabilirsiniz (aynı yönetici penceresinde): npm install --global pnpm")
     code("npm install --global corepack@latest")
-    p("Yetki reddi alırsanız kurulumu owner ile tamamlayın. Windows PowerShell komut dosyası çalıştırma hatası verirse aynı işlemi Komut İstemi'nde deneyin.")
+    p("Windows'ta komutlar için Komut İstemi'ni (cmd) kullanın; aşağıda klasörde nasıl açılacağı anlatılıyor. PowerShell'de 'running scripts is disabled on this system' / 'betik çalıştırma devre dışı' hatası görürseniz aynı komutu Komut İstemi'nde çalıştırın.")
     expected("node --version bir sürüm döndürür; Corepack komutu hatasız tamamlanır.")
     checks("Node.js kuruldu", "Corepack etkin")
     p("Kurulum kaynakları: https://nodejs.org/en/download ve https://github.com/nodejs/corepack#manual-installs . pnpm kurulum seçenekleri: https://pnpm.io/installation .")
 
     page("Depoyu edinme ve aracı hazırlama")
     test("Proje klasörünü bilgisayarınıza alın", [
-        "Owner'dan projenin GitHub bağlantısını ve erişim iznini isteyin. Bu rehber depo adresi tahmin etmez; owner'ın verdiği bağlantıyı kullanın.",
-        "Git bilmeniz gerekmez: GitHub'da oturum açın, owner'ın belirttiği sürümü açın, Code menüsünden Download ZIP ile indirin. ZIP'i açıp tüm dosyaları normal bir klasöre çıkarın. Komutları ZIP'in içinden çalıştırmayın.",
-        "Owner isterse projeyi Git ile sizin için alabilir. Sonraki adımlar iki durumda da aynı proje klasöründe yapılır. Güncelleme gerektiğinde owner'dan yeni sürümü isteyin.",
+        "Proje GitHub'da herkese açıktır; hesap açmanız gerekmez: https://github.com/kocakburhan/Meme_of_Legends",
+        "Sayfadaki yeşil Code düğmesine basın, açılan menüden Download ZIP'i seçin. Meme_of_Legends-main.zip adlı dosya iner.",
+        "Windows'ta ZIP dosyasına sağ tıklayıp 'Tümünü ayıkla'yı seçin, hedef olarak örneğin Belgeler klasörünü verin ve Ayıkla deyin. Meme_of_Legends-main adlı bir klasör oluşur. Komutları ZIP'in içinden değil, bu çıkarılmış klasörden çalıştırın.",
+        "Git kullanmayı biliyorsanız ZIP yerine şu komut da olur: git clone https://github.com/kocakburhan/Meme_of_Legends.git . Yeni sürüm gerektiğinde ZIP'i yeniden indirip yeni klasörde pnpm install ve pnpm media setup adımlarını tekrarlayın; araç girişiniz bilgisayarda saklı kaldığı için yeniden giriş genellikle gerekmez.",
         "İçinde package.json, pnpm-lock.yaml, apps ve tools bulunan klasörü açın. Burası proje kökü; tools/media alt klasöründe başlamayın.",
-        "Windows'ta bu klasörün adres çubuğuna cmd yazıp Enter'a basın. macOS'ta Finder'da klasöre sağ tıklayıp Hizmetler menüsündeki klasörde terminal açma seçeneğini kullanın. Linux'ta dosya yöneticisinde sağ tıklayıp terminal açma seçeneğini seçin. Seçenek yoksa owner ile klasöre geçin.",
+        "Windows'ta bu klasörün adres çubuğuna cmd yazıp Enter'a basın. macOS'ta Finder'da klasöre sağ tıklayıp Hizmetler menüsündeki klasörde terminal açma seçeneğini kullanın. Linux'ta dosya yöneticisinde sağ tıklayıp terminal açma seçeneğini seçin. Hangi sistemde olursanız olun, açılan pencerede gösterilen klasör yolu Meme_of_Legends-main ile bitmelidir.",
     ], "Terminal doğru proje klasöründe açılır; proje dosyaları dosya yöneticisinde görünür.", "ZIP çıkarıldı veya depo alındı", "Terminal proje kökünde")
     h("Bağımlılıkları ve medya yardımcılarını kurun")
     steps(["Aşağıdaki komutu çalıştırın. İlk indirme onayı gelirse onaylayın; internet hızına göre birkaç dakika sürebilir."])
     code("pnpm install")
     steps(["Ardından medya yardımcılarını indirin. Araç ffmpeg/ffprobe ile videoyu işler; yt-dlp ile bağlantıdan indirir. Bunları ayrı ayrı kurmanız genellikle gerekmez."], first=2)
     code("pnpm media setup")
-    steps(["Canlı sunucuya giriş yapın. Kullanıcı adı mol-admin; şifre owner'ın ilettiği admin şifresidir. Şifre yazarken karakter görünmemesi normaldir; yazıp Enter'a basın."], first=3)
+    steps(["Canlı sunucuya giriş yapın. Kullanıcı adı mol-admin; şifre giriş bilgileri dosyasındaki (mol-admin-canli.txt) şifredir. Şifre yazarken karakter görünmemesi normaldir; yazıp Enter'a basın."], first=3)
     code("pnpm media login --server " + BASE)
     expected("Kurulum ve giriş tamamlanır. Tarayıcıda admin'e girmiş olmak bu aracın girişinin yerine geçmez. Şifre kaydedilmez; bilgisayarda oturum bilgisi tutulur.")
     checks("pnpm install tamamlandı", "Medya yardımcıları hazır", "Canlı sunucuda araç girişi başarılı")
-    p("Windows'ta yerel medya aracı henüz denenmedi. Kurulum veya işlem hatasını komut ve ekran görüntüsüyle owner'a bildirin. Linux x64 doğrulanmıştır; diğer cihazlarda bu rehberdeki sonuçları ayrıca kontrol edin.")
+    h("Takılırsanız: coding agent ile çözme")
+    p("Araç Linux'ta denendi; Windows'ta ilk kez kullanılacak, bu yüzden kurulumda küçük sorunlar çıkabilir. Bir komut hata verirse coding agent'ınızı (ör. Claude Code, Codex) proje klasöründe açın ve aşağıdaki metni, köşeli parantezleri doldurarak verin:")
+    code("Bu proje klasöründeki yerel meme yükleme aracını (tools/media) Windows'ta çalıştırmaya çalışıyorum. Belgesi tools/media/README.md, kodu tools/media/src. Şu komutu çalıştırdım: [komut]. Şu hatayı aldım: [hata metninin tamamı]. Sorunun nedenini bul ve çöz. Canlı sunucuya (https://mol-game.kocakkburhann.workers.dev) yükleme yapan bir komut çalıştırmadan önce bana sor; Cloudflare ayarlarına ve sunucu koduna dokunma.")
+    p("Agent'ın araçta kod değişikliği yapması gerekirse değişikliği owner'a da iletin; böylece ana projeye eklenir ve bir sonraki sürümde tekrar düzeltmeniz gerekmez. Denemelerde önce --dry-run seçeneğini kullanmak güvenlidir: indirip dönüştürür ama sunucuya yüklemez.")
 
     page("Tek meme ekleme ve video kesme")
     p("Komutlardaki LINK yerine gerçek bağlantıyı, kategori ve açıklama yerine kendi metninizi yazın. Açılı ayraçlar veya LINK sözcüğü gerçek bağlantının parçası değildir. Boşluk içeren metinleri düz çift tırnak içinde tutun.")
@@ -415,7 +417,7 @@ def build():
         ("yt-dlp bulunamadı. Önce pnpm media setup çalıştırın.", "setup komutunu yeniden çalıştırın."),
         ("MEDIA_INVALID: Sunucu medya türünü, boyutunu veya süresini reddetti.", "Dosyayı ve kesim süresini kontrol edin; düzelmezse owner'a raporlayın."),
     ], [9, 8])
-    expected("Güncelleme sonrası uygun kaynak yeniden işlenebilir. Gizli, silinmiş veya giriş isteyen içerik için başka kaynak gerekir. Hata sürerse komutun tamamını ve mesajı owner'a iletin.")
+    expected("Güncelleme sonrası uygun kaynak yeniden işlenebilir. Gizli, silinmiş veya giriş isteyen içerik için başka kaynak gerekir. Hata sürerse komutun tamamını ve mesajı 'Takılırsanız' bölümündeki metinle coding agent'ınıza verin; çözülmezse owner'a iletin.")
     checks("Güncelleme komutu bulundu", "Hata mesajının karşılığı anlaşıldı")
 
     page("5 Admin paneli testleri", 1)
@@ -752,7 +754,7 @@ def build():
     ], "Aktif test lobisi kalmaz; test işletmeleri pasif ve deneme içerikleri arşivlidir. Geçmiş sonuçlar silinmez. Özel dosyalar ve YouTube ayrıntıları oyun bitince temizlenir; takma adlar 7 gün sonra anonimleşir.",
         "Açık test oturumları kapatıldı", "Test hesapları pasife alındı", "Test durumları ve meme'leri arşivlendi", "Geçen başarısız ve denenmeyen testler bildirildi")
     h("Uygulama sırasında belirsiz kalanları yazın")
-    p("Windows medya aracı bu proje kapsamında henüz denenmedi. YouTube'un gömme, bölge veya yaş kısıtları cihazdan cihaza değişebilir; gerçek video oynatımını kendi telefon ve ortak ekranınızda kontrol edin. Lobi ömrünü bekleyerek, 7 günlük anonimleşmeyi ve 6+ oyunculu hibriti deneyemediyseniz test raporunda açıkça belirtin.")
+    p("Windows'ta medya aracını ilk kullananın siz olduğunuzu unutmayın; karşılaştığınız ve çözdüğünüz kurulum sorunlarını rapora yazın. YouTube'un gömme, bölge veya yaş kısıtları cihazdan cihaza değişebilir; gerçek video oynatımını kendi telefon ve ortak ekranınızda kontrol edin. Lobi ömrünü bekleyerek, 7 günlük anonimleşmeyi ve 6+ oyunculu hibriti deneyemediyseniz test raporunda açıkça belirtin.")
     h("Rehberin dayandığı kaynaklar")
     p("Ürün ve kurallar: docs/PRODUCT_SPEC.md tamamı. Kararlar ve canlı ortam: docs/PROJECT_LOG.md son kayıtları; apps/server/README.md Canlı ortam bölümü. Medya komutları: tools/media/README.md ve gerçek hata metinleri için tools/media/src. Admin ve özel içerik sınırları: docs/contracts/admin-api.md ile docs/contracts/custom-content.md. Adresler: apps/web/src/App.tsx. Düğme adları: apps/web/src/pages, console, screens ve components altındaki arayüz kaynakları.")
     p("Bu belge 20 Ekim 2026 tarihli proje kaynaklarına göre hazırlanmıştır. Arayüz veya kurallar değişirse tools/docs/build_test_guide.py güncellenerek yeniden üretilmelidir.")
