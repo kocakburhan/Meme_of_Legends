@@ -17,7 +17,8 @@
     "verify": "pnpm typecheck && pnpm lint && pnpm test && pnpm build",
     "test:heavy": "pnpm --filter @mol/engine test:heavy",
     "demo": "pnpm --filter @mol/e2e demo",
-    "media": "pnpm --filter @mol/media start"
+    "media": "pnpm --filter @mol/media start",
+    "deploy": "pnpm --filter @mol/web build && pnpm --filter @mol/server exec wrangler d1 migrations apply mol-db --remote && pnpm --filter @mol/server exec wrangler deploy"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

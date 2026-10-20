@@ -160,3 +160,11 @@ Engine projections include manager/display review completion counts. `isFinalRou
 becomes true only after the locked outcome confirms there is no further round or
 overtime; an unresolved final is false. Manager selection views already include
 private submissions and sender IDs.
+
+## Canlı ortam (Cloudflare)
+
+Adres: https://mol-game.kocakkburhann.workers.dev — worker `mol-game` web uygulamasını
+(`apps/web/dist`, Workers static assets) ve API'yi tek kökenden sunar. Kaynaklar: D1 `mol-db`,
+R2 `mol-media`, Durable Object `RoomDurableObject`, 10 dk Cron. Gizli değer: `TOKEN_SECRET`
+(`wrangler secret put`). Yayın: kökten `pnpm deploy` (web derler → uzak D1 migration'ları →
+`wrangler deploy`). Yalnız `mol-` önekli kaynaklara dokunulur (hesap başka projeyle paylaşılıyor).
