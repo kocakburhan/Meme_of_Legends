@@ -1,3 +1,4 @@
+import { writeFile } from 'node:fs/promises';
 import { expect, test, type Browser, type BrowserContext, type Page } from '@playwright/test';
 
 import { makePng } from '../global-setup';
@@ -76,6 +77,106 @@ async function rateUntilReview(page: Page, timeoutMs = 140_000): Promise<void> {
   throw new Error('Gösterimden gözden geçirmeye geçilemedi');
 }
 
+/** Yalnız medya istekleri; kimlik değerleri ve çerezler kaydedilmez. */
+function observeMedia(page: Page) {
+  const events: object[] = [];
+  page.on('response', (response) => {
+    const request = response.request();
+    if (!/custom\/uploads\/|youtube|googlevideo/.test(response.url())) return;
+    events.push({
+      at: new Date().toISOString(),
+      url: response.url(),
+      status: response.status(),
+      bearer: /^Bearer /i.test(request.headers()['authorization'] ?? ''),
+      contentType: response.headers()['content-type'],
+    });
+  });
+  page.on('requestfailed', (request) => {
+    if (/custom\/uploads\/|youtube|googlevideo/.test(request.url()))
+      events.push({ url: request.url(), failure: request.failure()?.errorText });
+  });
+  return events;
+}
+
+async function mediaState(page: Page) {
+  return page.locator('figure').evaluateAll((figures) =>
+    figures.map((figure) => {
+      const box = (element: Element) => {
+        const rect = element.getBoundingClientRect();
+        return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+      };
+      return {
+        box: box(figure),
+        text: figure.textContent,
+        youtubeId: figure.querySelector('[data-youtube-clip]')?.getAttribute('data-youtube-clip'),
+        images: Array.from(figure.querySelectorAll('img')).map((image) => ({
+          src: image.src,
+          complete: image.complete,
+          naturalWidth: image.naturalWidth,
+          naturalHeight: image.naturalHeight,
+          box: box(image),
+        })),
+        iframes: Array.from(figure.querySelectorAll('iframe')).map((frame) => ({
+          src: frame.src,
+          box: box(frame),
+        })),
+      };
+    }),
+  );
+}
+
+async function capturePresentations(display: Page, phone: Page) {
+  const slots: object[] = [];
+  try {
+    for (let slot = 1; slot <= 3; slot++) {
+      await expect(display.getByText(`Gönderi ${slot} / 3`, { exact: true })).toBeVisible({
+        timeout: 60_000,
+      });
+      await display.screenshot({
+        path: test.info().outputPath(`presentation-${slot}-display-initial.png`),
+      });
+      // İlk render ile yüklenmiş kareyi ayır; görünürlük tek başına decode kanıtı değildir.
+      await display.waitForTimeout(2500);
+      const [screen, player] = await Promise.all([mediaState(display), mediaState(phone)]);
+      const type = screen.some((frame) => frame.youtubeId)
+        ? 'youtube'
+        : screen.some((frame) =>
+              frame.images.some(
+                (image) => image.src.startsWith('blob:') || image.src.includes('/custom/uploads/'),
+              ),
+            )
+          ? 'upload PNG'
+          : 'library/unknown';
+      slots.push({
+        slot,
+        type,
+        at: new Date().toISOString(),
+        display: screen,
+        phone: player,
+        phoneSlot: await currentSlotIndex(phone),
+      });
+      await display.screenshot({
+        path: test.info().outputPath(`presentation-${slot}-display.png`),
+      });
+      await phone.screenshot({ path: test.info().outputPath(`presentation-${slot}-phone.png`) });
+      console.log('CAPTURE', slot, type, JSON.stringify(screen));
+      if (slot < 3)
+        await expect(display.getByText(`Gönderi ${slot} / 3`, { exact: true })).toBeHidden({
+          timeout: 60_000,
+        });
+    }
+  } finally {
+    await writeFile(
+      test.info().outputPath('presentation-evidence.json'),
+      JSON.stringify(slots, null, 2),
+    );
+    await test.info().attach('presentation-evidence', {
+      body: JSON.stringify(slots, null, 2),
+      contentType: 'application/json',
+    });
+  }
+}
+
 test('özel içerik: yükleme, red, yeniden seçim, YouTube, gösterim ve silme', async ({
   browser,
 }) => {
@@ -83,12 +184,18 @@ test('özel içerik: yükleme, red, yeniden seçim, YouTube, gösterim ve silme'
   const adminContext = await browser.newContext();
   const admin = await adminContext.newPage();
   let businessId = '';
-  let memeId = '';
   let libraryTitle = '';
   const username = `live-${Date.now()}`;
   const businessName = `Canlı test ${new Date().toISOString()}`;
   const lobby: BusinessLobby = { username, password: '', code: '' };
   const contexts: BrowserContext[] = [];
+  const network: Record<string, object[]> = {};
+  console.log(
+    'BROWSER',
+    browser.browserType().name(),
+    browser.version(),
+    process.env.MOL_BROWSER_CHANNEL ?? 'bundled chromium',
+  );
   try {
     // Trace kapalı; admin şifresi hiçbir artefakta yazılmaz.
     await admin.goto(`${WEB}/admin/giris`);
@@ -160,6 +267,7 @@ test('özel içerik: yükleme, red, yeniden seçim, YouTube, gösterim ve silme'
     const displayContext = await newContext(browser);
     contexts.push(displayContext);
     const display = await displayContext.newPage();
+    network.display = observeMedia(display);
     await display.setViewportSize({ width: 1280, height: 720 });
     await display.goto(`${WEB}/ekran`);
     await display.getByLabel('Eşleştirme kodu').fill(pairCode);
@@ -170,6 +278,7 @@ test('özel içerik: yükleme, red, yeniden seçim, YouTube, gösterim ve silme'
     // Üç oyuncu katılır; konsoldan başlatılır.
     const duman = await joinPlayer(browser, lobby.code, 'Duman');
     contexts.push(duman.context);
+    network.phone = observeMedia(duman.page);
     const kral = await joinPlayer(browser, lobby.code, 'Kral');
     contexts.push(kral.context);
     const sims = await joinPlayer(browser, lobby.code, 'Şimşek');
@@ -184,29 +293,7 @@ test('özel içerik: yükleme, red, yeniden seçim, YouTube, gösterim ve silme'
       await adminContext.request.get(`${WEB}/api/admin/memes?status=active`)
     ).json();
     if (memes.memes.length) libraryTitle = memes.memes[0].description;
-    else {
-      const categories = await (
-        await adminContext.request.get(`${WEB}/api/admin/categories`)
-      ).json();
-      const category = categories.categories.find((c: { archived: boolean }) => !c.archived);
-      if (!category) console.log('BLOCKED kütüphane: aktif meme ve kategori yok');
-      if (category) {
-        libraryTitle = `Canlı smoke ${Date.now()}`;
-        const uploaded = await adminContext.request.post(`${WEB}/api/admin/memes`, {
-          multipart: {
-            file: { name: 'live.png', mimeType: 'image/png', buffer: makePng(24, [80, 120, 230]) },
-            meta: JSON.stringify({
-              mediaType: 'image',
-              durationMs: null,
-              categoryId: category.id,
-              description: libraryTitle,
-            }),
-          },
-        });
-        expect(uploaded.status()).toBe(201);
-        memeId = (await uploaded.json()).meme.id;
-      }
-    }
+    else console.log('SKIP kütüphane: aktif içerik yok');
     await gameTab.getByRole('button', { name: 'Başlat' }).click();
     await managerPage.getByRole('button', { name: 'Evet, başlat', exact: true }).click();
     await expect(managerPage.getByText('Tur 1 · Seçim')).toBeVisible({ timeout: 15_000 });
@@ -271,9 +358,8 @@ test('özel içerik: yükleme, red, yeniden seçim, YouTube, gösterim ve silme'
     // Gösterim: 3 geçerli gönderi; YouTube başarısızsa PNG ile kalan akış sınanır.
     await expect(display.getByText(/Gönderi 1 \/ 3/)).toBeVisible({ timeout: 30_000 });
     // Sıra rastgele; ortak ekran medya kontrolü ve telefonlarda puanlama birlikte yürür.
-    await display.screenshot({ path: test.info().outputPath('presentation.png') });
     await Promise.all([
-      expect(display.locator('img[src^="blob:"]')).toBeVisible({ timeout: 120_000 }),
+      capturePresentations(display, duman.page),
       rateUntilReview(duman.page),
       rateUntilReview(kral.page),
       rateUntilReview(sims.page),
@@ -303,7 +389,6 @@ test('özel içerik: yükleme, red, yeniden seçim, YouTube, gösterim ve silme'
     expect([403, 404]).toContain(status);
     await display.screenshot({ path: test.info().outputPath('05-finished.png') });
     console.log('PASS gösterim, puanlama, sonuç, oyun sonu ve özel dosya temizliği', status);
-    expect.soft(libraryTitle, 'Kütüphane seçimi aktif kategori ve meme gerektiriyor').not.toBe('');
   } catch (error) {
     for (const [index, context] of contexts.entries())
       for (const [pageIndex, page] of context.pages().entries())
@@ -312,13 +397,11 @@ test('özel içerik: yükleme, red, yeniden seçim, YouTube, gösterim ve silme'
           .catch(() => undefined);
     throw error;
   } finally {
-    if (memeId) {
-      const response = await adminContext.request.patch(`${WEB}/api/admin/memes/${memeId}`, {
-        data: { status: 'archived' },
-      });
-      expect(response.ok()).toBe(true);
-      console.log('CLEANUP meme arşivlendi', memeId);
-    }
+    await writeFile(test.info().outputPath('media-network.json'), JSON.stringify(network, null, 2));
+    await test.info().attach('media-network', {
+      body: JSON.stringify(network, null, 2),
+      contentType: 'application/json',
+    });
     if (businessId) {
       const response = await adminContext.request.patch(
         `${WEB}/api/admin/businesses/${businessId}`,

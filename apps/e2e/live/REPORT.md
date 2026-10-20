@@ -1,56 +1,45 @@
-# M7d canlı smoke raporu — 20 Ekim 2026
+# Canlı medya duman testi — 20 Ekim 2026
 
-Sonuç: **tam geçmedi**. Gerçek Chromium/Playwright ile canlı ortamda oyun tamamlandı; iki kapsam maddesi başarısız/engelli kaldı. Uygulama kodu, Cloudflare kaynakları ve deployment değiştirilmedi.
+**Kök neden: ekran görüntüsü medya yüklenmeden alınıyordu.** Önceki test yalnız `Gönderi 1 / 3` yazısını bekleyip `presentation.png` alıyordu; Bearer fetch → blob → resim decode veya YouTube iframe yüklemesini beklemiyordu. Daha sonra herhangi bir PNG'nin görünmesini beklemesi, ilk karenin hazır olduğunu kanıtlamıyordu. Aynı boşluk yeni koşuda PNG gönderisinin `display-initial.png` karesinde yeniden üretildi; 2,5 saniye sonraki karede resim göründü. Kalıcı bir medya alanı/yükleme arızası gözlenmedi. Eski PNG tek başına hangi gönderinin gösterildiğini belirtmediğinden geçmiş karenin türü kesin belirlenemez.
 
-| Adım                                                                        | Sonuç                                                                                         |
-| --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| Admin giriş → genel bakış → işletme oluştur → giriş bilgileri → adına giriş | Geçti                                                                                         |
-| İşletme kullanıcı adı/şifresiyle giriş → Yeni oyun → konsol                 | Geçti                                                                                         |
-| Lig, 1 tur, özel içerik açık                                                | Geçti                                                                                         |
-| `/ekran` kodla eşleştirme ve ekranı başlatma                                | Geçti                                                                                         |
-| Ayrı bağlamlarda 390×844 boyutunda 3 oyuncu + 1 seyirci                     | Geçti                                                                                         |
-| Kütüphaneden seçim                                                          | Engelli: aktif meme ve kategori yok                                                           |
-| PNG yükleme → yönetici reddi → yeniden seçim                                | Geçti                                                                                         |
-| Gerçek YouTube doğrulama ve kırpma                                          | Kaldı: doğrulama “YouTube'a ulaşılamadı; biraz sonra tekrar dene.” döndürdü; kırpma açılamadı |
-| Gösterim → dört katılımcıyla puanlama → gözden geçirme → sonuç → şampiyon   | PNG alternatifleriyle geçti                                                                   |
-| Oyun bitince yüklenen özel PNG adresine erişim                              | Geçti: aynı oyuncunun tarayıcısından `cache: no-store` isteği **404**                         |
-| Temizlik                                                                    | Geçti: oluşturulan dört test işletmesi pasife alındı; sistem meme'i/kategori oluşturulmadı    |
+Test artık üç gönderinin **her biri** için ortak ekranın ilk karesini, 2,5 saniye sonraki karesini ve Duman oyuncusunun 390×844 telefon görüntüsünü alıyor. `presentation-evidence.json` slotu, türü (`upload PNG` / `youtube`), telefon slotunu, resim decode bilgisini, iframe `src` adresini ve alan boyutlarını kaydediyor. `media-network.json` medya isteklerinin zamanını, durumunu, içerik türünü ve Bearer kullanılıp kullanılmadığını içeriyor; kimlik başlıklarının değerleri/çerezler kaydedilmiyor. Trace kapalı. Bunlar tanılama kayıtlarıdır; 2,5 saniyelik örnekleme YouTube oynatımının tamamlandığını garanti etmez.
 
-YouTube hatasının istemci metni `YOUTUBE_UNAVAILABLE` karşılığıdır. Sunucu kodunda bu hata oEmbed isteği başarısız olduğunda üretiliyor; canlıdaki dış servis yanıtının ayrıntısı bu testle belirlenemedi. Oynatıcı, kırpma ve YouTube gösterimi doğrulanamadı. Ağ/oynatıcı ikamesi kullanılmadı. Denenen gerçek video: `https://youtu.be/jNQXAC9IVRw`.
+Kütüphanede aktif içerik yoksa adım **SKIP**; alternatif PNG ile oyun sürüyor. Kategori veya sistem meme'i oluşturulmuyor. YouTube doğrulama başarısızlığı hâlâ soft assertion hatasıdır.
 
-Aktif kategori bulunmadığından, izin kapsamını genişletip kategori oluşturulmadı. Bu konu kullanıcıya soruldu; yanıt olmadan uygulanmadı. Kütüphane yerine PNG seçimi yalnız kalan akışın bağımsız doğrulanması için kullanıldı; kütüphane kontrolü başarısız olarak tutuldu.
+| Kontrol                  | Kanıt / sonuç                                                                                                                                                                                                  |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PNG ortak ekran          | Her iki dosya isteği **200**, `image/png`, **Bearer=true**; ardından iki PNG `blob:` adresinde, `complete=true`, doğal boyut 24×24; resim alanı yaklaşık 746×419 px. İlk boş kareden sonra resimler görünüyor. |
+| PNG telefon              | `/api/rooms/…/custom/uploads/…` adresiyle gerçek resim; kendi gönderisinde “Kendi gönderini puanlayamazsın.” mesajı beklenen davranış.                                                                         |
+| YouTube                  | Doğrulama + kırpma geçti. İki yüzeyde `youtube-nocookie.com/embed/jNQXAC9IVRw` iframe'i oluşuyor. Ortak ekranda video karesi görünüyor; codec hatası kanıtı yok.                                               |
+| Tarayıcı karşılaştırması | Paket Chromium 156.0.8078.4 ve `channel: 'chrome'` 155.0.8059.40 ile oyun tamamlandı. Sistemde `/opt/google/chrome/chrome`, Brave'e symlink; ikinci koşu Google Chrome olarak yorumlanmamalı.                  |
+| Oyun sonu                | Puanlama → gözden geçirme → sonuç → şampiyon geçti; özel PNG adresi oyun sonunda 404.                                                                                                                          |
 
-Temizlenen işletme kimlikleri:
+Kanıt dizinleri bu rapora göre `artifacts/` altında (Git tarafından dışlanır):
 
-- `e638ba3f-278f-4c7b-b557-aa089e1f8eb4`
-- `70d1a70e-8501-4e01-acdf-99c4299946c1`
-- `1aecb8f2-28ae-4c47-914d-0189d4d250a9`
-- `3840a1fd-37f2-4c66-9775-28b6a831097e` (tamamlanan oyunun işletmesi)
+- İlk Chromium koşusu: `smoke-özel-içerik-yükleme--befc2-m-YouTube-gösterim-ve-silme/`; sıra YouTube, PNG, PNG.
+- Sistem tarayıcısı: `chrome/smoke-özel-içerik-yükleme--befc2-m-YouTube-gösterim-ve-silme/`; sıra YouTube, PNG, PNG.
+- Kalıcı ağ/DOM JSON kayıtlarını içeren son Chromium koşusu: `chromium/smoke-özel-içerik-yükleme--befc2-m-YouTube-gösterim-ve-silme/`; sıra PNG, YouTube, PNG.
+- Her dizinde `presentation-{1,2,3}-display-initial.png`, `presentation-{1,2,3}-display.png`, `presentation-{1,2,3}-phone.png`.
 
-İlk denemelerde testin yinelenen konsol alanları için seçicileri daraltıldı; uygulama değiştirilmedi. Son koşu 1,8 dakika sürdü, beklenen iki soft assertion nedeniyle başarısız çıktı.
-
-Kanıtlar, bu dosyaya göre `artifacts/smoke-özel-içerik-yükleme--befc2-m-YouTube-gösterim-ve-silme/` altında:
-
-- `01-admin.png`: genel bakış
-- `02-console.png`: lig ayarları
-- `03-lobby.png`: ortak ekran ve 3 oyuncu + 1 seyirci
-- `04-youtube-failed.png`: gerçek YouTube doğrulama hatası
-- `presentation.png`: gönderi gösterimi
-- `05-finished.png`: şampiyon ekranı
-- `error-context.md`: Playwright hata bağlamı
-
-Şifre ve kimlik çerezlerini kaydetmemek için trace kapalıdır. Admin şifresi yalnız ortam değişkeninden okunur.
-
-Çalıştırma:
+Çalıştırma (`MOL_ADMIN_PASSWORD` ortam değişkeni gerekir):
 
 ```sh
 pnpm --filter @mol/e2e exec playwright test -c live/playwright.config.ts
+MOL_BROWSER_CHANNEL=chrome pnpm --filter @mol/e2e exec playwright test -c live/playwright.config.ts
 pnpm --filter @mol/e2e exec tsc -p live/tsconfig.json
 pnpm verify
 ```
 
-`pnpm verify` geçti: typecheck, lint, 426 test ve build. Canlı dosyalar ayrıca kendi `tsconfig.json` dosyasıyla typecheck edildi ve lint geçti. Wrangler yerel log dizinine yazamadığı için EROFS uyarısı verdi; doğrulamanın çıkış kodu 0. Normal e2e yapılandırması değiştirilmedi; canlı yapılandırmada webServer/globalSetup yoktur.
+Yalnız `apps/e2e/live/` değiştirildi. Uygulama/sunucu kodu değişmedi; deploy yapılmadı, doğrudan wrangler komutu çalıştırılmadı. Zorunlu `pnpm verify`, mevcut build betiği üzerinden Wrangler `deploy --dry-run` çalıştırıyor; bu yalnız yerel derleme yaptı. Aktif kütüphane içeriğiyle seçim, içerik olmadığı için sınanamadı; YouTube videosunun klip boyunca kesintisiz ilerlemesi ayrıca ölçülmedi.
 
-Açık konular: test kategorisi oluşturma izni veya mevcut aktif kategori/meme sağlanması; canlı Worker'ın gerçek YouTube oEmbed erişim hatasının araştırılması. Bu görev kapsamında hata düzeltilmedi.
+Doğrulama: üç canlı koşu geçti (Chromium 1,4 dk; sistem tarayıcısı 1,4 dk; JSON kanıtlı Chromium 1,6 dk). Canlı TypeScript kontrolü ve `pnpm verify` geçti: typecheck, lint, **426 test**, build; çıkış kodu 0. Wrangler'ın yerel log dizinine yazarken verdiği EROFS mesajı doğrulamayı başarısız yapmadı.
 
-Commit denenmiş ancak `git add` aşamasında worktree'nin ortak Git dizininde `index.lock` oluşturulamadı (salt okunur dosya sistemi). Dosyalar çalışma ağacında bırakıldı; commit ve push yapılmadı.
+Bu çalışmada oluşturulan üç işletme pasife alındı:
+
+- `5aa9ad62-d9b5-4d25-b81d-b00a86b26cab`
+- `ea7c4d37-492c-43dd-951a-4cfcc3e640c6`
+- `dd099991-7294-4460-8d10-359cc63f9cce`
+
+Önceki rapordaki dört işletmenin pasife alınmış olduğu kaydı korunur: `e638ba3f-278f-4c7b-b557-aa089e1f8eb4`, `70d1a70e-8501-4e01-acdf-99c4299946c1`, `1aecb8f2-28ae-4c47-914d-0189d4d250a9`, `3840a1fd-37f2-4c66-9775-28b6a831097e`. Yeni sistem meme'i/kategori oluşturulmadığı için arşivlenecek içerik yok.
+
+Commit denendi; `git add` ortak Git dizininde `/home/kocak/Projects/Meme_of_Legends/.git/worktrees/mol-wt-m7d/index.lock` oluşturamadı (`Read-only file system`). Commit/push oluşmadı; değişiklikler çalışma ağacında bırakıldı.
